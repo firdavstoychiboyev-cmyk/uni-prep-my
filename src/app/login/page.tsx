@@ -1,16 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Library, ClipboardCheck, LineChart, type LucideIcon } from "lucide-react";
 import { signInWithGoogle } from "@/lib/auth-utils";
 import { useAuthStore } from "@/store/useAuthStore";
-import Image from "next/image";
-import Plasma from "@/components/Plasma";
-import Particles from "@/components/Particles";
-import { BookOpen, Target, Award } from "lucide-react";
+
+const features: { icon: LucideIcon; text: string }[] = [
+    {
+        icon: Library,
+        text: "Материалы и тренировка по темам в карточках предметов",
+    },
+    {
+        icon: ClipboardCheck,
+        text: "Тесты с мгновенной обратной связью",
+    },
+    {
+        icon: LineChart,
+        text: "Графики прогресса и достижения на главной",
+    },
+];
+
+const THEME_KEY = "uni-prep-theme";
 
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const { isLoading } = useAuthStore();
+
+    useEffect(() => {
+        const root = document.documentElement;
+        root.classList.remove("dark");
+        return () => {
+            try {
+                const saved = localStorage.getItem(THEME_KEY);
+                if (saved === "dark") root.classList.add("dark");
+                else root.classList.remove("dark");
+            } catch {
+                /* ignore */
+            }
+        };
+    }, []);
 
     const handleLogin = async () => {
         try {
@@ -23,107 +52,69 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
-            {/* Plasma background */}
-            <div className="fixed inset-0 z-0">
-                <Plasma
-                    color="#ffffff"
-                    speed={1.0}
-                    direction="forward"
-                    scale={1.2}
-                    opacity={0.9}
-                    mouseInteractive={true}
-                />
-            </div>
-
-            <div className="relative z-10 flex flex-col items-center w-full max-w-md px-4 py-16">
-                {/* Logo Section */}
-                <div className="mb-12 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-700">
-                    <div className="relative w-64 h-28 transition-transform hover:scale-105 duration-300">
-                        <Image
-                            src="/лого.png"
-                            alt="Uni-Prep Logo"
-                            fill
-                            className="object-contain"
-                            priority
-                        />
-                    </div>
-                </div>
-
-                {/* Login Card with Particles background */}
-                <div className="relative w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-[2.5rem] shadow-[0_0_40px_rgba(0,0,0,0.35)] overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-                    {/* Particles background inside card */}
-                    <div className="absolute inset-0 z-0">
-                        <Particles
-                            className=""
-                            particleCount={150}
-                            particleSpread={6}
-                            speed={0.2}
-                            particleColors={['#ffffff', '#888888', '#ffffff']}
-                            moveParticlesOnHover={false}
-                            particleHoverFactor={0}
-                            alphaParticles={true}
-                            particleBaseSize={80}
-                            sizeRandomness={0.5}
-                            cameraDistance={15}
-                            disableRotation={false}
-                        />
-                    </div>
-                    {/* Reflective glow overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-0" />
-
-                    <div className="relative z-10 p-12">
-                        <div className="text-center mb-8">
-                            <h2 className="text-4xl font-bold tracking-tight text-white mb-4 font-[var(--font-inter)]">
-                                С возвращением
-                            </h2>
-                            <p className="text-white/70 text-base font-[var(--font-inter)] leading-relaxed">
-                                Войдите, чтобы продолжить обучение и достигать новых высот
-                            </p>
+        <div className="relative flex min-h-dvh flex-col bg-white text-neutral-900">
+            <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-12 sm:py-16">
+                <div className="w-full max-w-[420px]">
+                    <div className="mb-8 flex justify-center">
+                        <div className="flex items-center gap-3">
+                            <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
+                                <Image
+                                    src="/gogg.png"
+                                    alt=""
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                />
+                            </div>
+                            <span className="text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-[1.75rem]">
+                                UniPrep
+                            </span>
                         </div>
+                    </div>
 
-                        {error && (
-                            <div className="mb-8 p-4 rounded-2xl bg-red-500/15 border border-red-400/30 text-red-300 text-sm backdrop-blur animate-in fade-in zoom-in duration-300 font-[var(--font-inter)]">
-                                {error}
+                    <div className="overflow-hidden rounded-3xl border border-neutral-200/90 bg-white shadow-md transition-shadow duration-300">
+                        <div className="px-6 py-8 sm:px-8 sm:py-10">
+                            <div className="mb-8 text-center">
+                                <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+                                    С возвращением
+                                </h1>
+                                <p className="mt-3 text-sm leading-relaxed text-neutral-500 sm:text-base">
+                                    Войдите через Google, чтобы продолжить занятия и смотреть прогресс на главной.
+                                </p>
                             </div>
-                        )}
 
-                        <button
-                            onClick={handleLogin}
-                            disabled={isLoading}
-                            className="group relative w-full flex items-center justify-center gap-3 py-5 px-6 bg-white text-neutral-900 rounded-2xl font-semibold text-base transition-all hover:bg-neutral-100 active:scale-[0.98] disabled:opacity-50 overflow-hidden shadow-[0_18px_45px_rgba(0,0,0,0.45)] font-[var(--font-inter)] mb-10"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                            <Image
-                                src="/google.png"
-                                alt="Google"
-                                width={22}
-                                height={22}
-                                className="relative z-10"
-                            />
-                            <span className="relative z-10">Войти через Google</span>
-                        </button>
+                            {error ? (
+                                <div
+                                    role="alert"
+                                    className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                                >
+                                    {error}
+                                </div>
+                            ) : null}
 
-                        {/* Features list */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-white/80">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
-                                    <BookOpen className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm font-[var(--font-inter)]">Структурированные материалы по всем предметам</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-white/80">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
-                                    <Target className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm font-[var(--font-inter)]">Адаптивные тесты с мгновенной обратной связью</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-white/80">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
-                                    <Award className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm font-[var(--font-inter)]">Отслеживание прогресса и достижений</span>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handleLogin}
+                                disabled={isLoading}
+                                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white py-4 pl-5 pr-6 text-sm font-semibold text-neutral-900 shadow-sm transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                <Image src="/google.png" alt="" width={22} height={22} className="shrink-0" />
+                                {isLoading ? "Подключение…" : "Войти через Google"}
+                            </button>
+
+                            <ul className="mt-10 space-y-4">
+                                {features.map(({ icon: Icon, text }) => (
+                                    <li key={text} className="flex gap-3">
+                                        <div
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 text-neutral-500"
+                                            aria-hidden
+                                        >
+                                            <Icon className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.75} />
+                                        </div>
+                                        <span className="text-sm leading-snug text-neutral-500">{text}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
                 </div>

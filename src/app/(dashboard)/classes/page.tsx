@@ -8,7 +8,6 @@ import { createClass, fetchTeacherClasses } from "@/lib/class-utils";
 import CreateClassModal from "@/components/create-class-modal";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import Plasma from "@/components/Plasma";
 
 export default function ClassesPage() {
     const { user } = useAuthStore();
@@ -28,25 +27,24 @@ export default function ClassesPage() {
     const handleCreateClass = async (name: string, subjectId: string) => {
         if (!user) return;
         const newClass = await createClass(user.id, name, subjectId);
-        setClasses((prev) => [{ ...newClass, createdAt: typeof newClass.createdAt === 'string' ? newClass.createdAt : new Date().toISOString() } as Class, ...prev]);
+        setClasses((prev) => [
+            {
+                ...newClass,
+                createdAt:
+                    typeof newClass.createdAt === "string"
+                        ? newClass.createdAt
+                        : new Date().toISOString(),
+            } as Class,
+            ...prev,
+        ]);
     };
 
     if (user?.role !== "teacher") {
         return (
-            <div className="relative min-h-[60vh] flex items-center justify-center">
-                <div className="fixed inset-0 z-0">
-                    <Plasma
-                        color="#ffffff"
-                        speed={1.0}
-                        direction="forward"
-                        scale={1.2}
-                        opacity={0.9}
-                        mouseInteractive={true}
-                    />
-                </div>
-                <div className="relative z-10 px-6 py-10 rounded-3xl bg-white/5 border border-white/15 backdrop-blur-xl text-center shadow-[0_0_40px_rgba(0,0,0,0.35)]">
-                    <h2 className="text-2xl font-semibold text-white mb-2">Доступ ограничен</h2>
-                    <p className="text-white/60 text-sm max-w-sm">
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <div className="max-w-sm rounded-2xl border border-border bg-card px-8 py-10 text-center">
+                    <h2 className="mb-2 text-xl font-semibold text-foreground">Доступ ограничен</h2>
+                    <p className="text-sm text-muted-foreground">
                         Страница управления классами доступна только для учителей.
                     </p>
                 </div>
@@ -55,84 +53,70 @@ export default function ClassesPage() {
     }
 
     return (
-        <div className="relative flex flex-col gap-12 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Plasma background */}
-            <div className="fixed inset-0 z-0">
-                <Plasma
-                    color="#ffffff"
-                    speed={1.0}
-                    direction="forward"
-                    scale={1.2}
-                    opacity={0.9}
-                    mouseInteractive={true}
-                />
-            </div>
-
-            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">
+            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
                 <section>
-                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+                    <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
                         Мои классы
                     </h1>
-                    <p className="text-white/60 mt-3 leading-relaxed max-w-xl text-sm sm:text-base">
+                    <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                         Создавайте учебные группы, делитесь материалами и отслеживайте прогресс учеников в одном месте.
                     </p>
                 </section>
 
                 <button
+                    type="button"
                     onClick={() => setIsModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white text-neutral-900 text-sm font-semibold shadow-[0_18px_45px_rgba(0,0,0,0.45)] hover:bg-neutral-100 active:scale-[0.97] transition-all self-start md:self-auto"
+                    className="inline-flex items-center justify-center gap-2 self-start rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background shadow-sm transition-all hover:opacity-90 active:scale-[0.97] md:self-auto"
                 >
                     <Plus size={18} />
                     <span>Создать класс</span>
                 </button>
             </div>
 
-            <section className="relative z-10">
+            <section>
                 {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                         {[1, 2, 3].map((n) => (
                             <div
                                 key={n}
-                                className="h-56 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl animate-pulse"
+                                className="h-48 animate-pulse rounded-2xl border border-border bg-muted"
                             />
                         ))}
                     </div>
                 ) : classes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                         {classes.map((cls) => {
                             const subject = SUBJECTS.find((s) => s.id === cls.subjectId);
                             return (
                                 <Link
                                     key={cls.id}
                                     href={`/classes/${cls.id}`}
-                                    className="group relative p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.35)] hover:bg-white/8 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                                    className="group rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm"
                                 >
-                                    <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-radial-at-t from-white/12 via-transparent to-transparent" />
-                                    <div className="relative flex flex-col gap-4 h-56">
+                                    <div className="flex h-44 flex-col gap-4">
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted text-2xl shadow-sm">
                                                     {subject?.emoji || "📚"}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <h3 className="text-base font-semibold text-white tracking-tight">
+                                                    <h3 className="text-base font-semibold tracking-tight text-foreground">
                                                         {cls.name}
                                                     </h3>
-                                                    <span className="text-[11px] uppercase tracking-[0.18em] text-white/50">
+                                                    <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                                                         {subject?.name || "Предмет не указан"}
                                                     </span>
                                                 </div>
                                             </div>
-                                            <span className="text-xs font-medium text-white/60 bg-white/5 border border-white/15 rounded-full px-3 py-1">
+                                            <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                                                 {cls.students.length} учеников
                                             </span>
                                         </div>
 
-                                        <div className="mt-auto pt-2 text-sm font-semibold text-white/80 inline-flex items-center gap-1">
+                                        <div className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
                                             <span>Управление классом</span>
-                                            <span className="transition-transform group-hover:translate-x-1">
-                                                →
-                                            </span>
+                                            <span className="transition-transform group-hover:translate-x-1">→</span>
                                         </div>
                                     </div>
                                 </Link>
@@ -140,13 +124,12 @@ export default function ClassesPage() {
                         })}
                     </div>
                 ) : (
-                    <div className="py-16 px-6 text-center rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
-                        <p className="text-white/60 font-medium">
-                            У вас пока нет созданных классов.
-                        </p>
+                    <div className="rounded-2xl border border-border bg-muted/50 px-6 py-16 text-center dark:bg-muted/30">
+                        <p className="font-medium text-muted-foreground">У вас пока нет созданных классов.</p>
                         <button
+                            type="button"
                             onClick={() => setIsModalOpen(true)}
-                            className="mt-4 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-neutral-900 text-sm font-semibold hover:bg-neutral-100 active:scale-[0.97] transition-all"
+                            className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97]"
                         >
                             <Plus size={16} />
                             <span>Создать первый класс</span>

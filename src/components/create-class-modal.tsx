@@ -33,18 +33,14 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="relative w-full max-w-lg rounded-[2rem] bg-white/5 border border-white/15 shadow-[0_0_40px_rgba(0,0,0,0.6)] overflow-hidden animate-in fade-in zoom-in duration-200 backdrop-blur-2xl">
-                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
-
-                <div className="relative z-10 p-8 md:p-10">
-                    <h2 className="text-2xl font-bold text-white tracking-tight mb-6">
-                        Новый класс
-                    </h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70">
+            <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-card shadow-lg animate-in fade-in zoom-in duration-200">
+                <div className="p-8 md:p-10">
+                    <h2 className="mb-6 text-2xl font-bold tracking-tight text-foreground">Новый класс</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-7">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-white/70 uppercase tracking-[0.2em] ml-1">
+                            <label className="ml-1 block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                                 Название класса
                             </label>
                             <input
@@ -52,16 +48,16 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder={'Например, 10 "Б" Математика'}
-                                className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:bg-white/10 focus:border-white/40 focus:outline-none transition-all"
+                                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-border focus:outline-none focus:ring-2 focus:ring-ring/30"
                                 required
                             />
                         </div>
 
                         <div className="space-y-3">
-                            <label className="block text-xs font-bold text-white/70 uppercase tracking-[0.2em] ml-1">
+                            <label className="ml-1 block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                                 Предмет
                             </label>
-                            <div className="grid grid-cols-2 gap-3 max-h-52 overflow-y-auto pr-1">
+                            <div className="grid max-h-52 grid-cols-2 gap-3 overflow-y-auto pr-1">
                                 {SUBJECTS.map((s) => {
                                     const isActive = subjectId === s.id;
                                     return (
@@ -69,14 +65,14 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
                                             key={s.id}
                                             type="button"
                                             onClick={() => setSubjectId(s.id)}
-                                            className={`flex flex-col items-start gap-1.5 p-3 rounded-2xl border text-left text-xs transition-all backdrop-blur ${
+                                            className={`flex flex-col items-start gap-1.5 rounded-2xl border-2 p-3 text-left text-xs transition-all ${
                                                 isActive
-                                                    ? "border-white bg-white/15 text-white shadow-[0_0_25px_rgba(0,0,0,0.5)]"
-                                                    : "border-white/15 bg-white/5 text-white/80 hover:border-white/35 hover:bg-white/10"
+                                                    ? "border-foreground/80 bg-muted shadow-sm"
+                                                    : "border-border bg-card hover:border-border hover:bg-muted/60"
                                             }`}
                                         >
                                             <span className="text-lg">{s.emoji}</span>
-                                            <span className="font-semibold text-[11px] uppercase tracking-[0.16em]">
+                                            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground">
                                                 {s.name}
                                             </span>
                                         </button>
@@ -89,14 +85,14 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="flex-1 py-3 rounded-2xl border border-white/20 text-white/70 font-medium hover:bg-white/5 transition-all text-sm"
+                                className="flex-1 rounded-2xl border border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
                             >
                                 Отмена
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="flex-1 py-3 rounded-2xl bg-white text-neutral-900 font-semibold text-sm hover:bg-neutral-100 active:scale-[0.97] transition-all disabled:opacity-50 shadow-[0_12px_35px_rgba(0,0,0,0.55)]"
+                                className="flex-1 rounded-2xl bg-foreground py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
                             >
                                 {isSubmitting ? "Создание..." : "Создать класс"}
                             </button>
@@ -107,4 +103,3 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
         </div>
     );
 }
-

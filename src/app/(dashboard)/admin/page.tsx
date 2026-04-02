@@ -35,10 +35,8 @@ export default function AdminDashboard() {
     return (
         <div className="flex flex-col gap-12">
             <section>
-                <h1 className="text-4xl font-semibold tracking-tight text-neutral-900">
-                    Обзор.
-                </h1>
-                <p className="text-neutral-500 mt-4 leading-relaxed max-w-xl">
+                <h1 className="text-4xl font-semibold tracking-tight text-foreground">Обзор.</h1>
+                <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">
                     Общая статистика системы и панель управления контентом.
                 </p>
             </section>
@@ -46,18 +44,23 @@ export default function AdminDashboard() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {isLoading ? (
                     [1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="h-32 bg-white rounded-xl border border-neutral-200 animate-pulse shadow-sm" />
+                        <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-card shadow-sm" />
                     ))
                 ) : (
                     statCards.map((card, idx) => (
-                        <div key={idx} className="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm flex items-center justify-between">
+                        <div
+                            key={idx}
+                            className="flex items-center justify-between rounded-xl border border-border bg-card p-8 shadow-sm"
+                        >
                             <div>
-                                <p className="text-3xl font-bold text-neutral-900 tracking-tight">
+                                <p className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
                                     {card.value || 0}
                                 </p>
-                                <p className="text-sm font-medium text-neutral-500 mt-1 uppercase tracking-wider">{card.label}</p>
+                                <p className="mt-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                                    {card.label}
+                                </p>
                             </div>
-                            <div className={`p-4 rounded-xl bg-neutral-50 ${card.color}`}>
+                            <div className={`rounded-xl bg-muted p-4 ${card.color} dark:opacity-90`}>
                                 <card.icon size={24} />
                             </div>
                         </div>
@@ -65,41 +68,65 @@ export default function AdminDashboard() {
                 )}
             </section>
 
-            <section className="bg-white border border-neutral-200 rounded-2xl p-8">
-                <h2 className="text-xl font-semibold text-neutral-900 tracking-tight mb-4">Управление контентом.</h2>
-                <p className="text-sm text-neutral-500 leading-relaxed max-w-2xl italic">
+            <section className="rounded-2xl border border-border bg-card p-8">
+                <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">Управление контентом.</h2>
+                <p className="max-w-2xl text-sm italic leading-relaxed text-muted-foreground">
                     Совет: Иерархия контента: Предмет → Учебник → Тема → Вопрос.
                     Соблюдайте осторожность при удалении данных.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                    <a href="/admin/subjects" className="p-4 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors flex items-center justify-between group">
+                    <a
+                        href="/admin/subjects"
+                        className="group flex items-center justify-between rounded-xl border border-border p-4 transition-colors hover:bg-muted"
+                    >
                         <div className="flex items-center gap-3">
-                            <BookOpen size={18} className="text-neutral-400 group-hover:text-neutral-900" />
-                            <span className="font-medium">Управление предметами</span>
+                            <BookOpen size={18} className="text-muted-foreground group-hover:text-foreground" />
+                            <span className="font-medium text-foreground">Управление предметами</span>
                         </div>
-                        <ArrowRight size={16} className="text-neutral-300 group-hover:text-neutral-900" />
+                        <ArrowRight
+                            size={16}
+                            className="text-muted-foreground/60 group-hover:text-foreground"
+                        />
                     </a>
-                    <a href="/admin/textbooks" className="p-4 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors flex items-center justify-between group">
+                    <a
+                        href="/admin/textbooks"
+                        className="group flex items-center justify-between rounded-xl border border-border p-4 transition-colors hover:bg-muted"
+                    >
                         <div className="flex items-center gap-3">
-                            <Library size={18} className="text-neutral-400 group-hover:text-neutral-900" />
-                            <span className="font-medium">Управление учебниками</span>
+                            <Library size={18} className="text-muted-foreground group-hover:text-foreground" />
+                            <span className="font-medium text-foreground">Управление учебниками</span>
                         </div>
-                        <ArrowRight size={16} className="text-neutral-300 group-hover:text-neutral-900" />
+                        <ArrowRight
+                            size={16}
+                            className="text-muted-foreground/60 group-hover:text-foreground"
+                        />
                     </a>
-                    <a href="/admin/topics" className="p-4 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors flex items-center justify-between group">
+                    <a
+                        href="/admin/topics"
+                        className="group flex items-center justify-between rounded-xl border border-border p-4 transition-colors hover:bg-muted"
+                    >
                         <div className="flex items-center gap-3">
-                            <ListTree size={18} className="text-neutral-400 group-hover:text-neutral-900" />
-                            <span className="font-medium">Управление темами</span>
+                            <ListTree size={18} className="text-muted-foreground group-hover:text-foreground" />
+                            <span className="font-medium text-foreground">Управление темами</span>
                         </div>
-                        <ArrowRight size={16} className="text-neutral-300 group-hover:text-neutral-900" />
+                        <ArrowRight
+                            size={16}
+                            className="text-muted-foreground/60 group-hover:text-foreground"
+                        />
                     </a>
-                    <a href="/admin/questions" className="p-4 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors flex items-center justify-between group">
+                    <a
+                        href="/admin/questions"
+                        className="group flex items-center justify-between rounded-xl border border-border p-4 transition-colors hover:bg-muted"
+                    >
                         <div className="flex items-center gap-3">
-                            <HelpCircle size={18} className="text-neutral-400 group-hover:text-neutral-900" />
-                            <span className="font-medium">Управление вопросами</span>
+                            <HelpCircle size={18} className="text-muted-foreground group-hover:text-foreground" />
+                            <span className="font-medium text-foreground">Управление вопросами</span>
                         </div>
-                        <ArrowRight size={16} className="text-neutral-300 group-hover:text-neutral-900" />
+                        <ArrowRight
+                            size={16}
+                            className="text-muted-foreground/60 group-hover:text-foreground"
+                        />
                     </a>
                 </div>
             </section>

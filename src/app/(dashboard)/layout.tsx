@@ -1,6 +1,9 @@
 "use client";
 
-import Navbar from "@/components/navbar";
+import Sidebar from "@/components/sidebar";
+import NavProgressBar from "@/components/nav-progress-bar";
+import PageWrapper from "@/components/page-wrapper";
+import Topbar from "@/components/topbar";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -21,17 +24,52 @@ export default function DashboardLayout({
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-transparent">
-                <div className="w-8 h-1 bg-neutral-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-neutral-900 animate-[loading_1.5s_infinite_ease-in-out]"></div>
-                </div>
-                <style jsx>{`
-          @keyframes loading {
-            0% { width: 0%; transform: translateX(-100%); }
-            50% { width: 100%; transform: translateX(0%); }
-            100% { width: 0%; transform: translateX(100%); }
-          }
-        `}</style>
+            <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-muted/25">
+                {/* Skeleton sidebar — hidden on mobile */}
+                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex-col z-50 px-3 py-6 gap-2">
+                    <div className="h-10 w-40 bg-gray-100 rounded-xl animate-pulse mx-3 mb-4" />
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                    ))}
+                    <div className="mt-4 mx-3">
+                        <div className="h-3 w-20 bg-gray-100 rounded animate-pulse mb-3" />
+                    </div>
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
+                    ))}
+                </aside>
+                {/* Skeleton content */}
+                <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-muted/25">
+                    <div className="h-16 shrink-0 bg-background/80" />
+                    <div className="mx-4 mb-4 mt-3 flex min-h-0 flex-1 flex-col sm:mx-5 sm:mb-5 sm:mt-4">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl rounded-b-2xl border border-border/45 bg-background shadow-md">
+                            <div className="h-12 shrink-0 border-b border-[hsl(var(--brand-blue))]/18 bg-[hsl(var(--brand-blue-soft))]" />
+                            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 sm:p-8 flex flex-col gap-6">
+                                <div className="h-10 w-64 bg-gray-100 rounded-2xl animate-pulse" />
+                                <div className="h-4 w-full max-w-xs sm:w-96 bg-gray-100 rounded-xl animate-pulse" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-2">
+                                    {[...Array(3)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="h-32 bg-gray-100 rounded-2xl animate-pulse"
+                                            style={{ animationDelay: `${i * 100}ms` }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="h-6 w-48 bg-gray-100 rounded-xl animate-pulse mt-4" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                    {[...Array(6)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="h-44 bg-gray-100 rounded-2xl animate-pulse"
+                                            style={{ animationDelay: `${i * 80}ms` }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
         );
     }
@@ -39,10 +77,14 @@ export default function DashboardLayout({
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-transparent selection:bg-neutral-900 selection:text-white">
-            <Navbar />
-            <main className="max-w-6xl mx-auto px-6 py-24">
-                {children}
+        <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-muted/25">
+            <Sidebar />
+            <NavProgressBar />
+            <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-muted/25">
+                <Topbar />
+                <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 flex-col sm:mx-5 sm:mb-5 sm:mt-4">
+                    <PageWrapper>{children}</PageWrapper>
+                </div>
             </main>
         </div>
     );

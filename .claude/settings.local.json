@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.oneprep.xyz)"
+    ]
+  },
+  "enabledMcpjsonServers": ["context7"]
+}

@@ -12,6 +12,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -37,12 +38,21 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 1.25rem;
+
+    /* Brand accents (как на примере: фиолетовый + голубой) */
+    --brand-purple: 284 86% 55%;
+    --brand-purple-soft: 284 86% 96%;
+    --brand-purple-ink: 284 86% 36%;
+    --brand-blue: 200 92% 52%;
+    --brand-blue-soft: 200 92% 96%;
+    --brand-blue-ink: 200 92% 34%;
   }
   * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   .dark {
+    color-scheme: dark;
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -77,11 +87,17 @@
     @apply border-border;
   }
   body {
-    @apply text-foreground;
+    @apply text-foreground bg-background;
+    font-family: var(--font-inter), system-ui, sans-serif;
   }
 }
 
-/* Глобальный фон: тёмно-синий + тёмно-фиолетовый градиент */
+/* Глобальный фон */
 .app-bg {
-  background-color: #060010;
+  background-color: #ffffff;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

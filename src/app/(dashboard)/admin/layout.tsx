@@ -5,20 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-    LayoutDashboard,
-    BookOpen,
-    Library,
-    ListTree,
-    HelpCircle,
-    ArrowLeft
-} from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft } from "lucide-react";
 
-export default function AdminLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
@@ -31,9 +20,9 @@ export default function AdminLayout({
 
     if (isLoading || !user || user.role !== "admin") {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-transparent">
-                <div className="w-8 h-1 bg-neutral-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-neutral-900 animate-pulse"></div>
+            <div className="flex min-h-screen items-center justify-center bg-transparent">
+                <div className="h-1 w-8 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full animate-pulse bg-foreground"></div>
                 </div>
             </div>
         );
@@ -49,26 +38,27 @@ export default function AdminLayout({
 
     return (
         <div className="flex min-h-screen bg-transparent">
-            {/* Sidebar */}
-            <aside className="w-64 border-r border-neutral-200 flex flex-col sticky top-0 h-screen">
-                <div className="p-8 border-b border-neutral-100 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+            {/* Desktop sidebar */}
+            <aside className="hidden md:flex sticky top-0 h-screen w-64 flex-col border-r border-border bg-card shrink-0">
+                <div className="flex items-center gap-3 border-b border-border p-8">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-lg font-bold text-background">
                         A
                     </div>
-                    <span className="font-semibold tracking-tight text-neutral-900">Админка</span>
+                    <span className="font-semibold tracking-tight text-foreground">Админка</span>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1 mt-4">
+                <nav className="mt-4 flex-1 space-y-1 p-4">
                     {menuItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                    ? "bg-neutral-900 text-white"
-                                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-                                    }`}
+                                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
+                                    isActive
+                                        ? "bg-foreground text-background"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                }`}
                             >
                                 <item.icon size={18} />
                                 {item.name}
@@ -77,10 +67,10 @@ export default function AdminLayout({
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-neutral-100">
+                <div className="border-t border-border p-4">
                     <Link
                         href="/"
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                     >
                         <ArrowLeft size={18} />
                         Вернуться
@@ -88,12 +78,41 @@ export default function AdminLayout({
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 p-12 bg-transparent">
-                <div className="max-w-5xl mx-auto">
-                    {children}
+            <div className="flex-1 min-w-0 flex flex-col">
+                {/* Mobile horizontal tab bar */}
+                <div className="md:hidden border-b border-border bg-card shrink-0">
+                    <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
+                        {menuItems.map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                                        isActive
+                                            ? "bg-foreground text-background"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    }`}
+                                >
+                                    <item.icon size={14} />
+                                    {item.name}
+                                </Link>
+                            );
+                        })}
+                        <Link
+                            href="/"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground transition-all shrink-0 ml-auto"
+                        >
+                            <ArrowLeft size={14} />
+                            Назад
+                        </Link>
+                    </div>
                 </div>
-            </main>
+
+                <main className="flex-1 bg-transparent p-4 md:p-12">
+                    <div className="mx-auto max-w-5xl">{children}</div>
+                </main>
+            </div>
         </div>
     );
 }

@@ -9,7 +9,6 @@ import { fetchUserGlobalStats, GlobalStats, fetchUserSubjectRatings, fetchUserBa
 import { SUBJECTS } from "@/lib/constants";
 import { Mail, Fingerprint, Award, Star, Medal as MedalIcon, Calendar, BookOpen, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import Plasma from "@/components/Plasma";
 
 export default function StudentProfilePage() {
     const { id } = useParams();
@@ -18,34 +17,42 @@ export default function StudentProfilePage() {
     const [student, setStudent] = useState<User | null>(null);
     const [stats, setStats] = useState<GlobalStats | null>(null);
     const [ratings, setRatings] = useState<Record<string, number>>({});
-    const [badges, setBadges] = useState<Array<{ id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } }>>([]);
+    const [badges, setBadges] = useState<
+        Array<{
+            id: string;
+            name: string;
+            description?: string;
+            icon?: string;
+            unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number };
+        }>
+    >([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Функция для преобразования unlockedAt в дату
-    const getUnlockedDate = (unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number }): Date | null => {
+    const getUnlockedDate = (
+        unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number }
+    ): Date | null => {
         if (!unlockedAt) return null;
-        
-        if (typeof unlockedAt === 'string') {
+
+        if (typeof unlockedAt === "string") {
             return new Date(unlockedAt);
         }
-        
+
         if (unlockedAt instanceof Date) {
             return unlockedAt;
         }
-        
-        if ('toDate' in unlockedAt && typeof unlockedAt.toDate === 'function') {
+
+        if ("toDate" in unlockedAt && typeof unlockedAt.toDate === "function") {
             return unlockedAt.toDate();
         }
-        
-        if ('seconds' in unlockedAt && typeof unlockedAt.seconds === 'number') {
+
+        if ("seconds" in unlockedAt && typeof unlockedAt.seconds === "number") {
             return new Date(unlockedAt.seconds * 1000);
         }
-        
+
         return null;
     };
 
     useEffect(() => {
-        // Only teachers should see this
         if (currentUser && currentUser.role !== "teacher") {
             router.push("/");
             return;
@@ -58,7 +65,7 @@ export default function StudentProfilePage() {
                         getUserProfile(id as string),
                         fetchUserGlobalStats(id as string),
                         fetchUserSubjectRatings(id as string),
-                        fetchUserBadges(id as string)
+                        fetchUserBadges(id as string),
                     ]);
 
                     setStudent(profile);
@@ -71,44 +78,27 @@ export default function StudentProfilePage() {
                     setIsLoading(false);
                 }
             };
-            fetchData();
+            void fetchData();
         }
     }, [id, currentUser, router]);
 
     if (isLoading) {
         return (
-            <div className="relative min-h-[60vh] flex items-center justify-center">
-                <div className="fixed inset-0 z-0">
-                    <Plasma
-                        color="#ffffff"
-                        speed={1.0}
-                        direction="forward"
-                        scale={1.2}
-                        opacity={0.9}
-                        mouseInteractive={true}
-                    />
-                </div>
-                <div className="relative z-10 w-28 h-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl animate-pulse" />
+            <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="h-10 w-28 animate-pulse rounded-3xl border border-border bg-muted" />
             </div>
         );
     }
 
     if (!student) {
         return (
-            <div className="relative min-h-[60vh] flex items-center justify-center">
-                <div className="fixed inset-0 z-0">
-                    <Plasma
-                        color="#ffffff"
-                        speed={1.0}
-                        direction="forward"
-                        scale={1.2}
-                        opacity={0.9}
-                        mouseInteractive={true}
-                    />
-                </div>
-                <div className="relative z-10 px-6 py-10 rounded-3xl bg-white/5 border border-white/15 backdrop-blur-xl text-center shadow-[0_0_40px_rgba(0,0,0,0.35)]">
-                    <h2 className="text-2xl font-bold text-white mb-3">Ученик не найден</h2>
-                    <Link href="/" className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-white text-neutral-900 text-sm font-semibold hover:bg-neutral-100 active:scale-[0.97] transition-all">
+            <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="max-w-md rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm">
+                    <h2 className="mb-3 text-2xl font-bold text-foreground">Ученик не найден</h2>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center justify-center rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97]"
+                    >
                         На главную
                     </Link>
                 </div>
@@ -117,52 +107,39 @@ export default function StudentProfilePage() {
     }
 
     return (
-        <div className="relative max-w-5xl mx-auto py-6 flex flex-col gap-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Plasma background */}
-            <div className="fixed inset-0 z-0">
-                <Plasma
-                    color="#ffffff"
-                    speed={1.0}
-                    direction="forward"
-                    scale={1.2}
-                    opacity={0.9}
-                    mouseInteractive={true}
-                />
-            </div>
-
-            {/* Breadcrumbs */}
-            <nav className="relative z-10 flex items-center gap-2 text-xs sm:text-sm font-medium text-white/40">
-                <Link href="/classes" className="hover:text-white transition-colors">
+        <div className="mx-auto flex max-w-5xl animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-6 duration-700">
+            <nav className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-sm">
+                <Link href="/classes" className="transition-colors hover:text-foreground">
                     Классы
                 </Link>
-                <ChevronRight size={14} className="text-white/25" />
-                <span className="text-white/80">{student.name}</span>
+                <ChevronRight size={14} className="text-muted-foreground/60" />
+                <span className="text-foreground">{student.name}</span>
             </nav>
 
-            {/* Header: Personal Info */}
-            <section className="relative z-10 mb-4">
+            <section className="mb-4">
                 <div className="flex items-center gap-6 sm:gap-8">
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white/10 border border-white/20 rounded-[2.25rem] flex items-center justify-center text-4xl font-bold text-white shadow-[0_0_40px_rgba(0,0,0,0.6)]">
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[2.25rem] border border-border bg-muted text-4xl font-bold text-foreground shadow-sm sm:h-28 sm:w-28">
                         {student.name[0]}
                     </div>
                     <div className="flex flex-col gap-3">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                             {student.name} {student.surname || ""}
                         </h1>
                         <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
-                            <div className="flex items-center gap-2 text-white/70">
-                                <Mail size={16} />
-                                <span className="font-medium">{student.email}</span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Mail size={16} className="shrink-0" />
+                                <span className="font-medium text-foreground">{student.email}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-white/70">
-                                <Fingerprint size={16} />
-                                <span className="font-mono font-bold tracking-wider">{student.shortId}</span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Fingerprint size={16} className="shrink-0" />
+                                <span className="font-mono font-bold tracking-wider text-foreground">
+                                    {student.shortId}
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2 text-white/70">
-                                <Calendar size={16} />
-                                <span className="font-medium italic">
-                                    С нами с{" "}
-                                    {new Date(student.createdAt).toLocaleDateString()}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar size={16} className="shrink-0" />
+                                <span className="font-medium italic text-foreground/90">
+                                    С нами с {new Date(student.createdAt).toLocaleDateString()}
                                 </span>
                             </div>
                         </div>
@@ -170,36 +147,36 @@ export default function StudentProfilePage() {
                 </div>
             </section>
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-10">
-                {/* Left Column: Progress & Badges */}
-                <div className="md:col-span-2 space-y-10">
-                    {/* Progress by Subjects */}
+            <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
+                <div className="space-y-10 md:col-span-2">
                     <section>
-                        <div className="flex items-center gap-3 mb-6">
-                            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        <div className="mb-6 flex items-center gap-3">
+                            <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                                 Прогресс по предметам
                             </h2>
-                            <div className="flex-1 h-px bg-white/15" />
+                            <div className="h-px flex-1 bg-border" />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {SUBJECTS.map((subject) => {
                                 const stars = ratings[subject.id] || 0;
                                 return (
                                     <div
                                         key={subject.id}
-                                        className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur flex items-center justify-between gap-4"
+                                        className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                                                <BookOpen size={18} className="text-white" />
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted">
+                                                <BookOpen size={18} className="text-muted-foreground" />
                                             </div>
-                                            <span className="font-semibold text-white text-sm sm:text-base">
+                                            <span className="truncate text-sm font-semibold text-foreground sm:text-base">
                                                 {subject.name}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-amber-300">
-                                            <Star size={14} fill="currentColor" />
-                                            <span className="text-sm font-bold text-amber-200">{stars}</span>
+                                        <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 dark:border-amber-800 dark:bg-amber-950/40">
+                                            <Star size={14} className="text-amber-600 dark:text-amber-400" fill="currentColor" />
+                                            <span className="text-sm font-bold tabular-nums text-amber-800 dark:text-amber-200">
+                                                {stars}
+                                            </span>
                                         </div>
                                     </div>
                                 );
@@ -207,32 +184,29 @@ export default function StudentProfilePage() {
                         </div>
                     </section>
 
-                    {/* Achievements (Badges) */}
                     <section>
-                        <div className="flex items-center gap-3 mb-6">
-                            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        <div className="mb-6 flex items-center gap-3">
+                            <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                                 Достижения
                             </h2>
-                            <div className="flex-1 h-px bg-white/15" />
+                            <div className="h-px flex-1 bg-border" />
                         </div>
                         {badges.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {badges.map((badge) => (
                                     <div
                                         key={badge.id}
-                                        className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur flex items-center gap-4"
+                                        className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
                                     >
-                                        <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                                            <Award size={20} className="text-white" />
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted">
+                                            <Award size={20} className="text-muted-foreground" />
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-white text-sm">
-                                                {badge.name}
-                                            </h4>
-                                            <p className="text-[10px] text-white/50 mt-0.5 uppercase tracking-wider font-bold">
+                                        <div className="min-w-0">
+                                            <h4 className="text-sm font-bold text-foreground">{badge.name}</h4>
+                                            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                                 Получено{" "}
                                                 {getUnlockedDate(badge.unlockedAt)
-                                                    ? getUnlockedDate(badge.unlockedAt)!.toLocaleDateString('ru-RU')
+                                                    ? getUnlockedDate(badge.unlockedAt)!.toLocaleDateString("ru-RU")
                                                     : "Недавно"}
                                             </p>
                                         </div>
@@ -240,82 +214,75 @@ export default function StudentProfilePage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="py-10 text-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
-                                <p className="text-white/60 font-medium">
-                                    У ученика пока нет достижений.
-                                </p>
+                            <div className="rounded-2xl border border-border bg-muted/50 py-10 text-center dark:bg-muted/30">
+                                <p className="font-medium text-muted-foreground">У ученика пока нет достижений.</p>
                             </div>
                         )}
                     </section>
                 </div>
 
-                {/* Right Column: Medals & Accuracy */}
                 <div className="space-y-8">
-                    {/* Global Stats Card */}
-                    <div className="relative rounded-3xl p-8 bg-white/5 border border-white/15 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.45)] overflow-hidden">
-                        <div className="absolute -top-16 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-bold text-white/50 uppercase tracking-[0.25em] mb-6">
-                                Общая статистика
-                            </h3>
+                    <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-8 shadow-sm">
+                        <h3 className="mb-6 text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                            Общая статистика
+                        </h3>
 
-                            <div className="space-y-8">
-                                <div>
-                                    <div className="text-4xl font-bold tracking-tight text-white mb-1">
-                                        {stats?.accuracy || 0}%
-                                    </div>
-                                    <div className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">
-                                        Общая точность
-                                    </div>
+                        <div className="space-y-8">
+                            <div>
+                                <div className="mb-1 text-4xl font-bold tracking-tight text-foreground tabular-nums">
+                                    {stats?.accuracy || 0}%
                                 </div>
+                                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                                    Общая точность
+                                </div>
+                            </div>
 
-                                <div className="space-y-4 text-white">
-                                    <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-300/40">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-100">
-                                                <MedalIcon size={16} />
-                                            </div>
-                                            <span className="text-sm font-medium">Зелёные</span>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/35">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-800 dark:bg-emerald-500/30 dark:text-emerald-200">
+                                            <MedalIcon size={16} />
                                         </div>
-                                        <span className="font-bold text-lg">
-                                            {stats?.medals.green || 0}
-                                        </span>
+                                        <span className="text-sm font-medium text-foreground">Зелёные</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/15">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white/70">
-                                                <MedalIcon size={16} />
-                                            </div>
-                                            <span className="text-sm font-medium">Серые</span>
+                                    <span className="text-lg font-bold tabular-nums text-foreground">
+                                        {stats?.medals.green || 0}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/60 p-3 dark:bg-muted/40">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                                            <MedalIcon size={16} />
                                         </div>
-                                        <span className="font-bold text-lg">
-                                            {stats?.medals.grey || 0}
-                                        </span>
+                                        <span className="text-sm font-medium text-foreground">Серые</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 rounded-2xl bg-orange-500/10 border border-orange-300/40">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-orange-500/30 flex items-center justify-center text-orange-100">
-                                                <MedalIcon size={16} />
-                                            </div>
-                                            <span className="text-sm font-medium">Бронзовые</span>
+                                    <span className="text-lg font-bold tabular-nums text-foreground">
+                                        {stats?.medals.grey || 0}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950/35">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/20 text-orange-800 dark:bg-orange-500/30 dark:text-orange-200">
+                                            <MedalIcon size={16} />
                                         </div>
-                                        <span className="font-bold text-lg">
-                                            {stats?.medals.bronze || 0}
-                                        </span>
+                                        <span className="text-sm font-medium text-foreground">Бронзовые</span>
                                     </div>
+                                    <span className="text-lg font-bold tabular-nums text-foreground">
+                                        {stats?.medals.bronze || 0}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur">
-                        <div className="flex items-center gap-2 mb-4 text-white">
-                            <Award size={18} className="text-white" />
-                            <h4 className="font-bold text-sm tracking-tight">Роль: Ученик</h4>
+                    <div className="rounded-3xl border border-border bg-muted/50 p-6 dark:bg-muted/30">
+                        <div className="mb-4 flex items-center gap-2 text-foreground">
+                            <Award size={18} />
+                            <h4 className="text-sm font-bold tracking-tight">Роль: Ученик</h4>
                         </div>
-                        <p className="text-xs text-white/60 leading-relaxed">
-                            Ученик может самостоятельно изучать предметы, решать тесты и получать
-                            медали. Учителя видят этот прогресс в своих классах и личных кабинетах.
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                            Ученик может самостоятельно изучать предметы, решать тесты и получать медали. Учителя видят
+                            этот прогресс в своих классах и личных кабинетах.
                         </p>
                     </div>
                 </div>

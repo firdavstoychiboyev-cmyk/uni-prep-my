@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 
@@ -13,12 +13,6 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta",
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
 });
 
 const inter = Inter({
@@ -48,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/png" sizes="512x512" href="/auto-Photoroom.png" />
         <link rel="icon" type="image/png" sizes="256x256" href="/auto-Photoroom.png" />
@@ -57,9 +51,27 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/auto-Photoroom.png" />
         <link rel="shortcut icon" href="/auto-Photoroom.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/auto-Photoroom.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(() => {
+  try {
+    const key = "uni-prep-theme";
+    const saved = localStorage.getItem(key);
+    const root = document.documentElement;
+    if (saved === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+      if (saved !== "light") localStorage.setItem(key, "light");
+    }
+  } catch {}
+})();`,
+          }}
+        />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} ${inter.variable} antialiased min-h-screen relative app-bg`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} font-[var(--font-inter)] antialiased min-h-screen relative app-bg`}
       >
         <div className="relative z-10 min-h-screen">
           <AuthProvider>{children}</AuthProvider>

@@ -96,13 +96,13 @@ export default function AdminQuestionsPage() {
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
                 <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-neutral-900">Вопросы.</h1>
-                    <p className="text-neutral-500 mt-2">Создание и управление вопросами викторины для каждой темы.</p>
+                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">Вопросы.</h1>
+                    <p className="text-muted-foreground mt-2">Создание и управление вопросами викторины для каждой темы.</p>
                 </section>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
                     disabled={!selectedTopic}
-                    className="bg-neutral-900 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
+                    className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
                 >
                     <Plus size={20} />
                     <span>Новый вопрос</span>
@@ -110,37 +110,37 @@ export default function AdminQuestionsPage() {
             </div>
 
             {/* Selection Filters */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white border border-neutral-200 rounded-2xl p-6">
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-card border border-border rounded-2xl p-6">
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Предмет</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Предмет</label>
                     <select
                         value={selectedSubject}
                         onChange={e => setSelectedSubject(e.target.value)}
-                        className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900 appearance-none"
+                        className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none"
                     >
                         <option value="">Выберите предмет</option>
                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Учебник</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Учебник</label>
                     <select
                         value={selectedTextbook}
                         onChange={e => setSelectedTextbook(e.target.value)}
                         disabled={!selectedSubject}
-                        className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900 appearance-none disabled:opacity-50"
+                        className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                     >
                         <option value="">Выберите учебник</option>
                         {textbooks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                     </select>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Тема</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Тема</label>
                     <select
                         value={selectedTopic}
                         onChange={e => setSelectedTopic(e.target.value)}
                         disabled={!selectedTextbook}
-                        className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900 appearance-none disabled:opacity-50"
+                        className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                     >
                         <option value="">Выберите тему</option>
                         {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
@@ -149,22 +149,22 @@ export default function AdminQuestionsPage() {
             </section>
 
             {isAdding && (
-                <form onSubmit={handleCreate} className="bg-white border border-neutral-200 rounded-2xl p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Текст вопроса</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Текст вопроса</label>
                         <textarea
                             value={text} onChange={e => setText(e.target.value)} required
-                            className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-4 h-32 focus:outline-none focus:border-neutral-900"
+                            className="w-full bg-muted border border-border rounded-lg p-4 h-32 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                             placeholder="Как называется столица Франции?"
                         />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Варианты ответов</label>
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Варианты ответов</label>
                             {["a", "b", "c", "d"].map((opt) => (
                                 <div key={opt} className="flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center font-bold uppercase text-neutral-400">{opt}</span>
+                                    <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center font-bold uppercase text-muted-foreground">{opt}</span>
                                     <input
                                         value={opt === "a" ? optionA : opt === "b" ? optionB : opt === "c" ? optionC : optionD}
                                         onChange={e => {
@@ -174,7 +174,7 @@ export default function AdminQuestionsPage() {
                                             else setOptionD(e.target.value);
                                         }}
                                         required
-                                        className="flex-1 bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900"
+                                        className="flex-1 bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                     />
                                 </div>
                             ))}
@@ -182,11 +182,11 @@ export default function AdminQuestionsPage() {
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Правильный ответ</label>
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Правильный ответ</label>
                                 <select
                                     value={correctAnswer}
                                     onChange={e => setCorrectAnswer(e.target.value as "a" | "b" | "c" | "d")}
-                                    className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900"
+                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                 >
                                     <option value="a">Вариант A</option>
                                     <option value="b">Вариант B</option>
@@ -195,11 +195,11 @@ export default function AdminQuestionsPage() {
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Сложность</label>
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Сложность</label>
                                 <select
                                     value={difficulty}
                                     onChange={e => setDifficulty(e.target.value as "easy" | "medium" | "hard")}
-                                    className="w-full bg-neutral-50 border border-neutral-100 rounded-lg p-3 focus:outline-none focus:border-neutral-900"
+                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                 >
                                     <option value="easy">Простой</option>
                                     <option value="medium">Средний</option>
@@ -207,7 +207,7 @@ export default function AdminQuestionsPage() {
                                 </select>
                             </div>
                             <div className="pt-4">
-                                <button type="submit" className="w-full bg-neutral-900 text-white py-4 rounded-xl font-semibold hover:opacity-90 transition-all shadow-md">
+                                <button type="submit" className="w-full bg-foreground text-background py-4 rounded-xl font-semibold hover:opacity-90 transition-all shadow-md">
                                     Добавить вопрос
                                 </button>
                             </div>
@@ -216,42 +216,42 @@ export default function AdminQuestionsPage() {
                 </form>
             )}
 
-            <section className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
-                <div className="p-8 border-b border-neutral-100 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-neutral-900 tracking-tight">Список вопросов</h2>
-                    <span className="text-sm text-neutral-400 font-medium">{questions.length} всего</span>
+            <section className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                <div className="p-8 border-b border-border flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-foreground tracking-tight">Список вопросов</h2>
+                    <span className="text-sm text-muted-foreground font-medium">{questions.length} всего</span>
                 </div>
-                <div className="divide-y divide-neutral-100">
+                <div className="divide-y divide-border">
                     {questions.length > 0 ? (
                         questions.map(q => (
-                            <div key={q.id} className="p-8 hover:bg-neutral-50/50 transition-colors group">
+                            <div key={q.id} className="p-8 hover:bg-muted/50 transition-colors group">
                                 <div className="flex items-start justify-between gap-6">
                                     <div className="flex-1 space-y-4">
                                         <div className="flex items-center gap-3">
-                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-neutral-100 ${q.difficulty === "easy" ? "text-green-600" :
+                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-muted ${q.difficulty === "easy" ? "text-green-600" :
                                                 q.difficulty === "medium" ? "text-orange-600" : "text-red-600"
                                                 }`}>
                                                 {q.difficulty === "easy" ? "Простой" : q.difficulty === "medium" ? "Средний" : "Сложный"}
                                             </span>
                                             <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Правильно: {q.correctAnswer.toUpperCase()}</span>
                                         </div>
-                                        <p className="text-lg font-medium text-neutral-900 leading-relaxed">{q.text}</p>
+                                        <p className="text-lg font-medium text-foreground leading-relaxed">{q.text}</p>
                                         <div className="grid grid-cols-2 gap-4">
                                             {Object.entries(q.options).map(([key, val]) => (
-                                                <div key={key} className={`text-sm p-3 rounded-lg border ${key === q.correctAnswer ? "border-green-200 bg-green-50 text-green-700" : "border-neutral-100 text-neutral-500"}`}>
+                                                <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>
                                                     <span className="font-bold mr-2">{key.toUpperCase()}:</span> {val}
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                    <button onClick={() => handleDelete(q.id)} className="p-2 text-neutral-300 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                                    <button onClick={() => handleDelete(q.id)} className="p-2 text-muted-foreground/70 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
                                         <Trash2 size={20} />
                                     </button>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="px-8 py-24 text-center text-neutral-400 font-medium italic">
+                        <div className="px-8 py-24 text-center text-muted-foreground font-medium italic">
                             {!selectedTopic ? "Выберите тему для управления ее вопросами." : "Вопросы для этой темы не найдены."}
                         </div>
                     )}

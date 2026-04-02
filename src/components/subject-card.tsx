@@ -1,120 +1,206 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { Subject } from "@/lib/firestore-schema";
-import { getSubjectImage } from "@/lib/constants";
+import {
+    CheckCircle2, Circle, Trophy, Star, ChevronRight,
+    Calculator, Atom, FlaskConical, Leaf, Landmark, Globe,
+    BookMarked, Languages, Monitor, Users, Dumbbell, Music,
+    Palette, BookOpen, PenLine, Microscope, type LucideIcon,
+} from "lucide-react";
 
 interface SubjectCardProps {
     subject: Subject;
     stars?: number;
-    medals?: {
-        green: number;
-        grey: number;
-        bronze: number;
-    };
-    progress?: number; // процент прогресса (0-100)
+    medals?: { green: number; grey: number; bronze: number };
+    progress?: number;
 }
+
+type AccentKey = "purple" | "blue" | "emerald" | "amber" | "rose" | "sky" | "indigo" | "teal" | "orange" | "neutral";
+
+function getSubjectMeta(name: string, id: string): { icon: LucideIcon; accent: AccentKey } {
+    const n = name.toLowerCase();
+    if (id === "english" || n.includes("англ") || n.includes("иностран"))
+        return { icon: Languages, accent: "purple" };
+    if (id === "math" || n.includes("матем"))
+        return { icon: Calculator, accent: "blue" };
+    if (n.includes("физик"))
+        return { icon: Atom, accent: "sky" };
+    if (n.includes("хими"))
+        return { icon: FlaskConical, accent: "emerald" };
+    if (n.includes("биол") || n.includes("естеств"))
+        return { icon: Microscope, accent: "teal" };
+    if (n.includes("литерат"))
+        return { icon: BookMarked, accent: "rose" };
+    if (n.includes("русск") || n.includes("родн") || n.includes("язык"))
+        return { icon: PenLine, accent: "indigo" };
+    if (n.includes("истор"))
+        return { icon: Landmark, accent: "amber" };
+    if (n.includes("географ"))
+        return { icon: Globe, accent: "teal" };
+    if (n.includes("информ"))
+        return { icon: Monitor, accent: "blue" };
+    if (n.includes("общест"))
+        return { icon: Users, accent: "orange" };
+    if (n.includes("физкульт") || n.includes("спорт"))
+        return { icon: Dumbbell, accent: "rose" };
+    if (n.includes("музык"))
+        return { icon: Music, accent: "purple" };
+    if (n.includes("рисов") || n.includes("изо") || n.includes("черчен"))
+        return { icon: Palette, accent: "orange" };
+    if (n.includes("биолог") || n.includes("природ"))
+        return { icon: Leaf, accent: "emerald" };
+    return { icon: BookOpen, accent: "neutral" };
+}
+
+const ACCENTS: Record<AccentKey, { iconBg: string; iconColor: string; bar: string; badge: string }> = {
+    purple: {
+        iconBg: "bg-purple-100 dark:bg-purple-950/50",
+        iconColor: "text-purple-600 dark:text-purple-300",
+        bar: "bg-purple-500",
+        badge: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800",
+    },
+    blue: {
+        iconBg: "bg-blue-100 dark:bg-blue-950/50",
+        iconColor: "text-blue-600 dark:text-blue-300",
+        bar: "bg-blue-500",
+        badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
+    },
+    sky: {
+        iconBg: "bg-sky-100 dark:bg-sky-950/50",
+        iconColor: "text-sky-600 dark:text-sky-300",
+        bar: "bg-sky-500",
+        badge: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
+    },
+    emerald: {
+        iconBg: "bg-emerald-100 dark:bg-emerald-950/50",
+        iconColor: "text-emerald-600 dark:text-emerald-300",
+        bar: "bg-emerald-500",
+        badge: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+    },
+    teal: {
+        iconBg: "bg-teal-100 dark:bg-teal-950/50",
+        iconColor: "text-teal-600 dark:text-teal-300",
+        bar: "bg-teal-500",
+        badge: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800",
+    },
+    indigo: {
+        iconBg: "bg-indigo-100 dark:bg-indigo-950/50",
+        iconColor: "text-indigo-600 dark:text-indigo-300",
+        bar: "bg-indigo-500",
+        badge: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+    },
+    amber: {
+        iconBg: "bg-amber-100 dark:bg-amber-950/50",
+        iconColor: "text-amber-600 dark:text-amber-300",
+        bar: "bg-amber-500",
+        badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
+    },
+    rose: {
+        iconBg: "bg-rose-100 dark:bg-rose-950/50",
+        iconColor: "text-rose-600 dark:text-rose-300",
+        bar: "bg-rose-500",
+        badge: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
+    },
+    orange: {
+        iconBg: "bg-orange-100 dark:bg-orange-950/50",
+        iconColor: "text-orange-600 dark:text-orange-300",
+        bar: "bg-orange-500",
+        badge: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800",
+    },
+    neutral: {
+        iconBg: "bg-muted",
+        iconColor: "text-muted-foreground",
+        bar: "bg-foreground",
+        badge: "bg-muted text-muted-foreground border-border",
+    },
+};
 
 export default function SubjectCard({
     subject,
     stars = 0,
     medals = { green: 0, grey: 0, bronze: 0 },
-    progress = 0
+    progress = 0,
 }: SubjectCardProps) {
-
-    // Автоматически подставляем изображение на основе ID и названия предмета
-    const backgroundImage = getSubjectImage(subject.id, subject.name);
-
-    // Вычисляем общее количество медалей
     const totalMedals = medals.green + medals.grey + medals.bronze;
-    const hasProgress = progress > 0 || stars > 0 || totalMedals > 0;
+    const { icon: Icon, accent: accentKey } = getSubjectMeta(subject.name, subject.id);
+    const accent = ACCENTS[accentKey];
+
+    const statusIcon =
+        progress >= 80 ? (
+            <CheckCircle2 size={13} className="text-emerald-500 flex-shrink-0" />
+        ) : progress > 0 ? (
+            <Circle size={13} className="text-amber-400 flex-shrink-0" />
+        ) : (
+            <Circle size={13} className="text-border flex-shrink-0" />
+        );
+
+    const statusLabel =
+        progress >= 80 ? "Завершено" : progress > 0 ? "В процессе" : "Не начато";
 
     return (
         <Link
             href={`/subject/${subject.id}`}
-            className="group relative h-64 rounded-2xl overflow-hidden cursor-pointer block"
+            className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:border-border/80 hover:shadow-sm hover:-translate-y-0.5"
         >
-            {/* ФОТО ПРЕДМЕТА */}
-            <Image
-                src={backgroundImage}
-                alt={subject.name}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-
-            {/* ГРАДИЕНТНЫЙ ОВЕРЛЕЙ (тёмный снизу) */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/70" />
-
-            {/* СОДЕРЖИМОЕ */}
-            <div className="absolute inset-0 flex flex-col justify-between p-6">
-
-                {/* ВЕРХ: ИКОНКА И НАЗВАНИЕ */}
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl backdrop-blur-sm">
-                            {subject.emoji}
-                        </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-white tracking-tight">
-                        {subject.name}
-                    </h3>
+            {/* Main row */}
+            <div className="flex items-center gap-4 px-5 pt-5 pb-4">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${accent.iconBg}`}>
+                    <Icon size={20} className={accent.iconColor} />
                 </div>
 
-                {/* НИЗ: ПРОГРЕСС И КНОПКА */}
-                <div className="space-y-4">
-
-                    {/* ЗВЁЗДЫ И МЕДАЛИ */}
-                    {hasProgress && (
-                        <div className="flex gap-4 text-sm text-white/90">
-                            {stars > 0 && (
-                                <span className="flex items-center gap-1">
-                                    <span className="text-base">⭐</span>
-                                    <span className="font-semibold">{stars}</span>
-                                </span>
-                            )}
-                            {medals.green > 0 && (
-                                <span className="flex items-center gap-1">
-                                    <span className="text-base">🟢</span>
-                                    <span className="font-semibold">{medals.green}</span>
-                                </span>
-                            )}
-                            {medals.grey > 0 && (
-                                <span className="flex items-center gap-1 text-white/80">
-                                    <span className="text-base">⚪</span>
-                                    <span className="font-semibold">{medals.grey}</span>
-                                </span>
-                            )}
-                            {medals.bronze > 0 && (
-                                <span className="flex items-center gap-1 text-white/80">
-                                    <span className="text-base">🥉</span>
-                                    <span className="font-semibold">{medals.bronze}</span>
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ПОЛОСА ПРОГРЕССА */}
-                    {progress > 0 && (
-                        <div>
-                            <p className="text-xs text-white/70 mb-2">{progress}% прогресса</p>
-                            <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-white rounded-full transition-all duration-300"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* КНОПКА */}
-                    <div className="w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                        {hasProgress ? "Продолжить" : "Начать обучение"}
-                        <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground leading-snug truncate">{subject.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        {statusIcon}
+                        <span className="text-xs text-muted-foreground font-medium">{statusLabel}</span>
                     </div>
-
                 </div>
 
+                <ChevronRight
+                    size={16}
+                    className="text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground/60"
+                />
+            </div>
+
+            {/* Progress bar */}
+            <div className="px-5 pb-4">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                        className={`h-full rounded-full transition-all duration-500 ${accent.bar}`}
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+            </div>
+
+            {/* Stats chips */}
+            <div className="flex items-center gap-2 px-5 pb-5 flex-wrap">
+                {progress > 0 && (
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${accent.badge}`}>
+                        {progress}%
+                    </span>
+                )}
+                {medals.green > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        <CheckCircle2 size={10} className="text-emerald-500" />
+                        {medals.green}
+                    </span>
+                )}
+                {totalMedals > 0 && medals.green === 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-border bg-muted text-muted-foreground">
+                        <Trophy size={10} />
+                        {totalMedals}
+                    </span>
+                )}
+                {stars > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                        <Star size={10} className="fill-amber-400 text-amber-400" />
+                        {stars}
+                    </span>
+                )}
+                {progress === 0 && stars === 0 && totalMedals === 0 && (
+                    <span className="text-[11px] text-muted-foreground/50 font-medium">Начни, чтобы увидеть прогресс</span>
+                )}
             </div>
         </Link>
     );

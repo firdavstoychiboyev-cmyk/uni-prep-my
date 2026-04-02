@@ -9,7 +9,6 @@ import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@
 import { fetchSubjectProgress } from "@/lib/stats-utils";
 import { updateUserProfile } from "@/lib/auth-utils";
 import { Star, ShieldCheck, Copy, Check, Settings2, X } from "lucide-react";
-import Plasma from "@/components/Plasma";
 
 export default function ProfilePage() {
     const { user, setUser } = useAuthStore();
@@ -20,7 +19,6 @@ export default function ProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
 
-    // Modal state
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [newName, setNewName] = useState("");
     const [newSurname, setNewSurname] = useState("");
@@ -32,6 +30,7 @@ export default function ProfilePage() {
             setNewSurname(user.surname || "");
 
             const loadData = async () => {
+                // Phase 1: load classes, ratings, subjects in parallel — show UI immediately
                 const [classesData, ratingsData, subjectsData] = await Promise.all([
                     fetchStudentClasses(user.id),
                     fetchUserRatings(user.id),
@@ -40,21 +39,19 @@ export default function ProfilePage() {
                 setClasses(classesData);
                 setRatings(ratingsData);
                 setSubjects(subjectsData);
+                setIsLoading(false); // show page now, progress cards render progressively below
 
-                // Load real progress per subject
-                const progressMap: Record<string, { progress: number; medals: { green: number; grey: number; bronze: number } }> = {};
-                for (const subject of subjectsData) {
-                    const textbooks = await fetchTextbooksBySubject(subject.id);
-                    const allTopicIds: string[] = [];
-                    for (const textbook of textbooks) {
-                        const topics = await fetchTopicsByTextbook(textbook.id);
-                        allTopicIds.push(...topics.map((t: Topic) => t.id));
-                    }
-                    const progress = await fetchSubjectProgress(user.id, subject.id, allTopicIds);
-                    progressMap[subject.id] = progress;
-                }
-                setSubjectProgress(progressMap);
-                setIsLoading(false);
+                // Phase 2: load all subject progress in parallel, update each card as it arrives
+                await Promise.all(
+                    subjectsData.map(async (subject) => {
+                        const textbooks = await fetchTextbooksBySubject(subject.id);
+                        const allTopicIds: string[] = (
+                            await Promise.all(textbooks.map((tb) => fetchTopicsByTextbook(tb.id)))
+                        ).flat().map((t: Topic) => t.id);
+                        const progress = await fetchSubjectProgress(user.id, subject.id, allTopicIds);
+                        setSubjectProgress((prev) => ({ ...prev, [subject.id]: progress }));
+                    })
+                );
             };
 
             loadData();
@@ -90,63 +87,55 @@ export default function ProfilePage() {
     if (!user) return null;
 
     return (
-        <div className="relative flex flex-col gap-16 py-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* Plasma background */}
-            <div className="fixed inset-0 z-0">
-                <Plasma color="#ffffff" speed={1.0} direction="forward" scale={1.2} opacity={0.9} mouseInteractive={true} />
-            </div>
+        <div className="flex flex-col gap-12 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
             {/* Hero Profile Section */}
-            <section className="relative z-10 pt-8 flex flex-col items-center text-center gap-5">
-                {/* Large Avatar */}
+            <section className="flex flex-col items-center text-center gap-5 pt-4">
+                {/* Avatar */}
                 <div
-                    className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 cursor-pointer group"
+                    className="relative w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 cursor-pointer group"
                     onClick={() => setIsEditModalOpen(true)}
                 >
-                    {/* Glow ring */}
-                    <div className="absolute inset-0 rounded-[2rem] sm:rounded-[2.5rem] bg-white/20 blur-xl scale-110 opacity-60 group-hover:opacity-90 transition-opacity" />
-                    {/* Avatar card */}
-                    <div className="relative w-full h-full bg-white/10 border border-white/25 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center text-white text-5xl sm:text-6xl font-bold backdrop-blur-xl shadow-2xl overflow-hidden">
+                    <div className="w-full h-full bg-muted border border-border rounded-3xl flex items-center justify-center text-foreground text-5xl font-bold shadow-sm overflow-hidden">
                         {user.name[0].toUpperCase()}
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl">
                             <Settings2 size={28} className="text-white" />
                         </div>
                     </div>
                 </div>
 
                 {/* Name */}
-                <div className="flex flex-col items-center gap-1">
-                    <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+                <div className="flex flex-col items-center gap-2">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
                         {user.name} {user.surname || ""}
                     </h1>
-                    {/* Role badge */}
-                    <span className="flex items-center gap-1.5 text-[10px] bg-white/10 border border-white/15 px-3 py-1 rounded-full text-white font-bold uppercase tracking-widest backdrop-blur mt-1">
+                    <span className="flex items-center gap-1.5 text-[10px] bg-muted border border-border px-3 py-1 rounded-full text-muted-foreground font-bold uppercase tracking-widest">
                         <ShieldCheck size={11} />
                         {user.role === "teacher" ? "Учитель" : "Ученик"}
                     </span>
                 </div>
 
                 {/* Email */}
-                <p className="text-white/40 text-sm -mt-2">{user.email}</p>
+                <p className="text-muted-foreground text-sm -mt-1">{user.email}</p>
 
                 {/* ID + Edit row */}
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur">
-                        <code className="text-xs text-white/60 font-mono font-bold tracking-wider">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-xl">
+                        <code className="text-xs text-muted-foreground font-mono font-bold tracking-wider">
                             ID: {user.shortId || user.id}
                         </code>
                         <button
                             onClick={copyId}
-                            className="p-1 hover:bg-white/10 rounded-lg transition-all text-white/40 hover:text-white"
+                            className="p-1 hover:bg-muted rounded-lg transition-all text-muted-foreground hover:text-foreground"
                             title="Копировать ID"
                         >
-                            {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+                            {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
                         </button>
                     </div>
 
                     <button
                         onClick={() => setIsEditModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white/60 font-semibold hover:bg-white/10 hover:text-white transition-all active:scale-[0.98] backdrop-blur text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-muted/50 border border-border rounded-xl text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all active:scale-[0.98] text-sm"
                     >
                         <Settings2 size={14} />
                         Изменить профиль
@@ -154,38 +143,37 @@ export default function ProfilePage() {
                 </div>
             </section>
 
-
             {/* Edit Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-md bg-white/10 border border-white/15 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-card border border-border rounded-3xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-8">
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-2xl font-bold text-white tracking-tight">Редактировать профиль</h2>
-                                <button onClick={() => setIsEditModalOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                                <h2 className="text-2xl font-bold text-foreground tracking-tight">Редактировать профиль</h2>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                     <X size={24} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleUpdateProfile} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest ml-1">Имя</label>
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Имя</label>
                                     <input
                                         type="text"
                                         value={newName}
                                         onChange={(e) => setNewName(e.target.value)}
-                                        className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 focus:outline-none transition-colors font-medium text-white placeholder:text-white/20"
+                                        className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70"
                                         placeholder="Иван"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest ml-1">Фамилия</label>
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Фамилия</label>
                                     <input
                                         type="text"
                                         value={newSurname}
                                         onChange={(e) => setNewSurname(e.target.value)}
-                                        className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 focus:outline-none transition-colors font-medium text-white placeholder:text-white/20"
+                                        className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70"
                                         placeholder="Петров"
                                     />
                                 </div>
@@ -194,14 +182,14 @@ export default function ProfilePage() {
                                     <button
                                         type="button"
                                         onClick={() => setIsEditModalOpen(false)}
-                                        className="flex-1 py-4 border border-white/10 text-white/60 rounded-2xl font-bold hover:bg-white/5 transition-all"
+                                        className="flex-1 py-4 border border-border text-muted-foreground rounded-2xl font-bold hover:bg-muted/50 transition-all"
                                     >
                                         Отмена
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isUpdating || newName.length < 2}
-                                        className="flex-1 py-4 bg-white text-black rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
+                                        className="flex-1 py-4 bg-foreground text-background rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
                                     >
                                         {isUpdating ? "Сохранение..." : "Сохранить"}
                                     </button>
@@ -214,33 +202,33 @@ export default function ProfilePage() {
 
             {/* Classes Section (For Students) */}
             {user.role === "student" && (
-                <section className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-white tracking-tight">Мои классы</h2>
-                        <span className="text-sm text-white/40">{classes.length} групп</span>
+                <section>
+                    <div className="flex items-center justify-between mb-5">
+                        <h2 className="text-xl font-bold text-foreground tracking-tight">Мои классы</h2>
+                        <span className="text-sm text-muted-foreground">{classes.length} групп</span>
                     </div>
 
                     {isLoading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {[1, 2].map(n => <div key={n} className="h-24 bg-white/5 rounded-2xl animate-pulse border border-white/10" />)}
+                            {[1, 2].map(n => <div key={n} className="h-24 bg-muted rounded-2xl animate-pulse border border-border" />)}
                         </div>
                     ) : classes.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {classes.map((cls) => {
                                 const subject = SUBJECTS.find(s => s.id === cls.subjectId);
                                 return (
-                                    <div key={cls.id} className="p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl flex items-center gap-4">
+                                    <div key={cls.id} className="p-5 bg-muted/50 border border-border rounded-2xl flex items-center gap-4">
                                         <span className="text-3xl">{subject?.emoji || "📚"}</span>
                                         <div>
-                                            <h3 className="font-semibold text-white">{cls.name}</h3>
-                                            <p className="text-sm text-white/40">{subject?.name}</p>
+                                            <h3 className="font-semibold text-foreground">{cls.name}</h3>
+                                            <p className="text-sm text-muted-foreground">{subject?.name}</p>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <div className="p-12 text-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur text-white/40 font-medium">
+                        <div className="p-12 text-center rounded-2xl border border-border bg-muted/50 text-muted-foreground font-medium">
                             Вы еще не состоите ни в одном классе.
                         </div>
                     )}
@@ -248,15 +236,15 @@ export default function ProfilePage() {
             )}
 
             {/* Subject Progress Section */}
-            <section className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Прогресс по предметам</h2>
-                    <p className="text-sm text-white/40">% пройденных тем</p>
+            <section>
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">Прогресс по предметам</h2>
+                    <p className="text-sm text-muted-foreground">% пройденных тем</p>
                 </div>
 
                 {isLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1, 2, 3, 4, 5, 6].map(n => <div key={n} className="h-28 bg-white/5 rounded-2xl animate-pulse border border-white/10" />)}
+                        {[1, 2, 3, 4, 5, 6].map(n => <div key={n} className="h-28 bg-muted rounded-2xl animate-pulse border border-border" />)}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -268,22 +256,22 @@ export default function ProfilePage() {
                             return (
                                 <div
                                     key={subject.id}
-                                    className="p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl flex flex-col gap-3 hover:bg-white/8 transition-all"
+                                    className="p-5 bg-muted/50 border border-border rounded-2xl flex flex-col gap-3 hover:bg-muted transition-all"
                                 >
                                     <div className="flex items-center gap-3">
                                         <span className="text-2xl">{subject.emoji}</span>
-                                        <span className="text-sm font-bold text-white tracking-tight flex-1 truncate">{subject.name}</span>
-                                        <span className="text-xs font-bold text-white/50">{pct}%</span>
+                                        <span className="text-sm font-bold text-foreground tracking-tight flex-1 truncate">{subject.name}</span>
+                                        <span className="text-xs font-bold text-muted-foreground">{pct}%</span>
                                     </div>
                                     {/* Progress bar */}
-                                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
                                         <div
-                                            className="h-full bg-white rounded-full transition-all duration-500"
+                                            className="h-full bg-foreground rounded-full transition-all duration-500"
                                             style={{ width: `${pct}%` }}
                                         />
                                     </div>
                                     {/* Medals + Stars */}
-                                    <div className="flex items-center gap-3 text-xs text-white/40">
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                         {medals.green > 0 && <span>🟢 {medals.green}</span>}
                                         {medals.grey > 0 && <span>⚪ {medals.grey}</span>}
                                         {medals.bronze > 0 && <span>🥉 {medals.bronze}</span>}
@@ -300,7 +288,6 @@ export default function ProfilePage() {
                     </div>
                 )}
             </section>
-
         </div>
     );
 }
