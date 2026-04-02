@@ -51,7 +51,7 @@ export default function SettingsPage() {
 
     useEffect(() => {
         const hash = (window.location.hash || "").replace("#", "") as SectionId;
-        if (hash && (sections as any).some((s: any) => s.id === hash)) {
+        if (hash && sections.some((s) => s.id === hash)) {
             setActive(hash);
             // let layout paint first
             setTimeout(() => scrollToSection(hash), 0);
