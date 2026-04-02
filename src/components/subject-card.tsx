@@ -2,55 +2,14 @@
 
 import Link from "next/link";
 import { Subject } from "@/lib/firestore-schema";
-import {
-    CheckCircle2, Circle, Trophy, Star, ChevronRight,
-    Calculator, Atom, FlaskConical, Leaf, Landmark, Globe,
-    BookMarked, Languages, Monitor, Users, Dumbbell, Music,
-    Palette, BookOpen, PenLine, Microscope, type LucideIcon,
-} from "lucide-react";
+import { CheckCircle2, Circle, Trophy, Star, ChevronRight } from "lucide-react";
+import { getSubjectMeta, AccentKey } from "@/lib/subject-icons";
 
 interface SubjectCardProps {
     subject: Subject;
     stars?: number;
     medals?: { green: number; grey: number; bronze: number };
     progress?: number;
-}
-
-type AccentKey = "purple" | "blue" | "emerald" | "amber" | "rose" | "sky" | "indigo" | "teal" | "orange" | "neutral";
-
-function getSubjectMeta(name: string, id: string): { icon: LucideIcon; accent: AccentKey } {
-    const n = name.toLowerCase();
-    if (id === "english" || n.includes("англ") || n.includes("иностран"))
-        return { icon: Languages, accent: "purple" };
-    if (id === "math" || n.includes("матем"))
-        return { icon: Calculator, accent: "blue" };
-    if (n.includes("физик"))
-        return { icon: Atom, accent: "sky" };
-    if (n.includes("хими"))
-        return { icon: FlaskConical, accent: "emerald" };
-    if (n.includes("биол") || n.includes("естеств"))
-        return { icon: Microscope, accent: "teal" };
-    if (n.includes("литерат"))
-        return { icon: BookMarked, accent: "rose" };
-    if (n.includes("русск") || n.includes("родн") || n.includes("язык"))
-        return { icon: PenLine, accent: "indigo" };
-    if (n.includes("истор"))
-        return { icon: Landmark, accent: "amber" };
-    if (n.includes("географ"))
-        return { icon: Globe, accent: "teal" };
-    if (n.includes("информ"))
-        return { icon: Monitor, accent: "blue" };
-    if (n.includes("общест"))
-        return { icon: Users, accent: "orange" };
-    if (n.includes("физкульт") || n.includes("спорт"))
-        return { icon: Dumbbell, accent: "rose" };
-    if (n.includes("музык"))
-        return { icon: Music, accent: "purple" };
-    if (n.includes("рисов") || n.includes("изо") || n.includes("черчен"))
-        return { icon: Palette, accent: "orange" };
-    if (n.includes("биолог") || n.includes("природ"))
-        return { icon: Leaf, accent: "emerald" };
-    return { icon: BookOpen, accent: "neutral" };
 }
 
 const ACCENTS: Record<AccentKey, { iconBg: string; iconColor: string; bar: string; badge: string }> = {

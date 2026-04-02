@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { fetchUserBadges } from "@/lib/profile-utils";
+import { fetchUserBadges } from "@/lib/stats-utils";
 import { Trophy, Calendar } from "lucide-react";
 
 export default function AchievementsPage() {

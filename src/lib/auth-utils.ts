@@ -7,6 +7,7 @@ import {
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { User, UserRole } from "./firestore-schema";
+import { pageCache } from "./page-cache";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -38,20 +39,11 @@ export const logOut = async () => {
 /**
  * Получение профиля пользователя из Firestore
  */
-export const getUserProfile = async (uid: string): Promise<User | null> => {
-    try {
-        const docRef = doc(db, "users", uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            return docSnap.data() as User;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
-    }
-};
+export const getUserProfile = (uid: string): Promise<User | null> =>
+    pageCache.fetch(`userProfile:${uid}`, async () => {
+        const snap = await getDoc(doc(db, "users", uid));
+        return snap.exists() ? (snap.data() as User) : null;
+    }, 5 * 60 * 1000);
 
 /**
  * Генерация короткого ID (только англ буквы и цифры)

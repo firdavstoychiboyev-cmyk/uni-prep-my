@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Question, Topic, Medal } from "@/lib/firestore-schema";
 import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
+import { invalidateUserCache } from "@/lib/stats-utils";
+import { useStatsStore } from "@/store/useStatsStore";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, updateDoc, increment, serverTimestamp, collection, addDoc, getDoc, getDocs } from "firebase/firestore";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +19,7 @@ export default function TestPage() {
     const { id } = useParams();
     const router = useRouter();
     const { user } = useAuthStore();
+    const { reset: resetStatsStore } = useStatsStore();
 
     const [topic, setTopic] = useState<Topic | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -75,6 +78,9 @@ export default function TestPage() {
     const finishTest = async () => {
         setIsFinished(true);
         if (!user || !topic) return;
+        // Invalidate all user caches so progress/stats reflect new results on next visit
+        invalidateUserCache(user.id);
+        resetStatsStore();
 
         const accuracy = Math.round((results.correct / questions.length) * 100);
         const medal = getMedalByErrors(results.errors, 1);

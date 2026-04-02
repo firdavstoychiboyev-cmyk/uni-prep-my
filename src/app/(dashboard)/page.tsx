@@ -1,92 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Subject } from "@/lib/firestore-schema";
+import { useSubjectsStore } from "@/store/useSubjectsStore";
+import { useStatsStore } from "@/store/useStatsStore";
 import SubjectCard from "@/components/subject-card";
-import ChartsMetrics from "@/components/charts-metrics";
-import { fetchUserGlobalStats, GlobalStats, fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
+import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
-
-interface SubjectProgress {
-    stars: number;
-    medals: { green: number; grey: number; bronze: number };
-    progress: number;
-}
 
 export default function HomePage() {
     const { user } = useAuthStore();
-    const [stats, setStats] = useState<GlobalStats | null>(null);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [subjectProgress, setSubjectProgress] = useState<Record<string, SubjectProgress>>({});
-    const [topicsBySubjectId, setTopicsBySubjectId] = useState<Record<string, string[]>>({});
-    const [isLoading, setIsLoading] = useState(true);
+    const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
+    const {
+        subjectProgress,
+        loadedForUser,
+        setSubjectProgress, setRatings, setLoadedForUser,
+    } = useStatsStore();
+
+    const isLoading = !subjectsLoaded;
 
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            const subjectsData = await fetchSubjects();
-            setSubjects(subjectsData);
-            setIsLoading(false);
+        // Subjects are global — load once, stored in useSubjectsStore
+        if (!subjectsLoaded) {
+            fetchSubjects().then(setSubjects);
+        }
+    }, [subjectsLoaded, setSubjects]);
 
-            if (!user) return;
+    useEffect(() => {
+        if (!user || !subjectsLoaded) return;
+        // Already loaded for this user — skip all Firestore calls
+        if (loadedForUser === user.id) return;
 
-            const [globalStats, ratings] = await Promise.all([
-                fetchUserGlobalStats(user.id),
-                fetchUserSubjectRatings(user.id)
-            ]);
-            setStats(globalStats);
+        const load = async () => {
+            const ratings = await fetchUserSubjectRatings(user.id);
+            setRatings(ratings);
+            setLoadedForUser(user.id);
 
-            const topicTitlesMap: Record<string, string[]> = {};
-
-            const progressEntries = await Promise.all(
-                subjectsData.map(async (subject) => {
+            await Promise.all(
+                subjects.map(async (subject) => {
                     const textbooks = await fetchTextbooksBySubject(subject.id);
-
-                    const allTopicIds: string[] = [];
-                    const topicTitles: string[] = [];
-                    for (const textbook of textbooks) {
-                        const topics = await fetchTopicsByTextbook(textbook.id);
-                        allTopicIds.push(...topics.map((t) => t.id));
-                        topicTitles.push(...topics.sort((a, b) => a.order - b.order).map((t) => t.title));
-                    }
-
-                    const n = subject.name.toLowerCase();
-                    const isEnglish =
-                        subject.id === "english" || n.includes("англ") || n.includes("иностран");
-                    const isMath = subject.id === "math" || n.includes("матем");
-                    if (isEnglish || isMath) {
-                        topicTitlesMap[subject.id] = topicTitles;
-                    }
-
+                    const allTopicIds = (
+                        await Promise.all(textbooks.map((tb) => fetchTopicsByTextbook(tb.id)))
+                    ).flat().map((t) => t.id);
                     const progress = await fetchSubjectProgress(user.id, subject.id, allTopicIds);
-
-                    const subjectProgress: SubjectProgress = {
+                    setSubjectProgress(subject.id, {
                         stars: ratings[subject.id] || 0,
                         medals: progress.medals,
-                        progress: progress.progress
-                    };
-
-                    return [subject.id, subjectProgress] as const;
+                        progress: progress.progress,
+                    });
                 })
             );
-
-            setSubjectProgress(Object.fromEntries(progressEntries));
-            setTopicsBySubjectId(topicTitlesMap);
         };
 
-        loadData();
-    }, [user]);
+        load();
+    }, [user, subjectsLoaded, subjects, loadedForUser, setRatings, setLoadedForUser, setSubjectProgress]);
 
     return (
         <div className="flex flex-col gap-12 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-            <ChartsMetrics
-                stats={stats}
-                subjects={subjects}
-                subjectProgress={subjectProgress}
-                topicsBySubjectId={topicsBySubjectId}
-            />
 
             {/* Subjects Grid */}
             <section>
@@ -109,7 +79,7 @@ export default function HomePage() {
                             const progress = subjectProgress[subject.id] || {
                                 stars: 0,
                                 medals: { green: 0, grey: 0, bronze: 0 },
-                                progress: 0
+                                progress: 0,
                             };
                             return (
                                 <SubjectCard

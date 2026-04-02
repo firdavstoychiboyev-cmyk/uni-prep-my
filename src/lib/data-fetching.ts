@@ -1,159 +1,57 @@
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { Textbook, Topic, Subject, Question } from "./firestore-schema";
+import { pageCache } from "./page-cache";
 
-/**
- * Получение списка всех предметов
- */
-export const fetchSubjects = async (): Promise<Subject[]> => {
-    try {
-        const subjectsRef = collection(db, "subjects");
-        const q = query(subjectsRef, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
+const TTL_STATIC = 10 * 60 * 1000; // 10 min — subjects/textbooks/topics almost never change
+const TTL_QUESTIONS = 5 * 60 * 1000; // 5 min
 
-        const subjects: Subject[] = [];
-        querySnapshot.forEach((doc) => {
-            subjects.push({ id: doc.id, ...doc.data() } as Subject);
-        });
+export const fetchSubjects = (): Promise<Subject[]> =>
+    pageCache.fetch("subjects", async () => {
+        const q = query(collection(db, "subjects"), orderBy("order", "asc"));
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Subject);
+    }, TTL_STATIC);
 
-        return subjects;
-    } catch (error) {
-        console.error("Error fetching subjects:", error);
-        return [];
-    }
-};
+export const fetchSubjectById = (id: string): Promise<Subject | null> =>
+    pageCache.fetch(`subject:${id}`, async () => {
+        const snap = await getDoc(doc(db, "subjects", id));
+        return snap.exists() ? ({ id: snap.id, ...snap.data() } as Subject) : null;
+    }, TTL_STATIC);
 
-/**
- * Получение данных конкретного предмета
- */
-export const fetchSubjectById = async (id: string): Promise<Subject | null> => {
-    try {
-        const docRef = doc(db, "subjects", id);
-        const docSnap = await getDoc(docRef);
+export const fetchTextbookById = (id: string): Promise<Textbook | null> =>
+    pageCache.fetch(`textbook:${id}`, async () => {
+        const snap = await getDoc(doc(db, "textbooks", id));
+        return snap.exists() ? ({ id: snap.id, ...snap.data() } as Textbook) : null;
+    }, TTL_STATIC);
 
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Subject;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error("Error fetching subject:", error);
-        return null;
-    }
-};
+export const fetchTextbooksBySubject = (subjectId: string): Promise<Textbook[]> =>
+    pageCache.fetch(`textbooks:${subjectId}`, async () => {
+        const q = query(collection(db, "textbooks"), where("subjectId", "==", subjectId));
+        const snap = await getDocs(q);
+        const textbooks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Textbook);
+        return textbooks.sort((a, b) => (parseInt(String(a.grade)) || 0) - (parseInt(String(b.grade)) || 0));
+    }, TTL_STATIC);
 
-/**
- * Получение данных конкретного учебника
- */
-export const fetchTextbookById = async (id: string): Promise<Textbook | null> => {
-    try {
-        const docRef = doc(db, "textbooks", id);
-        const docSnap = await getDoc(docRef);
+export const fetchTopicById = (id: string): Promise<Topic | null> =>
+    pageCache.fetch(`topic:${id}`, async () => {
+        const snap = await getDoc(doc(db, "topics", id));
+        return snap.exists() ? ({ id: snap.id, ...snap.data() } as Topic) : null;
+    }, TTL_STATIC);
 
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Textbook;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error("Error fetching textbook:", error);
-        return null;
-    }
-};
-
-/**
- * Получение списка учебников для конкретного предмета
- */
-export const fetchTextbooksBySubject = async (subjectId: string): Promise<Textbook[]> => {
-    try {
-        const textbooksRef = collection(db, "textbooks");
-        const q = query(
-            textbooksRef,
-            where("subjectId", "==", subjectId)
-        );
-        const querySnapshot = await getDocs(q);
-
-        const textbooks: Textbook[] = [];
-        querySnapshot.forEach((doc) => {
-            textbooks.push({ id: doc.id, ...doc.data() } as Textbook);
-        });
-
-        // Сортируем в памяти по классам (п. 2.5 ТЗ)
-        return textbooks.sort((a, b) => {
-            const gradeA = parseInt(String(a.grade)) || 0;
-            const gradeB = parseInt(String(b.grade)) || 0;
-            return gradeA - gradeB;
-        });
-    } catch (error) {
-        console.error("Error fetching textbooks:", error);
-        return [];
-    }
-};
-
-/**
- * Получение данных конкретной темы
- */
-export const fetchTopicById = async (id: string): Promise<Topic | null> => {
-    try {
-        const docRef = doc(db, "topics", id);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Topic;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error("Error fetching topic:", error);
-        return null;
-    }
-};
-
-/**
- * Получение списка тем для конкретного учебника
- */
-export const fetchTopicsByTextbook = async (textbookId: string): Promise<Topic[]> => {
-    try {
-        const topicsRef = collection(db, "topics");
-        const q = query(
-            topicsRef,
-            where("textbookId", "==", textbookId)
-        );
-        const querySnapshot = await getDocs(q);
-
-        const topics: Topic[] = [];
-        querySnapshot.forEach((doc) => {
-            topics.push({ id: doc.id, ...doc.data() } as Topic);
-        });
-
-        // Сортируем по порядку (order) в памяти
+export const fetchTopicsByTextbook = (textbookId: string): Promise<Topic[]> =>
+    pageCache.fetch(`topics:${textbookId}`, async () => {
+        const q = query(collection(db, "topics"), where("textbookId", "==", textbookId));
+        const snap = await getDocs(q);
+        const topics = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Topic);
         return topics.sort((a, b) => a.order - b.order);
-    } catch (error) {
-        console.error("Error fetching topics:", error);
-        return [];
-    }
-};
-/**
- * Получение списка вопросов для конкретной темы
- */
-export const fetchQuestionsByTopic = async (topicId: string): Promise<Question[]> => {
-    try {
-        const questionsRef = collection(db, "questions");
-        const q = query(
-            questionsRef,
-            where("topicId", "==", topicId)
-        );
-        const querySnapshot = await getDocs(q);
+    }, TTL_STATIC);
 
-        const questions: Question[] = [];
-        querySnapshot.forEach((doc) => {
-            questions.push({ id: doc.id, ...doc.data() } as Question);
-        });
-
-        // Перемешиваем вопросы
+export const fetchQuestionsByTopic = (topicId: string): Promise<Question[]> =>
+    pageCache.fetch(`questions:${topicId}`, async () => {
+        const q = query(collection(db, "questions"), where("topicId", "==", topicId));
+        const snap = await getDocs(q);
+        const questions = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Question);
+        // Shuffle once and cache — consistent order within the session
         return questions.sort(() => Math.random() - 0.5);
-    } catch (error) {
-        console.error("Error fetching questions:", error);
-        return [];
-    }
-};
+    }, TTL_QUESTIONS);

@@ -13,6 +13,7 @@ import {
     Award,
     CircleUserRound,
     GraduationCap,
+    BarChart3,
     Calculator,
     Atom,
     FlaskConical,
@@ -53,6 +54,7 @@ function getSubjectIcon(name: string): LucideIcon {
 const mainLinks = (isTeacher: boolean) => [
     { name: "Главная", href: "/", icon: LayoutDashboard },
     ...(isTeacher ? [{ name: "Мои классы", href: "/classes", icon: GraduationCap }] : []),
+    { name: "Статистика", href: "/statistics", icon: BarChart3 },
     { name: "Мои достижения", href: "/achievements", icon: Award },
     { name: "Мой профиль", href: "/profile", icon: CircleUserRound },
 ];

@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Class, User } from "./firestore-schema";
+import { pageCache } from "./page-cache";
 
 /**
  * Создание нового класса учителем
@@ -28,6 +29,7 @@ export const createClass = async (teacherId: string, name: string, subjectId: st
             createdAt: serverTimestamp(),
         };
         const docRef = await addDoc(collection(db, "classes"), classData);
+        pageCache.invalidatePrefix(`teacherClasses:${teacherId}`);
         return { id: docRef.id, ...classData };
     } catch (error) {
         console.error("Error creating class:", error);
@@ -38,20 +40,12 @@ export const createClass = async (teacherId: string, name: string, subjectId: st
 /**
  * Получение всех классов конкретного учителя
  */
-export const fetchTeacherClasses = async (teacherId: string): Promise<Class[]> => {
-    try {
+export const fetchTeacherClasses = (teacherId: string): Promise<Class[]> =>
+    pageCache.fetch(`teacherClasses:${teacherId}`, async () => {
         const q = query(collection(db, "classes"), where("teacherId", "==", teacherId));
-        const querySnapshot = await getDocs(q);
-        const classes: Class[] = [];
-        querySnapshot.forEach((doc) => {
-            classes.push({ id: doc.id, ...doc.data() } as Class);
-        });
-        return classes;
-    } catch (error) {
-        console.error("Error fetching classes:", error);
-        return [];
-    }
-};
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Class);
+    }, 2 * 60 * 1000);
 
 /**
  * Поиск ученика по короткому ID

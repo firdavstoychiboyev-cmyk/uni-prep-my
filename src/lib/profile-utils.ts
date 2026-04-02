@@ -1,65 +1,32 @@
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { Class, SubjectRating } from "./firestore-schema";
+import { pageCache } from "./page-cache";
 
-/**
- * Получение списка классов, в которых состоит ученик
- */
-export const fetchStudentClasses = async (studentId: string): Promise<Class[]> => {
-    try {
-        const classesRef = collection(db, "classes");
-        const q = query(classesRef, where("students", "array-contains", studentId));
-        const querySnapshot = await getDocs(q);
+const TTL = 2 * 60 * 1000; // 2 min
 
-        const classes: Class[] = [];
-        querySnapshot.forEach((doc) => {
-            classes.push({ id: doc.id, ...doc.data() } as Class);
-        });
+export const fetchStudentClasses = (studentId: string): Promise<Class[]> =>
+    pageCache.fetch(`studentClasses:${studentId}`, async () => {
+        const q = query(collection(db, "classes"), where("students", "array-contains", studentId));
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Class);
+    }, TTL);
 
-        return classes;
-    } catch (error) {
-        console.error("Error fetching student classes:", error);
-        return [];
-    }
-};
+// Shares cache key with stats-utils fetchUserSubjectRatings — same data, one read
+export const fetchUserRatings = (userId: string): Promise<Record<string, number>> =>
+    pageCache.fetch(`ratings:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "ratings"));
+        const result: Record<string, number> = {};
+        snap.forEach((d) => { result[d.id] = (d.data() as SubjectRating).stars || 0; });
+        return result;
+    }, TTL);
 
-/**
- * Получение рейтингов (звезд) пользователя по предметам
- */
-export const fetchUserRatings = async (userId: string): Promise<Record<string, number>> => {
-    try {
-        const ratingsRef = collection(db, "users", userId, "ratings");
-        const ratingsSnap = await getDocs(ratingsRef);
-        const ratings: Record<string, number> = {};
-
-        ratingsSnap.forEach((doc) => {
-            const ratingData = doc.data() as SubjectRating;
-            ratings[doc.id] = ratingData.stars || 0;
-        });
-
-        return ratings;
-    } catch (error) {
-        console.error("Error fetching user ratings:", error);
-        return {};
-    }
-};
-
-/**
- * Получение бейджей (достижений) пользователя
- */
-export const fetchUserBadges = async (userId: string): Promise<Array<{ id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } }>> => {
-    try {
-        const badgesRef = collection(db, "users", userId, "badges");
-        const querySnapshot = await getDocs(badgesRef);
-
-        const badges: Array<{ id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } }> = [];
-        querySnapshot.forEach((doc) => {
-            badges.push({ id: doc.id, ...doc.data() } as { id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } });
-        });
-
-        return badges;
-    } catch (error) {
-        console.error("Error fetching badges:", error);
-        return [];
-    }
-};
+// Shares cache key with stats-utils fetchUserBadges
+export const fetchUserBadges = (userId: string) =>
+    pageCache.fetch(`badges:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "badges"));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{
+            id: string; name: string; description?: string; icon?: string;
+            unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number };
+        }>;
+    }, TTL);

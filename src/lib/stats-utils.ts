@@ -1,137 +1,124 @@
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { UserProgress, SubjectRating } from "./firestore-schema";
+import { pageCache } from "./page-cache";
+
+const TTL_USER = 2 * 60 * 1000; // 2 min — user data changes more often
 
 export interface GlobalStats {
     totalSolved: number;
     accuracy: number;
-    medals: {
-        green: number;
-        grey: number;
-        bronze: number;
-    };
+    medals: { green: number; grey: number; bronze: number };
 }
 
-/**
- * Загрузка общей статистики пользователя
- */
+// ─── Internal: read full collections once, cache per user ───────────────────
+
+function fetchRawRatings(userId: string): Promise<Record<string, number>> {
+    return pageCache.fetch(`ratings:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "ratings"));
+        const result: Record<string, number> = {};
+        snap.forEach((d) => {
+            result[d.id] = (d.data() as SubjectRating).stars || 0;
+        });
+        return result;
+    }, TTL_USER);
+}
+
+function fetchRawProgress(userId: string): Promise<Map<string, UserProgress>> {
+    return pageCache.fetch(`progress:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "userProgress"));
+        const result = new Map<string, UserProgress>();
+        snap.forEach((d) => result.set(d.id, d.data() as UserProgress));
+        return result;
+    }, TTL_USER);
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+/** Stars per subject — single Firestore read, cached */
+export const fetchUserSubjectRatings = (userId: string): Promise<Record<string, number>> =>
+    fetchRawRatings(userId);
+
+/** Global stats — derived from cached ratings + progress, no extra reads */
 export const fetchUserGlobalStats = async (userId: string): Promise<GlobalStats> => {
     try {
-        // 1. Получаем общее кол-во решенных вопросов (звезды из ratings)
-        const ratingsRef = collection(db, "users", userId, "ratings");
-        const ratingsSnap = await getDocs(ratingsRef);
-        let totalSolved = 0;
-        ratingsSnap.forEach((doc) => {
-            const data = doc.data() as SubjectRating;
-            totalSolved += data.stars || 0;
-        });
+        const [ratings, progress] = await Promise.all([
+            fetchRawRatings(userId),
+            fetchRawProgress(userId),
+        ]);
 
-        // 2. Получаем прогресс по темам для расчета точности и медалей
-        const progressRef = collection(db, "users", userId, "userProgress");
-        const progressSnap = await getDocs(progressRef);
+        const totalSolved = Object.values(ratings).reduce((s, v) => s + v, 0);
 
         let totalCorrect = 0;
         let totalAttempted = 0;
-        const medalsCount = { green: 0, grey: 0, bronze: 0 };
+        const medals = { green: 0, grey: 0, bronze: 0 };
 
-        progressSnap.forEach((doc) => {
-            const data = doc.data() as UserProgress;
-            // В userProgress поля называются по-другому в ТЗ (solvedQuestions, errors)
-            // В схеме: correctAnswers, mistakes
-            // Будем использовать поля из ТЗ: solvedQuestions, errors
-            const solved = ('solvedQuestions' in data ? (data as UserProgress & { solvedQuestions?: number }).solvedQuestions : 0) || 0;
-            const errors = ('errors' in data ? (data as UserProgress & { errors?: number }).errors : 0) || 0;
-
+        progress.forEach((data) => {
+            const solved = (data as UserProgress & { solvedQuestions?: number }).solvedQuestions ?? 0;
+            const errors = (data as UserProgress & { errors?: number }).errors ?? 0;
             totalCorrect += solved;
-            totalAttempted += (solved + errors);
-
-            if (data.medal === "green") medalsCount.green++;
-            if (data.medal === "grey") medalsCount.grey++;
-            if (data.medal === "bronze") medalsCount.bronze++;
+            totalAttempted += solved + errors;
+            if (data.medal === "green") medals.green++;
+            if (data.medal === "grey") medals.grey++;
+            if (data.medal === "bronze") medals.bronze++;
         });
 
         const accuracy = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0;
-
-        return {
-            totalSolved,
-            accuracy,
-            medals: medalsCount,
-        };
-    } catch (error) {
-        console.error("Error fetching global stats:", error);
-        return {
-            totalSolved: 0,
-            accuracy: 0,
-            medals: { green: 0, grey: 0, bronze: 0 },
-        };
-    }
-};
-/**
- * Получение рейтингов по предметам (звезды)
- */
-export const fetchUserSubjectRatings = async (userId: string): Promise<Record<string, number>> => {
-    try {
-        const ratingsRef = collection(db, "users", userId, "ratings");
-        const ratingsSnap = await getDocs(ratingsRef);
-        const ratings: Record<string, number> = {};
-        ratingsSnap.forEach((doc) => {
-            const data = doc.data() as SubjectRating;
-            ratings[doc.id] = data.stars || 0;
-        });
-        return ratings;
-    } catch (error) {
-        console.error("Error fetching subject ratings:", error);
-        return {};
+        return { totalSolved, accuracy, medals };
+    } catch {
+        return { totalSolved: 0, accuracy: 0, medals: { green: 0, grey: 0, bronze: 0 } };
     }
 };
 
 /**
- * Получение всех бейджей пользователя
- */
-export const fetchUserBadges = async (userId: string): Promise<Array<{ id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } }>> => {
-    try {
-        const badgesRef = collection(db, "users", userId, "badges");
-        const badgesSnap = await getDocs(badgesRef);
-        return badgesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string; name: string; description?: string; icon?: string; unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number } }));
-    } catch (error) {
-        console.error("Error fetching user badges:", error);
-        return [];
-    }
-};
-
-/**
- * Получение прогресса по предмету (медали и прогресс)
+ * Progress for one subject — uses CACHED userProgress collection.
+ * Previously this made 1 Firestore read per subject (n subjects = n reads of the same data).
+ * Now it's 0 extra reads after the first call.
  */
 export const fetchSubjectProgress = async (
-    userId: string, 
+    userId: string,
     subjectId: string,
     topicIds: string[]
 ): Promise<{ medals: { green: number; grey: number; bronze: number }; progress: number }> => {
     try {
-        const progressRef = collection(db, "users", userId, "userProgress");
-        const progressSnap = await getDocs(progressRef);
-        
+        const progress = await fetchRawProgress(userId);
         const medals = { green: 0, grey: 0, bronze: 0 };
-        let completedTopics = 0;
-        
-        progressSnap.forEach((doc) => {
-            const data = doc.data() as UserProgress;
-            // Проверяем, относится ли прогресс к теме этого предмета
-            if (topicIds.includes(doc.id)) {
-                if (data.medal === "green") medals.green++;
-                if (data.medal === "grey") medals.grey++;
-                if (data.medal === "bronze") medals.bronze++;
-                if (data.medal !== "none") completedTopics++;
-            }
-        });
-        
-        const progress = topicIds.length > 0 
-            ? Math.round((completedTopics / topicIds.length) * 100) 
-            : 0;
-        
-        return { medals, progress };
-    } catch (error) {
-        console.error("Error fetching subject progress:", error);
+        let completed = 0;
+
+        for (const topicId of topicIds) {
+            const data = progress.get(topicId);
+            if (!data) continue;
+            if (data.medal === "green") { medals.green++; completed++; }
+            else if (data.medal === "grey") { medals.grey++; completed++; }
+            else if (data.medal === "bronze") { medals.bronze++; completed++; }
+        }
+
+        const pct = topicIds.length > 0 ? Math.round((completed / topicIds.length) * 100) : 0;
+        return { medals, progress: pct };
+    } catch {
         return { medals: { green: 0, grey: 0, bronze: 0 }, progress: 0 };
     }
+};
+
+/** Badges — cached */
+export const fetchUserBadges = (userId: string) =>
+    pageCache.fetch(`badges:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "badges"));
+        return snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+        })) as Array<{
+            id: string;
+            name: string;
+            description?: string;
+            icon?: string;
+            unlockedAt?: Date | { toDate: () => Date } | string | { seconds: number };
+        }>;
+    }, TTL_USER);
+
+/** Invalidate all cached data for a user (call after writing progress) */
+export const invalidateUserCache = (userId: string) => {
+    pageCache.invalidate(`ratings:${userId}`);
+    pageCache.invalidate(`progress:${userId}`);
+    pageCache.invalidate(`badges:${userId}`);
 };
