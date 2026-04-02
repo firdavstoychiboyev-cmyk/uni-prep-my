@@ -59,8 +59,8 @@ export const pageCache = {
     },
 
     invalidatePrefix(prefix: string): void {
-        for (const key of cache.keys()) {
+        Array.from(cache.keys()).forEach((key) => {
             if (key.startsWith(prefix)) cache.delete(key);
-        }
+        });
     },
 };
