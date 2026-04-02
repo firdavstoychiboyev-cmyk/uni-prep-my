@@ -10,7 +10,6 @@ import { fetchStudentClasses } from "@/lib/profile-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
 import { updateUserProfile } from "@/lib/auth-utils";
-import { pageCache } from "@/lib/page-cache";
 import { Star, ShieldCheck, Copy, Check, Settings2, X } from "lucide-react";
 import { getSubjectMeta, ACCENT_ICON_BG, ACCENT_ICON_COLORS } from "@/lib/subject-icons";
 
