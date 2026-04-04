@@ -335,8 +335,8 @@ export default function SubjectPage() {
         e.stopPropagation();
         setSavedTopics((prev) => {
             const next = new Set(prev);
-            next.has(topicId) ? next.delete(topicId) : next.add(topicId);
-            localStorage.setItem("savedTopics", JSON.stringify([...next]));
+            if (next.has(topicId)) next.delete(topicId); else next.add(topicId);
+            localStorage.setItem("savedTopics", JSON.stringify(Array.from(next)));
             return next;
         });
     }, []);

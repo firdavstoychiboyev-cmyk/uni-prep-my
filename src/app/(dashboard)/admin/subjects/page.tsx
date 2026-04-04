@@ -10,7 +10,7 @@ function hexForColorInput(c: string | undefined): string {
     const t = c?.trim() ?? "";
     if (/^#[0-9A-Fa-f]{6}$/.test(t)) return t;
     if (/^#[0-9A-Fa-f]{3}$/.test(t)) {
-        const [, r, g, b] = t;
+        const r = t[1], g = t[2], b = t[3];
         return `#${r}${r}${g}${g}${b}${b}`;
     }
     return "#6366f1";
