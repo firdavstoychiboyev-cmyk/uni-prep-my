@@ -55,8 +55,12 @@ export interface Question {
     c: string;
     d: string;
   };
-  correctAnswer: "a" | "b" | "c" | "d";
+  correctAnswer: string; // "a"|"b"|"c"|"d" for MC, any string for text input
   difficulty: "easy" | "medium" | "hard";
+  type?: "mc" | "text"; // defaults to "mc"; "text" = free-text answer (e.g. English writing)
+  explanation?: string; // step-by-step explanation shown after answering
+  domain?: string;      // e.g. "Algebra", "Reading & Writing"
+  skill?: string;       // e.g. "Linear equations in one variable"
 }
 
 export type Medal = "none" | "green" | "grey" | "bronze";
@@ -66,6 +70,8 @@ export interface UserProgress {
   topicId: string;
   solvedQuestions: number;
   errors: number;
+  /** Вопросы с флажком «Отметить» в последнем завершённом прохождении */
+  markedQuestions?: number;
   medal: Medal;
   accuracy: number; // процент точности
   completedAt: string;

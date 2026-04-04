@@ -14,10 +14,10 @@ import { Check, Copy, Pencil, X, User2, Palette, Trophy, ShieldAlert, Settings }
 type SectionId = "profile" | "appearance" | "achievements" | "account-actions";
 
 const sections: Array<{ id: SectionId; title: string; description?: string }> = [
-    { id: "profile", title: "Account", description: "Profile" },
-    { id: "appearance", title: "Preferences", description: "Appearance" },
-    { id: "achievements", title: "Achievements", description: "Achievements" },
-    { id: "account-actions", title: "Account Actions", description: "Account Actions" },
+    { id: "profile", title: "Аккаунт", description: "Профиль" },
+    { id: "appearance", title: "Настройки", description: "Внешний вид" },
+    { id: "achievements", title: "Достижения", description: "Достижения" },
+    { id: "account-actions", title: "Действия аккаунта", description: "Действия аккаунта" },
 ];
 
 function scrollToSection(id: SectionId) {
@@ -143,7 +143,7 @@ export default function SettingsPage() {
                 <div className="w-10 h-10 rounded-xl bg-[hsl(var(--brand-blue-soft))] border border-border flex items-center justify-center">
                     <Settings className="w-5 h-5 text-[hsl(var(--brand-blue))]" />
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight text-foreground">Settings</h1>
+                <h1 className="text-4xl font-bold tracking-tight text-foreground">Настройки</h1>
             </div>
 
             {/* Mobile menu (simple) */}
@@ -169,12 +169,12 @@ export default function SettingsPage() {
                         <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
                             <User2 className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Account</h2>
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Аккаунт</h2>
                     </div>
                     <div className="mt-6 rounded-2xl border border-border bg-card p-8">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
-                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Name</div>
+                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Имя</div>
                                 <div className="mt-2 text-lg font-semibold text-foreground">
                                     {user.name} {user.surname || ""}
                                 </div>
@@ -184,13 +184,13 @@ export default function SettingsPage() {
                                 <div className="mt-2 text-lg font-semibold text-foreground">{user.email}</div>
                             </div>
                             <div>
-                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Role</div>
+                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Роль</div>
                                 <div className="mt-2 text-sm font-bold text-foreground inline-flex items-center px-3 py-1 rounded-full bg-muted border border-border">
                                     {user.role}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Member ID</div>
+                                <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">ID участника</div>
                                 <div className="mt-2 flex items-center gap-2">
                                     <code className="text-sm font-mono font-bold text-muted-foreground px-3 py-2 rounded-xl bg-muted border border-border">
                                         {memberId}
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                                         type="button"
                                         onClick={copyId}
                                         className="h-10 w-10 rounded-xl border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center"
-                                        title="Copy"
+                                        title="Копировать"
                                     >
                                         {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                                     </button>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-95 active:scale-[0.98] transition-all"
                             >
                                 <Pencil className="w-4 h-4" />
-                                Edit profile
+                                Редактировать профиль
                             </button>
                         </div>
                     </div>
@@ -226,12 +226,12 @@ export default function SettingsPage() {
                         <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
                             <Palette className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Preferences</h2>
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Настройки</h2>
                     </div>
                     <div className="mt-6 rounded-2xl border border-border bg-card p-8">
                         <div className="flex items-center justify-between gap-6 rounded-2xl border border-border bg-muted p-6">
                             <div>
-                                <div className="text-base font-semibold text-foreground">Appearance</div>
+                                <div className="text-base font-semibold text-foreground">Внешний вид</div>
                                 <div className="text-sm text-muted-foreground mt-1">Светлая / тёмная тема.</div>
                             </div>
                             <ThemeToggle />
@@ -245,19 +245,19 @@ export default function SettingsPage() {
                         <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
                             <Trophy className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Achievements</h2>
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Достижения</h2>
                     </div>
                     <div className="mt-6 rounded-2xl border border-border bg-card p-8">
                         <div className="rounded-2xl border border-border bg-muted p-6 flex items-center justify-between gap-6">
                             <div className="min-w-0">
-                                <div className="text-base font-semibold text-foreground">Open achievements</div>
+                                <div className="text-base font-semibold text-foreground">Открыть достижения</div>
                                 <div className="text-sm text-muted-foreground mt-1">Переход на существующий раздел.</div>
                             </div>
                             <Link
                                 href="/achievements"
                                 className="shrink-0 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-95 active:scale-[0.98] transition-all"
                             >
-                                Open
+                                Открыть
                             </Link>
                         </div>
                     </div>
@@ -269,13 +269,13 @@ export default function SettingsPage() {
                         <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
                             <ShieldAlert className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Account Actions</h2>
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground">Действия аккаунта</h2>
                     </div>
                     <div className="mt-6 rounded-2xl border border-border bg-card p-8">
                         <div className="grid grid-cols-1 gap-4">
                             <div className="rounded-2xl border border-border bg-muted px-6 py-4 flex items-center justify-between gap-6">
                                 <div>
-                                    <div className="text-base font-semibold text-foreground">Sign out</div>
+                                    <div className="text-base font-semibold text-foreground">Выйти</div>
                                     <div className="text-sm text-muted-foreground mt-1">Выйти из аккаунта на этом устройстве.</div>
                                 </div>
                                 <button
@@ -284,13 +284,13 @@ export default function SettingsPage() {
                                     disabled={busy !== null}
                                     className="shrink-0 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-95 active:scale-[0.98] transition-all disabled:opacity-50"
                                 >
-                                    {busy === "logout" ? "Signing out…" : "Sign out"}
+                                    {busy === "logout" ? "Выход…" : "Выйти"}
                                 </button>
                             </div>
 
                             <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 flex items-center justify-between gap-6">
                                 <div>
-                                    <div className="text-base font-semibold text-red-700">Delete account</div>
+                                    <div className="text-base font-semibold text-red-700">Удалить аккаунт</div>
                                 </div>
                                 <button
                                     type="button"
@@ -298,7 +298,7 @@ export default function SettingsPage() {
                                     disabled={busy !== null}
                                     className="shrink-0 px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 active:scale-[0.98] transition-all disabled:opacity-50"
                                 >
-                                    {busy === "delete" ? "Deleting…" : "Delete"}
+                                    {busy === "delete" ? "Удаление…" : "Удалить"}
                                 </button>
                             </div>
                         </div>
@@ -311,7 +311,7 @@ export default function SettingsPage() {
                     <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
                         <div className="p-7">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-foreground">Edit profile</h2>
+                                <h2 className="text-xl font-bold text-foreground">Редактировать профиль</h2>
                                 <button
                                     type="button"
                                     onClick={() => setEditOpen(false)}
@@ -323,22 +323,22 @@ export default function SettingsPage() {
 
                             <form onSubmit={saveProfile} className="mt-6 space-y-4">
                                 <div>
-                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Name</label>
+                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Имя</label>
                                     <input
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         className="mt-2 w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-blue))]/20 focus:border-[hsl(var(--brand-blue))]"
-                                        placeholder="Name"
+                                        placeholder="Имя"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Surname</label>
+                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">Фамилия</label>
                                     <input
                                         value={surname}
                                         onChange={(e) => setSurname(e.target.value)}
                                         className="mt-2 w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-blue))]/20 focus:border-[hsl(var(--brand-blue))]"
-                                        placeholder="Surname"
+                                        placeholder="Фамилия"
                                     />
                                 </div>
 
@@ -348,14 +348,14 @@ export default function SettingsPage() {
                                         onClick={() => setEditOpen(false)}
                                         className="flex-1 h-12 rounded-xl border border-border bg-card hover:bg-muted font-semibold text-sm transition-colors"
                                     >
-                                        Cancel
+                                        Отмена
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={saving || name.trim().length < 2}
                                         className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50"
                                     >
-                                        {saving ? "Saving…" : "Save"}
+                                        {saving ? "Сохранение…" : "Сохранить"}
                                     </button>
                                 </div>
                             </form>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { adminFetchCollection, adminAddItem, adminDeleteItem } from "@/lib/admin-utils";
+import { Fragment, useEffect, useState } from "react";
+import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } from "@/lib/admin-utils";
 import { Topic, Textbook, Subject } from "@/lib/firestore-schema";
-import { Plus, Trash2, ListTree } from "lucide-react";
+import { Plus, Trash2, ListTree, Edit2, X } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 
 export default function AdminTopicsPage() {
@@ -16,11 +16,17 @@ export default function AdminTopicsPage() {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-    // Форма
+    // Форма создания
     const [title, setTitle] = useState("");
     const [order, setOrder] = useState("");
     const [totalQuestions, setTotalQuestions] = useState("");
+
+    // Форма редактирования
+    const [editTitle, setEditTitle] = useState("");
+    const [editOrder, setEditOrder] = useState("");
+    const [editTotalQuestions, setEditTotalQuestions] = useState("");
 
     useEffect(() => {
         adminFetchCollection("subjects", "name").then(data => {
@@ -38,8 +44,11 @@ export default function AdminTopicsPage() {
     }, [selectedSubject]);
 
     useEffect(() => {
+        setEditingId(null);
         if (selectedTextbook) {
             fetchTopicsByTextbook(selectedTextbook).then(setTopics);
+        } else {
+            setTopics([]);
         }
     }, [selectedTextbook]);
 
@@ -68,9 +77,54 @@ export default function AdminTopicsPage() {
         if (!confirm("Вы уверены? Это не удалит вопросы в этой теме.")) return;
         try {
             await adminDeleteItem("topics", id);
-            setTopics(prev => prev.filter(t => t.id !== id));
+            setTopics((prev) => prev.filter((t) => t.id !== id));
+            if (editingId === id) setEditingId(null);
         } catch {
             alert("Ошибка при удалении");
+        }
+    };
+
+    const startEdit = (t: Topic) => {
+        setIsAdding(false);
+        setEditingId(t.id);
+        setEditTitle(t.title);
+        setEditOrder(String(t.order ?? 0));
+        setEditTotalQuestions(String(t.totalQuestions ?? 0));
+    };
+
+    const cancelEdit = () => setEditingId(null);
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingId) return;
+        const orderNum = Number.parseInt(editOrder, 10);
+        const tqNum = Number.parseInt(editTotalQuestions, 10);
+        if (Number.isNaN(orderNum)) {
+            alert("Порядок — целое число");
+            return;
+        }
+        if (Number.isNaN(tqNum) || tqNum < 0) {
+            alert("Количество вопросов — неотрицательное число");
+            return;
+        }
+        const current = topics.find((t) => t.id === editingId);
+        if (!current) return;
+        try {
+            const payload = {
+                title: editTitle.trim(),
+                order: orderNum,
+                totalQuestions: tqNum,
+                textbookId: current.textbookId,
+            };
+            await adminUpdateItem("topics", editingId, payload);
+            setTopics((prev) =>
+                prev
+                    .map((t) => (t.id === editingId ? { ...t, ...payload } : t))
+                    .sort((a, b) => a.order - b.order)
+            );
+            setEditingId(null);
+        } catch {
+            alert("Ошибка при сохранении");
         }
     };
 
@@ -82,7 +136,10 @@ export default function AdminTopicsPage() {
                     <p className="text-muted-foreground mt-2">Управление главами и разделами внутри учебников.</p>
                 </section>
                 <button
-                    onClick={() => setIsAdding(!isAdding)}
+                    onClick={() => {
+                        setIsAdding((v) => !v);
+                        if (!isAdding) setEditingId(null);
+                    }}
                     disabled={!selectedTextbook}
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
                 >
@@ -166,20 +223,102 @@ export default function AdminTopicsPage() {
                         {isLoading ? (
                             [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-muted/20" />)
                         ) : topics.length > 0 ? (
-                            topics.map(topic => (
-                                <tr key={topic.id} className="hover:bg-muted/40 transition-colors group text-sm">
-                                    <td className="px-8 py-6 font-mono text-muted-foreground">#{topic.order}</td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-3">
-                                            <ListTree size={18} className="text-muted-foreground" />
-                                            <span className="font-semibold text-foreground tracking-tight">{topic.title}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-muted-foreground font-medium">{topic.totalQuestions}</td>
-                                    <td className="px-8 py-6 text-right">
-                                        <button onClick={() => handleDelete(topic.id)} className="p-2 text-muted-foreground hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={18} /></button>
-                                    </td>
-                                </tr>
+                            topics.map((topic) => (
+                                <Fragment key={topic.id}>
+                                    <tr className="hover:bg-muted/40 transition-colors group text-sm">
+                                        <td className="px-8 py-6 font-mono text-muted-foreground">#{topic.order}</td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-3">
+                                                <ListTree size={18} className="text-muted-foreground shrink-0" />
+                                                <span className="font-semibold text-foreground tracking-tight">{topic.title}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-muted-foreground font-medium tabular-nums">
+                                            {topic.totalQuestions}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        editingId === topic.id ? cancelEdit() : startEdit(topic)
+                                                    }
+                                                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                    title={editingId === topic.id ? "Закрыть" : "Редактировать"}
+                                                >
+                                                    {editingId === topic.id ? <X size={18} /> : <Edit2 size={18} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(topic.id)}
+                                                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {editingId === topic.id && (
+                                        <tr className="border-b border-border bg-muted/25">
+                                            <td colSpan={4} className="px-8 py-6">
+                                                <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
+                                                    <p className="text-sm font-semibold text-foreground">Редактирование темы</p>
+                                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                        <div className="space-y-2 sm:col-span-2">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                                                Название
+                                                            </label>
+                                                            <input
+                                                                value={editTitle}
+                                                                onChange={(e) => setEditTitle(e.target.value)}
+                                                                required
+                                                                className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                                                Порядок
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={editOrder}
+                                                                onChange={(e) => setEditOrder(e.target.value)}
+                                                                className="w-full rounded-lg border border-border bg-background p-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/30"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                                                Вопросов (всего)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                value={editTotalQuestions}
+                                                                onChange={(e) => setEditTotalQuestions(e.target.value)}
+                                                                className="w-full rounded-lg border border-border bg-background p-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/30"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button
+                                                            type="submit"
+                                                            className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
+                                                        >
+                                                            Сохранить
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={cancelEdit}
+                                                            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                                                        >
+                                                            Отмена
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
                             ))
                         ) : (
                             <tr>

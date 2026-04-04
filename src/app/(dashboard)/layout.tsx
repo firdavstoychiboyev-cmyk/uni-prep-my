@@ -24,7 +24,7 @@ export default function DashboardLayout({
 
     if (isLoading) {
         return (
-            <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-muted/25">
+            <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-black">
                 {/* Skeleton sidebar — hidden on mobile */}
                 <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex-col z-50 px-3 py-6 gap-2">
                     <div className="h-10 w-40 bg-gray-100 rounded-xl animate-pulse mx-3 mb-4" />
@@ -39,7 +39,7 @@ export default function DashboardLayout({
                     ))}
                 </aside>
                 {/* Skeleton content */}
-                <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-muted/25">
+                <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-black">
                     <div className="h-16 shrink-0 bg-background/80" />
                     <div className="mx-4 mb-4 mt-3 flex min-h-0 flex-1 flex-col sm:mx-5 sm:mb-5 sm:mt-4">
                         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl rounded-b-2xl border border-border/45 bg-background shadow-md">
@@ -77,10 +77,10 @@ export default function DashboardLayout({
     if (!user) return null;
 
     return (
-        <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-muted/25">
+        <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-black">
             <Sidebar />
             <NavProgressBar />
-            <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-muted/25">
+            <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-muted/50 dark:bg-black">
                 <Topbar />
                 <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 flex-col sm:mx-5 sm:mb-5 sm:mt-4">
                     <PageWrapper>{children}</PageWrapper>

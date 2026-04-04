@@ -6,20 +6,20 @@ import { User2, Palette, Trophy, ShieldAlert } from "lucide-react";
 type Item = { label: string; id: "profile" | "appearance" | "achievements" | "account-actions"; icon: typeof User2 };
 const groups: Array<{ title: string; items: Item[] }> = [
     {
-        title: "НАСТРОЙКИ",
-        items: [{ label: "Profile", id: "profile", icon: User2 }],
+        title: "АККАУНТ",
+        items: [{ label: "Профиль", id: "profile", icon: User2 }],
     },
     {
-        title: "PREFERENCES",
-        items: [{ label: "Appearance", id: "appearance", icon: Palette }],
+        title: "ВНЕШНИЙ ВИД",
+        items: [{ label: "Внешний вид", id: "appearance", icon: Palette }],
     },
     {
-        title: "ACHIEVEMENTS",
-        items: [{ label: "Achievements", id: "achievements", icon: Trophy }],
+        title: "ДОСТИЖЕНИЯ",
+        items: [{ label: "Достижения", id: "achievements", icon: Trophy }],
     },
     {
-        title: "ACCOUNT ACTIONS",
-        items: [{ label: "Account Actions", id: "account-actions", icon: ShieldAlert }],
+        title: "ДЕЙСТВИЯ",
+        items: [{ label: "Действия аккаунта", id: "account-actions", icon: ShieldAlert }],
     },
 ];
 
