@@ -545,7 +545,7 @@ export default function TestPage() {
                         <span className="px-3 py-1.5 rounded-xl bg-foreground text-background text-sm font-bold tabular-nums">
                             {idx + 1} / {questions.length}
                         </span>
-                        <div ref={moreMenuWrapRef} className="relative">
+                        <div ref={moreMenuWrapRef} className="relative hidden sm:block">
                             <button
                                 type="button"
                                 onClick={() => setMoreMenuOpen((v) => !v)}
@@ -569,7 +569,7 @@ export default function TestPage() {
                                         type="button"
                                         role="menuitem"
                                         onClick={() => void toggleTestFullscreen()}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                        className="hidden sm:flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                     >
                                         {fullscreenActive ? (
                                             <>
@@ -956,8 +956,53 @@ export default function TestPage() {
 
             {/* ─── BOTTOM BAR ─── */}
             <div className="sticky bottom-0 z-20 shrink-0 bg-background/95 backdrop-blur border-t border-border">
-                <div className="flex items-center justify-between px-4 py-3 gap-3">
-                    {/* Left: Question Bank */}
+                {/* Строка 1 (мобайл): Банк вопросов на всю ширину */}
+                <div className="flex items-center gap-2 px-3 pt-2 sm:hidden">
+                    <button
+                        type="button"
+                        onClick={() => setShowBank((v) => !v)}
+                        className={`flex flex-1 items-center justify-center gap-2 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                            showBank
+                                ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))]"
+                                : "border-border bg-card text-foreground"
+                        }`}
+                    >
+                        <LayoutGrid className="w-4 h-4" />
+                        Банк вопросов
+                        <span className="text-xs text-muted-foreground tabular-nums">{answeredCount}/{questions.length}</span>
+                        {showBank ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />}
+                    </button>
+                </div>
+
+                {/* Строка 2 (мобайл): Назад | Проверить | Следующий/Завершить */}
+                <div className="flex items-center gap-2 px-3 py-2 sm:hidden">
+                    <button type="button" onClick={() => idx > 0 && goTo(idx - 1)} disabled={idx === 0}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card disabled:opacity-40">
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCheck}
+                        disabled={!answer.trim() || checked}
+                        className="flex-1 py-2.5 rounded-xl bg-[hsl(var(--brand-blue))] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+                    >
+                        Проверить
+                    </button>
+                    {idx < questions.length - 1 ? (
+                        <button type="button" onClick={handleSaveAndNext}
+                            className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98] transition-all">
+                            Далее<ChevronRight className="w-4 h-4" />
+                        </button>
+                    ) : (
+                        <button type="button" onClick={handleSaveAndNext} disabled={isSaving}
+                            className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-60 active:scale-[0.98] transition-all">
+                            {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />…</> : "Завершить"}
+                        </button>
+                    )}
+                </div>
+
+                {/* Десктоп: одна строка */}
+                <div className="hidden sm:flex items-center justify-between px-4 py-3 gap-3">
                     <button
                         type="button"
                         onClick={() => setShowBank((v) => !v)}
@@ -968,24 +1013,15 @@ export default function TestPage() {
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />
-                        <span className="hidden sm:inline">Банк вопросов</span>
+                        Банк вопросов
                         <span className="text-xs text-muted-foreground tabular-nums">{answeredCount}/{questions.length}</span>
-                        {showBank ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
-                        )}
+                        {showBank ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />}
                     </button>
-
-                    {/* Right: nav buttons */}
                     <div className="flex items-center gap-2">
-                        {/* Prev */}
                         <button type="button" onClick={() => idx > 0 && goTo(idx - 1)} disabled={idx === 0}
                             className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card hover:bg-muted transition-colors disabled:opacity-40">
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-
-                        {/* Проверить — всегда видна */}
                         <button
                             type="button"
                             onClick={handleCheck}
@@ -994,8 +1030,6 @@ export default function TestPage() {
                         >
                             Проверить
                         </button>
-
-                        {/* Следующий / Завершить — всегда видна */}
                         {idx < questions.length - 1 ? (
                             <button type="button" onClick={handleSaveAndNext}
                                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">

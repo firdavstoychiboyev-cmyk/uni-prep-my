@@ -91,7 +91,7 @@ export default function SettingsNav() {
                                         onClick={() => go(it.id)}
                                         className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-colors w-full text-left ${
                                             active === it.id
-                                                ? "bg-[hsl(var(--brand-blue-soft))] text-foreground"
+                                                ? "bg-muted text-foreground"
                                                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                         }`}
                                     >

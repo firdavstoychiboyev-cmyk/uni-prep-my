@@ -80,26 +80,6 @@ type AnswerFilter = "all" | "incorrect" | "correct";
 
 /* ─── helpers ────────────────────────────────────────────── */
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            onClick={() => onChange(!checked)}
-            className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-blue))] focus-visible:ring-offset-2 ${
-                checked ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue))]" : "border-border bg-muted"
-            }`}
-        >
-            <span
-                className={`pointer-events-none block h-6 w-6 rounded-full bg-card shadow-sm ring-1 ring-border transition-transform duration-300 ${
-                    checked ? "translate-x-7" : "translate-x-1"
-                }`}
-            />
-            <span className="sr-only">{label}</span>
-        </button>
-    );
-}
 
 function TopicCheckbox({
     checked,
@@ -222,9 +202,8 @@ export default function SubjectPage() {
     const [subject, setSubject] = useState<Subject | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [multiSelect, setMultiSelect] = useState(true);
-    const [randomize, setRandomize] = useState(false);
-    const [showAttempts, setShowAttempts] = useState(false);
+    const [multiSelect] = useState(true);
+    const [randomize] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Filter bar visibility
@@ -488,20 +467,6 @@ export default function SubjectPage() {
                     <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${filtersOpen ? "rotate-180" : ""}`} />
                 </button>
 
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                    <label className="flex items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none">
-                        <Toggle checked={multiSelect} onChange={setMultiSelect} label="Несколько тем" />
-                        <span>Несколько тем</span>
-                    </label>
-                    <label className="flex items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none">
-                        <Toggle checked={randomize} onChange={setRandomize} label="Случайный порядок" />
-                        <span>Случайный порядок</span>
-                    </label>
-                    <label className="flex items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none">
-                        <Toggle checked={showAttempts} onChange={setShowAttempts} label="Прошлые попытки" />
-                        <span>Прошлые попытки</span>
-                    </label>
-                </div>
             </div>
 
             {/* Toolbar row 2: individual filter buttons (shown when filtersOpen) */}
