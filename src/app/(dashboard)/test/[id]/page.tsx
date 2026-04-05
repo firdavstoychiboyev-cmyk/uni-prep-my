@@ -13,15 +13,15 @@ import {
     collection, addDoc, getDoc, getDocs,
 } from "firebase/firestore";
 import {
-    CheckCircle2, XCircle, RefreshCw, Award, Medal as MedalIcon, ShieldCheck, AlertCircle,
+    CheckCircle2, XCircle,
     Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Pause, Play, Eye, EyeOff,
-    LayoutGrid, X, ArrowLeft, Info, Clock, Strikethrough, ChevronUp,
+    LayoutGrid, X, ArrowLeft, Info, Strikethrough, ChevronUp,
     MoreVertical, Maximize2, Minimize2,
 } from "lucide-react";
 import { getMedalByErrors } from "@/lib/constants";
 
 /* ─── types ─────────────────────────────────────────── */
-type QStatus = "unanswered" | "correct" | "incorrect";
+type QStatus = "unanswered" | "correct-first" | "correct-retry" | "incorrect";
 interface QState { status: QStatus; marked: boolean; answer: string; }
 function blank(n: number): QState[] {
     return Array.from({ length: n }, () => ({ status: "unanswered" as QStatus, marked: false, answer: "" }));
@@ -60,9 +60,7 @@ export default function TestPage() {
     const [topic, setTopic] = useState<Topic | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFinished, setIsFinished] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [subjectId, setSubjectId] = useState<string | null>(null);
 
     // Per-question state
     const [qStates, setQStates] = useState<QState[]>([]);
@@ -73,6 +71,7 @@ export default function TestPage() {
     const [idx, setIdx] = useState(0);
     const [answer, setAnswer] = useState("");
     const [checked, setChecked] = useState(false);
+    const [attempts, setAttempts] = useState(0);
     const [showExplanation, setShowExplanation] = useState(false);
 
     // Cross-out: show letter circles beside options + per-question crossed keys
@@ -90,8 +89,7 @@ export default function TestPage() {
     const [timerVisible, setTimerVisible] = useState(true);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Results review
-    const [reviewIdx, setReviewIdx] = useState(0);
+    const progressRestoredRef = useRef(false);
 
     // Fullscreen + «Ещё» menu
     const testShellRef = useRef<HTMLDivElement>(null);
@@ -144,6 +142,7 @@ export default function TestPage() {
     /* ─ load ─ */
     useEffect(() => {
         if (!id) return;
+        progressRestoredRef.current = false;
         Promise.all([fetchTopicById(id as string), fetchQuestionsByTopic(id as string)]).then(([t, qs]) => {
             setTopic(t);
             setQuestions(qs);
@@ -152,15 +151,39 @@ export default function TestPage() {
         });
     }, [id]);
 
+    /* ─ restore saved question statuses from Firestore ─ */
+    useEffect(() => {
+        if (!user || !topic?.id || questions.length === 0 || progressRestoredRef.current) return;
+        progressRestoredRef.current = true;
+        void getDoc(doc(db, "users", user.id, "userProgress", topic.id)).then((snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data() as { questionStatuses?: Record<string, { status: string; marked: boolean; answer: string }> };
+            if (!data.questionStatuses) return;
+            const restored = questions.map((q) => {
+                const s = data.questionStatuses![q.id];
+                return s
+                    ? { status: s.status as QStatus, marked: Boolean(s.marked), answer: s.answer ?? "" }
+                    : { status: "unanswered" as QStatus, marked: false, answer: "" };
+            });
+            setQStates(restored);
+            qStatesRef.current = restored;
+            const first = restored[0];
+            if (first) {
+                setAnswer(first.answer);
+                setChecked(first.status !== "unanswered");
+            }
+        });
+    }, [user, topic?.id, questions]);
+
     /* ─ timer ─ */
     useEffect(() => {
-        if (isFinished || isLoading || paused) {
+        if (isLoading || paused) {
             if (timerRef.current) clearInterval(timerRef.current);
             return;
         }
         timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [paused, isFinished, isLoading]);
+    }, [paused, isLoading]);
 
     /* ─ derived ─ */
     const q = questions[idx];
@@ -168,8 +191,6 @@ export default function TestPage() {
     const qState = qStates[idx] ?? { status: "unanswered", marked: false, answer: "" };
     const crossedForQ = crossedOut[idx] ?? [];
 
-    const correctCount = useMemo(() => qStates.filter((s) => s.status === "correct").length, [qStates]);
-    const errorCount = useMemo(() => qStates.filter((s) => s.status === "incorrect").length, [qStates]);
     const answeredCount = useMemo(() => qStates.filter((s) => s.status !== "unanswered").length, [qStates]);
 
     /* ─ navigate to question ─ */
@@ -178,6 +199,7 @@ export default function TestPage() {
         setIdx(i);
         setAnswer(s?.answer ?? "");
         setChecked(s?.status !== "unanswered");
+        setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
         setShowInfo(false);
@@ -186,6 +208,7 @@ export default function TestPage() {
     /* ─ check answer (показывает фидбэк, не блокирует варианты) ─ */
     const handleCheck = useCallback(() => {
         if (!q || checked || !answer.trim()) return;
+        setAttempts((v) => v + 1);
         setChecked(true);
     }, [q, checked, answer]);
 
@@ -209,17 +232,16 @@ export default function TestPage() {
     }, [idx]);
 
 
-    /* ─ finish ─
-       statesSnapshot: при «Завершить» с последнего вопроса setQStates асинхронен,
-       qStatesRef ещё без последнего ответа — передаём актуальный снимок из handleSaveAndNext. */
+    /* ─ finish — сохраняет результат и редиректит в темы ─ */
     const handleFinish = useCallback(async (statesSnapshot?: QState[]) => {
         if (timerRef.current) clearInterval(timerRef.current);
-        setIsFinished(true);
-        if (!user || !topic) return;
+        if (!user || !topic) { router.push("/"); return; }
         setIsSaving(true);
 
         const states = statesSnapshot ?? qStatesRef.current;
-        const corr = states.filter((s) => s.status === "correct").length;
+        const corrFirst = states.filter((s) => s.status === "correct-first").length;
+        const corrRetry = states.filter((s) => s.status === "correct-retry").length;
+        const corr = corrFirst + corrRetry;
         const errs = states.filter((s) => s.status === "incorrect").length;
         const markedCount = states.filter((s) => s.marked).length;
         const accuracy = questions.length > 0 ? Math.round((corr / questions.length) * 100) : 0;
@@ -228,11 +250,20 @@ export default function TestPage() {
         invalidateUserCache(user.id);
         resetStats();
 
+        const questionStatuses: Record<string, { status: QStatus; marked: boolean; answer: string }> = {};
+        states.forEach((s, i) => {
+            const qId = questions[i]?.id;
+            if (qId) questionStatuses[qId] = { status: s.status, marked: s.marked, answer: s.answer };
+        });
+
+        let navSubjectId: string | null = null;
         try {
             await setDoc(doc(db, "users", user.id, "userProgress", topic.id), {
                 userId: user.id, topicId: topic.id,
-                solvedQuestions: corr, errors: errs, markedQuestions: markedCount, medal, accuracy,
+                solvedQuestions: corr, correctFirstCount: corrFirst, correctRetryCount: corrRetry,
+                errors: errs, markedQuestions: markedCount, medal, accuracy,
                 completedAt: new Date().toISOString(),
+                questionStatuses,
             });
             await addDoc(collection(db, "users", user.id, "testResults"), {
                 topicId: topic.id, correctAnswers: corr, errors: errs, accuracy, medal,
@@ -241,7 +272,7 @@ export default function TestPage() {
             const tbSnap = await getDoc(doc(db, "textbooks", topic.textbookId));
             if (tbSnap.exists()) {
                 const { subjectId } = tbSnap.data();
-                setSubjectId(subjectId);
+                navSubjectId = subjectId as string;
                 const rRef = doc(db, "users", user.id, "ratings", subjectId);
                 const rSnap = await getDoc(rRef);
                 if (rSnap.exists()) await updateDoc(rRef, { stars: increment(corr), lastUpdated: serverTimestamp() });
@@ -263,8 +294,11 @@ export default function TestPage() {
                     }
                 }
             }
-        } catch { /* ignore */ } finally { setIsSaving(false); }
-    }, [user, topic, questions.length, secs, resetStats]);
+        } catch { /* ignore */ } finally {
+            setIsSaving(false);
+            router.push(navSubjectId ? `/subject/${navSubjectId}` : "/");
+        }
+    }, [user, topic, questions, secs, resetStats, router]);
 
     /* ─ save + next (сохраняет ответ и переходит дальше) ─ */
     const handleSaveAndNext = useCallback(() => {
@@ -273,36 +307,26 @@ export default function TestPage() {
             const isCorrect = isText
                 ? answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
                 : answer === q.correctAnswer;
+            const status: QStatus = isCorrect
+                ? (attempts <= 1 ? "correct-first" : "correct-retry")
+                : "incorrect";
             merged = [...qStatesRef.current];
-            merged[idx] = { ...merged[idx], status: isCorrect ? "correct" : "incorrect", answer };
+            merged[idx] = { ...merged[idx], status, answer };
             qStatesRef.current = merged;
             setQStates(merged);
         }
         if (idx < questions.length - 1) goTo(idx + 1);
         else void handleFinish(merged);
-    }, [answer, isText, q, idx, questions.length, goTo, handleFinish]);
-
-    /* ─ reset ─ */
-    const resetTest = useCallback(() => {
-        setIdx(0);
-        setQStates(blank(questions.length));
-        setAnswer("");
-        setChecked(false);
-        setIsFinished(false);
-        setSecs(0);
-        setPaused(false);
-        setShowExplanation(false);
-        setIsSaving(false);
-        setCrossedOut({});
-        setShowCrossOutColumn(false);
-    }, [questions.length]);
+    }, [answer, attempts, isText, q, idx, questions.length, goTo, handleFinish]);
 
     /* ─ question bank order ─ */
     const bankOrder = useMemo(() => {
         const arr = questions.map((_, i) => i);
         if (!groupAnswered) return arr;
         return [
-            ...arr.filter((i) => qStates[i]?.status !== "unanswered"),
+            ...arr.filter((i) => qStates[i]?.status === "correct-first"),
+            ...arr.filter((i) => qStates[i]?.status === "correct-retry"),
+            ...arr.filter((i) => qStates[i]?.status === "incorrect"),
             ...arr.filter((i) => qStates[i]?.status === "unanswered"),
         ];
     }, [questions, qStates, groupAnswered]);
@@ -322,181 +346,6 @@ export default function TestPage() {
             <p className="text-muted-foreground">Вопросы не найдены</p>
         </div>
     );
-
-    /* ══════════════════════════════════ RESULTS ════════════════════════════════ */
-    if (isFinished) {
-        const medal = getMedalByErrors(errorCount, 1);
-        const accuracy = Math.round((correctCount / questions.length) * 100);
-        const msg = accuracy >= 87 ? "Отличный результат!" : accuracy >= 70 ? "Хорошо, так держать!" : accuracy >= 50 ? "Неплохо. Попробуй ещё раз." : "Попробуй ещё раз.";
-        const reviewQ = questions[reviewIdx];
-        const reviewState = qStates[reviewIdx];
-
-        return (
-            <div className="max-w-3xl mx-auto py-8 animate-in fade-in duration-500">
-                {/* Medal + header */}
-                <div className="text-center mb-8">
-                    <div className="flex justify-center mb-4">
-                        {medal === "green" && <div className="w-24 h-24 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center"><ShieldCheck className="w-12 h-12 text-emerald-600" /></div>}
-                        {medal === "grey" && <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center"><Award className="w-12 h-12 text-gray-500" /></div>}
-                        {medal === "bronze" && <div className="w-24 h-24 rounded-full bg-orange-100 border-2 border-orange-300 flex items-center justify-center"><MedalIcon className="w-12 h-12 text-orange-500" /></div>}
-                        {medal === "none" && <div className="w-24 h-24 rounded-full bg-muted border-2 border-border flex items-center justify-center"><AlertCircle className="w-12 h-12 text-muted-foreground" /></div>}
-                    </div>
-                    <h1 className="text-3xl font-bold text-foreground mb-1">{msg}</h1>
-                    <p className="text-sm text-muted-foreground">{topic.title}</p>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="rounded-2xl border border-border bg-card p-5 text-center">
-                        <div className="text-3xl font-bold text-foreground">{accuracy}%</div>
-                        <div className="text-xs text-muted-foreground mt-1 font-medium">Точность</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-card p-5 text-center">
-                        <div className="text-3xl font-bold text-emerald-600">{correctCount}</div>
-                        <div className="text-xs text-muted-foreground mt-1 font-medium">Правильно</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-card p-5 text-center">
-                        <div className="text-3xl font-bold text-red-500">{errorCount}</div>
-                        <div className="text-xs text-muted-foreground mt-1 font-medium">Ошибки</div>
-                    </div>
-                </div>
-
-                {/* Time */}
-                <div className="rounded-2xl border border-border bg-card px-6 py-4 flex items-center justify-between mb-6">
-                    <span className="text-sm text-muted-foreground font-medium flex items-center gap-2"><Clock className="w-4 h-4" />Время</span>
-                    <span className="text-base font-bold text-foreground">{fmt(secs)}</span>
-                </div>
-
-                {/* Question review */}
-                <div className="rounded-2xl border border-border bg-card overflow-hidden mb-6">
-                    <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                        <span className="text-sm font-bold text-foreground">Разбор вопросов</span>
-                        <span className="text-xs text-muted-foreground">{reviewIdx + 1} / {questions.length}</span>
-                    </div>
-                    <div className="p-6">
-                        {/* Question number strip */}
-                        <div className="flex flex-wrap gap-1.5 mb-5">
-                            {questions.map((_, i) => {
-                                const s = qStates[i];
-                                return (
-                                    <button
-                                        key={i}
-                                        type="button"
-                                        onClick={() => setReviewIdx(i)}
-                                        className={`w-8 h-8 rounded-lg text-xs font-bold border-2 transition-all ${
-                                            i === reviewIdx
-                                                ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue))] text-white"
-                                                : s?.status === "correct"
-                                                ? "border-emerald-300 bg-emerald-100 text-emerald-700"
-                                                : s?.status === "incorrect"
-                                                ? "border-red-300 bg-red-100 text-red-700"
-                                                : "border-border bg-muted text-muted-foreground"
-                                        }`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Question text */}
-                        <p className="text-base font-medium text-foreground mb-4 leading-relaxed">{reviewQ?.text}</p>
-
-                        {/* Options */}
-                        {!isText && reviewQ?.options && (
-                            <div className="space-y-2 mb-4">
-                                {Object.entries(reviewQ.options).map(([key, val]) => {
-                                    const isCorrect = key === reviewQ.correctAnswer;
-                                    const isChosen = reviewState?.answer === key;
-                                    return (
-                                        <div key={key} className={`flex items-center gap-3 p-3 rounded-xl border-2 text-sm ${
-                                            isCorrect ? "border-emerald-400 bg-emerald-50 text-gray-900"
-                                            : isChosen ? "border-red-400 bg-red-50 text-gray-900"
-                                            : "border-border bg-muted/30 text-muted-foreground"
-                                        }`}>
-                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                                                isCorrect ? "bg-emerald-500 border-emerald-400 text-white"
-                                                : isChosen ? "bg-red-500 border-red-400 text-white"
-                                                : "border-border"
-                                            }`}>{key.toUpperCase()}</span>
-                                            <span>{val}</span>
-                                            {isCorrect && <CheckCircle2 className="ml-auto w-4 h-4 text-emerald-500 shrink-0" />}
-                                            {isChosen && !isCorrect && <XCircle className="ml-auto w-4 h-4 text-red-500 shrink-0" />}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* Text answer review */}
-                        {isText && (
-                            <div className="space-y-2 mb-4">
-                                <div className={`p-3 rounded-xl border-2 text-sm ${
-                                    reviewState?.status === "correct" ? "border-emerald-400 bg-emerald-50" : "border-red-400 bg-red-50"
-                                }`}>
-                                    <span className="text-xs text-muted-foreground">Ваш ответ: </span>
-                                    <span className="font-medium">{reviewState?.answer || "—"}</span>
-                                </div>
-                                <div className="p-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 text-sm">
-                                    <span className="text-xs text-muted-foreground">Правильный ответ: </span>
-                                    <span className="font-medium text-emerald-700">{reviewQ?.correctAnswer}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Explanation */}
-                        {reviewQ?.explanation && (
-                            <div className="rounded-xl bg-[hsl(var(--brand-blue-soft))] border border-[hsl(var(--brand-blue))]/20 p-4 text-sm text-foreground">
-                                <div className="text-xs font-bold text-[hsl(var(--brand-blue))] mb-1 uppercase tracking-wide">Объяснение</div>
-                                {reviewQ.explanation}
-                            </div>
-                        )}
-
-                        {/* Meta (domain/skill/difficulty) */}
-                        {(reviewQ?.domain || reviewQ?.skill || reviewQ?.difficulty) && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {reviewQ?.difficulty && (
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                        reviewQ.difficulty === "easy" ? "bg-emerald-100 text-emerald-700"
-                                        : reviewQ.difficulty === "medium" ? "bg-yellow-100 text-yellow-700"
-                                        : "bg-red-100 text-red-700"
-                                    }`}>
-                                        {reviewQ.difficulty === "easy" ? "Лёгкий" : reviewQ.difficulty === "medium" ? "Средний" : "Сложный"}
-                                    </span>
-                                )}
-                                {reviewQ?.domain && <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">{reviewQ.domain}</span>}
-                                {reviewQ?.skill && <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">{reviewQ.skill}</span>}
-                            </div>
-                        )}
-
-                        {/* Nav in review */}
-                        <div className="flex items-center justify-between mt-5">
-                            <button type="button" onClick={() => setReviewIdx((i) => Math.max(0, i - 1))} disabled={reviewIdx === 0}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border bg-card text-sm font-semibold disabled:opacity-40 hover:bg-muted transition-colors">
-                                <ChevronLeft className="w-4 h-4" />Назад
-                            </button>
-                            <button type="button" onClick={() => setReviewIdx((i) => Math.min(questions.length - 1, i + 1))} disabled={reviewIdx === questions.length - 1}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border bg-card text-sm font-semibold disabled:opacity-40 hover:bg-muted transition-colors">
-                                Вперёд<ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button type="button" onClick={() => router.push(subjectId ? `/subject/${subjectId}` : "/")}
-                        className="h-12 rounded-2xl bg-foreground text-background text-sm font-bold hover:opacity-90 transition-all">
-                        Вернуться к темам
-                    </button>
-                    <button type="button" onClick={resetTest} disabled={isSaving}
-                        className="h-12 rounded-2xl border border-border bg-card text-sm font-bold hover:bg-muted transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                        <RefreshCw className="w-4 h-4" />Пройти ещё раз
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     /* ══════════════════════════════════ TEST ════════════════════════════════════ */
     return (
@@ -729,18 +578,9 @@ export default function TestPage() {
                                     } else if (isSelected && !isCrossed) {
                                         cls = "border-2 border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))]";
                                     }
-                                    if (isCrossed && !(checked && isSelected)) {
-                                        cls = "border-2 border-red-400 bg-red-50/90 cursor-pointer hover:bg-red-50";
-                                    }
-                                    if (isCrossed && isSelected && !checked) {
-                                        cls = "border-2 border-[hsl(var(--brand-blue))] bg-red-50/90 cursor-pointer";
-                                    }
-
                                     const letterCls = checked && isSelected && isCorrectOpt
                                         ? "bg-emerald-500 border-emerald-400 text-white"
                                         : checked && isSelected && !isCorrectOpt
-                                        ? "bg-red-500 border-red-400 text-white"
-                                        : isCrossed
                                         ? "bg-red-500 border-red-400 text-white"
                                         : isSelected && !checked
                                         ? "bg-[hsl(var(--brand-blue))] border-[hsl(var(--brand-blue))] text-white"
@@ -902,7 +742,11 @@ export default function TestPage() {
                         <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2.5 text-[11px] font-semibold text-muted-foreground sm:gap-3 sm:text-xs">
                             <span className="flex items-center gap-1.5">
                                 <span className="h-3.5 w-3.5 rounded-sm bg-emerald-400 sm:h-4 sm:w-4 sm:rounded-md" />
-                                Верно
+                                С первого раза
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                                <span className="h-3.5 w-3.5 rounded-sm bg-orange-400 sm:h-4 sm:w-4 sm:rounded-md" />
+                                После попыток
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <span className="h-3.5 w-3.5 rounded-sm bg-red-400 sm:h-4 sm:w-4 sm:rounded-md" />
@@ -913,11 +757,6 @@ export default function TestPage() {
                                 <Bookmark className="h-3 w-3 text-amber-500" />
                                 Отмечен
                             </span>
-                        </div>
-                        <div className="flex shrink-0 gap-3 border-b border-border px-4 py-2 text-xs font-semibold sm:gap-4">
-                            <span className="text-emerald-600">{correctCount} верно</span>
-                            <span className="text-red-500">{errorCount} ошибок</span>
-                            <span className="text-muted-foreground">{questions.length - answeredCount} осталось</span>
                         </div>
                         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                             <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
@@ -930,14 +769,14 @@ export default function TestPage() {
                                             type="button"
                                             onClick={() => goTo(qi)}
                                             className={`relative flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold border-2 transition-all sm:h-10 sm:w-10 sm:rounded-xl sm:text-sm ${
-                                                isCurrent
-                                                    ? "border-foreground bg-background text-foreground shadow-md ring-2 ring-foreground/20 dark:ring-white/30"
-                                                    : s?.status === "correct"
-                                                      ? "border-emerald-400 bg-emerald-100 text-emerald-800"
+                                                s?.status === "correct-first"
+                                                    ? "border-emerald-400 bg-emerald-100 text-emerald-800"
+                                                    : s?.status === "correct-retry"
+                                                      ? "border-orange-400 bg-orange-100 text-orange-800"
                                                       : s?.status === "incorrect"
                                                         ? "border-red-400 bg-red-100 text-red-800"
                                                         : "border-border bg-card text-muted-foreground hover:bg-muted"
-                                            }`}
+                                            } ${isCurrent ? "ring-2 ring-offset-1 ring-foreground/60 dark:ring-white/50 shadow-md" : ""}`}
                                         >
                                             {qi + 1}
                                             {s?.marked && (
@@ -995,8 +834,8 @@ export default function TestPage() {
                         </button>
                     ) : (
                         <button type="button" onClick={handleSaveAndNext} disabled={isSaving}
-                            className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-60 active:scale-[0.98] transition-all">
-                            {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />…</> : "Завершить"}
+                            className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold disabled:opacity-60 active:scale-[0.98] transition-all">
+                            {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />…</> : <>Перейти в темы<ChevronRight className="w-4 h-4" /></>}
                         </button>
                     )}
                 </div>
@@ -1037,8 +876,8 @@ export default function TestPage() {
                             </button>
                         ) : (
                             <button type="button" onClick={handleSaveAndNext} disabled={isSaving}
-                                className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center gap-1.5">
-                                {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Сохранение…</> : "Завершить"}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60">
+                                {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Сохранение…</> : <>Перейти в темы<ChevronRight className="w-4 h-4" /></>}
                             </button>
                         )}
                     </div>

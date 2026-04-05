@@ -69,6 +69,8 @@ export interface UserProgress {
   userId: string;
   topicId: string;
   solvedQuestions: number;
+  correctFirstCount?: number;  // верно с первой попытки
+  correctRetryCount?: number;  // верно после повторных попыток
   errors: number;
   /** Вопросы с флажком «Отметить» в последнем завершённом прохождении */
   markedQuestions?: number;
