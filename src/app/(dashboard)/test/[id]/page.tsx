@@ -151,7 +151,7 @@ export default function TestPage() {
         });
     }, [id]);
 
-    /* ─ restore saved question statuses from Firestore ─ */
+    /* ─ restore saved question statuses from Firestore (only colors for bank, no answers) ─ */
     useEffect(() => {
         if (!user || !topic?.id || questions.length === 0 || progressRestoredRef.current) return;
         progressRestoredRef.current = true;
@@ -161,17 +161,14 @@ export default function TestPage() {
             if (!data.questionStatuses) return;
             const restored = questions.map((q) => {
                 const s = data.questionStatuses![q.id];
+                // restore status + marked for bank colors, but keep answer empty so question starts fresh
                 return s
-                    ? { status: s.status as QStatus, marked: Boolean(s.marked), answer: s.answer ?? "" }
+                    ? { status: s.status as QStatus, marked: Boolean(s.marked), answer: "" }
                     : { status: "unanswered" as QStatus, marked: false, answer: "" };
             });
             setQStates(restored);
             qStatesRef.current = restored;
-            const first = restored[0];
-            if (first) {
-                setAnswer(first.answer);
-                setChecked(first.status !== "unanswered");
-            }
+            // do NOT restore answer or checked — question should always open fresh
         });
     }, [user, topic?.id, questions]);
 
@@ -195,10 +192,9 @@ export default function TestPage() {
 
     /* ─ navigate to question ─ */
     const goTo = useCallback((i: number) => {
-        const s = qStatesRef.current[i];
         setIdx(i);
-        setAnswer(s?.answer ?? "");
-        setChecked(s?.status !== "unanswered");
+        setAnswer("");       // не восстанавливаем предыдущий ответ
+        setChecked(false);   // не показываем предыдущий результат
         setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
@@ -352,7 +348,7 @@ export default function TestPage() {
         <div
             ref={testShellRef}
             className={`relative flex flex-col bg-background ${
-                fullscreenActive ? "min-h-screen h-screen overflow-hidden" : "min-h-[calc(100vh-4rem)] -mt-4"
+                fullscreenActive ? "h-screen overflow-hidden" : "h-dvh"
             }`}
         >
 
@@ -704,14 +700,14 @@ export default function TestPage() {
                     <button
                         type="button"
                         aria-label="Закрыть банк вопросов"
-                        className="fixed inset-0 z-[44] bg-black/25 md:left-64"
+                        className="fixed inset-0 z-[44] bg-black/25"
                         onClick={() => setShowBank(false)}
                     />
                     <div
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="question-bank-title"
-                        className="fixed z-[50] flex w-[min(21rem,calc(100vw-1.5rem))] max-h-[min(72vh,calc(100dvh-6.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ring-1 ring-black/5 dark:ring-white/10 left-3 bottom-[4.75rem] md:left-[calc(16rem+0.75rem)] md:bottom-[5.5rem] sm:left-4"
+                        className="fixed z-[50] flex w-[min(21rem,calc(100vw-1.5rem))] max-h-[min(72vh,calc(100dvh-6.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ring-1 ring-black/5 dark:ring-white/10 left-3 bottom-[4.75rem] sm:left-4 sm:bottom-[5.5rem]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">

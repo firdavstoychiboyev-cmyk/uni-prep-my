@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Subject } from "@/lib/firestore-schema";
-import { CheckCircle2, Circle, Trophy, Star, ChevronRight } from "lucide-react";
+import { Star, ChevronRight } from "lucide-react";
 import { getSubjectMeta, AccentKey } from "@/lib/subject-icons";
 
 interface SubjectCardProps {
@@ -84,18 +84,7 @@ export default function SubjectCard({
     const totalMedals = medals.green + medals.grey + medals.bronze;
     const { icon: Icon, accent: accentKey } = getSubjectMeta(subject.name, subject.id);
     const accent = ACCENTS[accentKey];
-
-    const statusIcon =
-        progress >= 80 ? (
-            <CheckCircle2 size={13} className="text-emerald-500 flex-shrink-0" />
-        ) : progress > 0 ? (
-            <Circle size={13} className="text-amber-400 flex-shrink-0" />
-        ) : (
-            <Circle size={13} className="text-border flex-shrink-0" />
-        );
-
-    const statusLabel =
-        progress >= 80 ? "Завершено" : progress > 0 ? "В процессе" : "Не начато";
+    const hasActivity = progress > 0 || stars > 0 || totalMedals > 0;
 
     return (
         <Link
@@ -103,62 +92,57 @@ export default function SubjectCard({
             className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:border-border/80 hover:shadow-sm hover:-translate-y-0.5"
         >
             {/* Main row */}
-            <div className="flex items-center gap-4 px-5 pt-5 pb-4">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${accent.iconBg}`}>
-                    <Icon size={20} className={accent.iconColor} />
+            <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${accent.iconBg}`}>
+                    <Icon size={19} className={accent.iconColor} />
                 </div>
-
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-foreground leading-snug truncate">{subject.name}</h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        {statusIcon}
-                        <span className="text-xs text-muted-foreground font-medium">{statusLabel}</span>
-                    </div>
+                    <h3 className="font-semibold text-[13.5px] text-foreground leading-snug truncate">{subject.name}</h3>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                        {progress >= 100 ? "Завершено" : progress > 0 ? `${progress}% пройдено` : "Не начато"}
+                    </p>
                 </div>
-
-                <ChevronRight
-                    size={16}
-                    className="text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground/60"
-                />
+                <ChevronRight size={15} className="text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground/60" />
             </div>
 
             {/* Progress bar */}
-            <div className="px-5 pb-4">
+            <div className="px-4 pb-3">
                 <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                        className={`h-full rounded-full transition-all duration-500 ${accent.bar}`}
-                        style={{ width: `${progress}%` }}
-                    />
+                    <div className={`h-full rounded-full transition-all duration-500 ${accent.bar}`} style={{ width: `${progress}%` }} />
                 </div>
             </div>
 
-            {/* Stats chips */}
-            <div className="flex items-center gap-2 px-5 pb-5 flex-wrap">
-                {progress > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${accent.badge}`}>
-                        {progress}%
-                    </span>
-                )}
-                {medals.green > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                        <CheckCircle2 size={10} className="text-emerald-500" />
-                        {medals.green}
-                    </span>
-                )}
-                {totalMedals > 0 && medals.green === 0 && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-border bg-muted text-muted-foreground">
-                        <Trophy size={10} />
-                        {totalMedals}
-                    </span>
-                )}
-                {stars > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                        <Star size={10} className="fill-amber-400 text-amber-400" />
-                        {stars}
-                    </span>
-                )}
-                {progress === 0 && stars === 0 && totalMedals === 0 && (
-                    <span className="text-[11px] text-muted-foreground/50 font-medium">Начни, чтобы увидеть прогресс</span>
+            {/* Stats row */}
+            <div className="flex items-center gap-3 px-4 pb-4 min-h-[1.75rem]">
+                {hasActivity ? (
+                    <>
+                        {medals.green > 0 && (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                                {medals.green}
+                            </span>
+                        )}
+                        {medals.bronze > 0 && (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-orange-500 dark:text-orange-400">
+                                <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+                                {medals.bronze}
+                            </span>
+                        )}
+                        {medals.grey > 0 && (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                                <span className="w-2 h-2 rounded-full bg-muted-foreground/35 flex-shrink-0" />
+                                {medals.grey}
+                            </span>
+                        )}
+                        {stars > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-500 ml-auto">
+                                <Star size={11} className="fill-amber-400 text-amber-400" />
+                                {stars}
+                            </span>
+                        )}
+                    </>
+                ) : (
+                    <span className="text-[11px] text-muted-foreground/40 font-medium">Начни обучение</span>
                 )}
             </div>
         </Link>
