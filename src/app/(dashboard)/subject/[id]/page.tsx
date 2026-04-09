@@ -15,79 +15,37 @@ import {
     Check,
     Bookmark,
     BookmarkCheck,
-    X,
 } from "lucide-react";
 
 function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
     if (!prog) return null;
     const total = prog.solvedQuestions ?? 0;
-    const wrong = prog.errors ?? 0;
     const marked = prog.markedQuestions ?? 0;
     const hasCompleted = Boolean(prog.completedAt || prog.medal);
-    if (!hasCompleted && total === 0 && wrong === 0 && marked === 0) return null;
+    if (!hasCompleted && total === 0 && marked === 0) return null;
 
-    // 3-color breakdown: use new fields if present, otherwise fall back to legacy
     const hasNewFields = prog.correctFirstCount !== undefined || prog.correctRetryCount !== undefined;
     const correctFirst = hasNewFields ? (prog.correctFirstCount ?? 0) : total;
-    const correctRetry = hasNewFields ? (prog.correctRetryCount ?? 0) : 0;
 
     return (
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Green: correct on first attempt */}
             <span
                 className={`inline-flex items-center gap-1 ${correctFirst > 0 ? "text-emerald-600" : "text-muted-foreground"}`}
                 title="Верно с первой попытки"
             >
-                <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
-                        correctFirst > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
-                    }`}
-                >
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
+                    correctFirst > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+                }`}>
                     <Check className="h-3 w-3 stroke-[3]" aria-hidden />
                 </span>
                 <span className="text-sm font-semibold tabular-nums">{correctFirst}</span>
             </span>
-            {/* Orange: correct after retries */}
-            {(hasNewFields || correctRetry > 0) && (
-                <span
-                    className={`inline-flex items-center gap-1 ${correctRetry > 0 ? "text-orange-600" : "text-muted-foreground"}`}
-                    title="Верно после попыток"
-                >
-                    <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
-                            correctRetry > 0 ? "bg-orange-400 text-white" : "bg-muted text-muted-foreground"
-                        }`}
-                    >
-                        <Check className="h-3 w-3 stroke-[3]" aria-hidden />
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">{correctRetry}</span>
+            {marked > 0 && (
+                <span className="inline-flex items-center gap-1 text-amber-600" title="Отмечено в тесте">
+                    <Bookmark className="h-4 w-4 shrink-0 fill-amber-400 text-amber-600" aria-hidden />
+                    <span className="text-sm font-semibold tabular-nums">{marked}</span>
                 </span>
             )}
-            {/* Red: incorrect */}
-            <span
-                className={`inline-flex items-center gap-1 ${wrong > 0 ? "text-red-600" : "text-muted-foreground"}`}
-                title="Ошибок"
-            >
-                <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
-                        wrong > 0 ? "bg-red-500 text-white" : "bg-muted text-muted-foreground"
-                    }`}
-                >
-                    <X className="h-3 w-3 stroke-[3]" aria-hidden />
-                </span>
-                <span className="text-sm font-semibold tabular-nums">{wrong}</span>
-            </span>
-            {/* Marked */}
-            <span
-                className={`inline-flex items-center gap-1 ${marked > 0 ? "text-amber-600" : "text-muted-foreground"}`}
-                title="Отмечено в тесте"
-            >
-                <Bookmark
-                    className={`h-4 w-4 shrink-0 ${marked > 0 ? "fill-amber-400 text-amber-600" : "text-muted-foreground"}`}
-                    aria-hidden
-                />
-                <span className="text-sm font-semibold tabular-nums">{marked}</span>
-            </span>
         </div>
     );
 }
@@ -430,7 +388,8 @@ export default function SubjectPage() {
     const startPractice = () => {
         const ids = Array.from(selectedIds);
         if (ids.length === 0) return;
-        router.push(`/test/${ids[0]}`);
+        const params = ids.length > 1 ? `?t=${ids.join(",")}` : "";
+        router.push(`/test/${ids[0]}${params}`);
     };
 
     if (isLoading) {

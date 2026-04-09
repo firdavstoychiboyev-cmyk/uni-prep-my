@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Question, Topic } from "@/lib/firestore-schema";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Question, Topic, Medal } from "@/lib/firestore-schema";
 import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
 import { invalidateUserCache } from "@/lib/stats-utils";
@@ -13,7 +13,7 @@ import {
     collection, addDoc, getDoc, getDocs,
 } from "firebase/firestore";
 import {
-    CheckCircle2, XCircle,
+    CheckCircle2, XCircle, Check,
     Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Pause, Play, Eye, EyeOff,
     LayoutGrid, X, ArrowLeft, Info, Strikethrough, ChevronUp,
     MoreVertical, Maximize2, Minimize2,
@@ -53,14 +53,24 @@ async function exitDocumentFullscreen(): Promise<void> {
 /* ─── page ───────────────────────────────────────────── */
 export default function TestPage() {
     const { id } = useParams();
+    const searchParams = useSearchParams();
     const router = useRouter();
     const { user } = useAuthStore();
     const { reset: resetStats } = useStatsStore();
 
-    const [topic, setTopic] = useState<Topic | null>(null);
+    // all selected topic IDs (multi-topic support via ?t=id1,id2,...)
+    const allTopicIds = useMemo(() => {
+        const t = searchParams.get("t");
+        if (t) return t.split(",").filter(Boolean);
+        return id ? [id as string] : [];
+    }, [id, searchParams]);
+
+    const [allTopics, setAllTopics] = useState<Topic[]>([]);
+    const topic = allTopics[0] ?? null; // backward compat
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     // Per-question state
     const [qStates, setQStates] = useState<QState[]>([]);
@@ -80,7 +90,6 @@ export default function TestPage() {
 
     // UI overlays
     const [showBank, setShowBank] = useState(false);
-    const [groupAnswered, setGroupAnswered] = useState(false);
     const [showInfo, setShowInfo] = useState(false);
 
     // Timer
@@ -90,6 +99,7 @@ export default function TestPage() {
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const progressRestoredRef = useRef(false);
+    const wasAlreadyCompletedRef = useRef<Set<string>>(new Set());
 
     // Fullscreen + «Ещё» menu
     const testShellRef = useRef<HTMLDivElement>(null);
@@ -140,37 +150,50 @@ export default function TestPage() {
     }, []);
 
     /* ─ load ─ */
+    const topicIdsKey = allTopicIds.join(",");
     useEffect(() => {
-        if (!id) return;
+        if (!allTopicIds.length) return;
         progressRestoredRef.current = false;
-        Promise.all([fetchTopicById(id as string), fetchQuestionsByTopic(id as string)]).then(([t, qs]) => {
-            setTopic(t);
-            setQuestions(qs);
-            setQStates(blank(qs.length));
+        wasAlreadyCompletedRef.current = new Set();
+        Promise.all([
+            Promise.all(allTopicIds.map((tid) => fetchTopicById(tid))),
+            Promise.all(allTopicIds.map((tid) => fetchQuestionsByTopic(tid))),
+        ]).then(([topicResults, questionGroups]) => {
+            const validTopics = topicResults.filter(Boolean) as Topic[];
+            const allQs = questionGroups.flat();
+            setAllTopics(validTopics);
+            setQuestions(allQs);
+            setQStates(blank(allQs.length));
             setIsLoading(false);
         });
-    }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [topicIdsKey]);
 
     /* ─ restore saved question statuses from Firestore (only colors for bank, no answers) ─ */
     useEffect(() => {
-        if (!user || !topic?.id || questions.length === 0 || progressRestoredRef.current) return;
+        if (!user || allTopics.length === 0 || questions.length === 0 || progressRestoredRef.current) return;
         progressRestoredRef.current = true;
-        void getDoc(doc(db, "users", user.id, "userProgress", topic.id)).then((snap) => {
-            if (!snap.exists()) return;
-            const data = snap.data() as { questionStatuses?: Record<string, { status: string; marked: boolean; answer: string }> };
-            if (!data.questionStatuses) return;
+        void Promise.all(
+            allTopics.map((t) => getDoc(doc(db, "users", user.id, "userProgress", t.id)))
+        ).then((snaps) => {
+            const mergedStatuses: Record<string, { status: string; marked: boolean; answer: string }> = {};
+            snaps.forEach((snap, i) => {
+                if (!snap.exists()) return;
+                const data = snap.data() as { completedAt?: string | null; questionStatuses?: Record<string, { status: string; marked: boolean; answer: string }> };
+                if (data.completedAt) wasAlreadyCompletedRef.current.add(allTopics[i].id);
+                if (data.questionStatuses) Object.assign(mergedStatuses, data.questionStatuses);
+            });
+            if (Object.keys(mergedStatuses).length === 0) return;
             const restored = questions.map((q) => {
-                const s = data.questionStatuses![q.id];
-                // restore status + marked for bank colors, but keep answer empty so question starts fresh
+                const s = mergedStatuses[q.id];
                 return s
                     ? { status: s.status as QStatus, marked: Boolean(s.marked), answer: "" }
                     : { status: "unanswered" as QStatus, marked: false, answer: "" };
             });
             setQStates(restored);
             qStatesRef.current = restored;
-            // do NOT restore answer or checked — question should always open fresh
         });
-    }, [user, topic?.id, questions]);
+    }, [user, allTopics, questions]);
 
     /* ─ timer ─ */
     useEffect(() => {
@@ -181,6 +204,18 @@ export default function TestPage() {
         timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [paused, isLoading]);
+
+    /* ─ beforeunload warning ─ */
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (qStatesRef.current.some((s) => s.status !== "unanswered")) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, []);
 
     /* ─ derived ─ */
     const q = questions[idx];
@@ -228,73 +263,149 @@ export default function TestPage() {
     }, [idx]);
 
 
+    /* ─ helper: partition states by topicId and build per-topic payloads ─ */
+    const buildTopicPayloads = useCallback((states: QState[]) => {
+        type Payload = {
+            topicId: string;
+            questionStatuses: Record<string, { status: QStatus; marked: boolean; answer: string }>;
+            corrFirst: number; corrRetry: number; corr: number;
+            errs: number; markedCount: number; accuracy: number;
+            medal: Medal;
+        };
+        const map = new Map<string, Payload>();
+        questions.forEach((q, i) => {
+            if (!map.has(q.topicId)) {
+                map.set(q.topicId, {
+                    topicId: q.topicId, questionStatuses: {},
+                    corrFirst: 0, corrRetry: 0, corr: 0, errs: 0, markedCount: 0, accuracy: 0,
+                    medal: "none" as Medal,
+                });
+            }
+            const p = map.get(q.topicId)!;
+            p.questionStatuses[q.id] = { status: states[i].status, marked: states[i].marked, answer: states[i].answer };
+            if (states[i].status === "correct-first") p.corrFirst++;
+            else if (states[i].status === "correct-retry") p.corrRetry++;
+            else if (states[i].status === "incorrect") p.errs++;
+            if (states[i].marked) p.markedCount++;
+        });
+        map.forEach((p) => {
+            const total = Object.keys(p.questionStatuses).length;
+            p.corr = p.corrFirst + p.corrRetry;
+            p.accuracy = total > 0 ? Math.round((p.corr / total) * 100) : 0;
+            p.medal = getMedalByErrors(p.errs, 1);
+        });
+        return map;
+    }, [questions]);
+
     /* ─ finish — сохраняет результат и редиректит в темы ─ */
     const handleFinish = useCallback(async (statesSnapshot?: QState[]) => {
         if (timerRef.current) clearInterval(timerRef.current);
-        if (!user || !topic) { router.push("/"); return; }
+        if (!user || allTopics.length === 0) { router.push("/"); return; }
         setIsSaving(true);
+        setSaveError(null);
 
         const states = statesSnapshot ?? qStatesRef.current;
-        const corrFirst = states.filter((s) => s.status === "correct-first").length;
-        const corrRetry = states.filter((s) => s.status === "correct-retry").length;
-        const corr = corrFirst + corrRetry;
-        const errs = states.filter((s) => s.status === "incorrect").length;
-        const markedCount = states.filter((s) => s.marked).length;
-        const accuracy = questions.length > 0 ? Math.round((corr / questions.length) * 100) : 0;
-        const medal = getMedalByErrors(errs, 1);
+        const payloads = buildTopicPayloads(states);
+
+        // overall stats for testResults record
+        const totalCorr = states.filter((s) => s.status === "correct-first" || s.status === "correct-retry").length;
+        const totalErrs = states.filter((s) => s.status === "incorrect").length;
+        const totalAcc = questions.length > 0 ? Math.round((totalCorr / questions.length) * 100) : 0;
+        const totalMedal = getMedalByErrors(totalErrs, 1);
 
         invalidateUserCache(user.id);
         resetStats();
 
-        const questionStatuses: Record<string, { status: QStatus; marked: boolean; answer: string }> = {};
-        states.forEach((s, i) => {
-            const qId = questions[i]?.id;
-            if (qId) questionStatuses[qId] = { status: s.status, marked: s.marked, answer: s.answer };
-        });
-
         let navSubjectId: string | null = null;
         try {
-            await setDoc(doc(db, "users", user.id, "userProgress", topic.id), {
-                userId: user.id, topicId: topic.id,
-                solvedQuestions: corr, correctFirstCount: corrFirst, correctRetryCount: corrRetry,
-                errors: errs, markedQuestions: markedCount, medal, accuracy,
-                completedAt: new Date().toISOString(),
-                questionStatuses,
-            });
+            // Save progress per topic
+            await Promise.all(Array.from(payloads.values()).map((p) => {
+                if (wasAlreadyCompletedRef.current.has(p.topicId)) {
+                    return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), { questionStatuses: p.questionStatuses }, { merge: true });
+                }
+                return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), {
+                    userId: user.id, topicId: p.topicId,
+                    solvedQuestions: p.corr, correctFirstCount: p.corrFirst, correctRetryCount: p.corrRetry,
+                    errors: p.errs, markedQuestions: p.markedCount, medal: p.medal, accuracy: p.accuracy,
+                    completedAt: new Date().toISOString(),
+                    questionStatuses: p.questionStatuses,
+                });
+            }));
+
+            // testResults record (one per session, use first topic)
             await addDoc(collection(db, "users", user.id, "testResults"), {
-                topicId: topic.id, correctAnswers: corr, errors: errs, accuracy, medal,
+                topicId: allTopics[0].id, correctAnswers: totalCorr, errors: totalErrs,
+                accuracy: totalAcc, medal: totalMedal,
                 timeSpentSeconds: secs, completedAt: serverTimestamp(),
             });
-            const tbSnap = await getDoc(doc(db, "textbooks", topic.textbookId));
-            if (tbSnap.exists()) {
+
+            // Stars + badges per unique textbook
+            const textbookIds = Array.from(new Set(allTopics.map((t) => t.textbookId).filter(Boolean)));
+            for (const tbId of textbookIds) {
+                const tbSnap = await getDoc(doc(db, "textbooks", tbId));
+                if (!tbSnap.exists()) continue;
                 const { subjectId } = tbSnap.data();
                 navSubjectId = subjectId as string;
                 const rRef = doc(db, "users", user.id, "ratings", subjectId);
                 const rSnap = await getDoc(rRef);
-                if (rSnap.exists()) await updateDoc(rRef, { stars: increment(corr), lastUpdated: serverTimestamp() });
-                else await setDoc(rRef, { userId: user.id, subjectId, stars: corr, lastUpdated: serverTimestamp() });
+                // stars: sum of correct answers for topics in this textbook
+                const tbCorr = allTopics
+                    .filter((t) => t.textbookId === tbId)
+                    .reduce((sum, t) => sum + (payloads.get(t.id)?.corr ?? 0), 0);
+                if (rSnap.exists()) await updateDoc(rRef, { stars: increment(tbCorr), lastUpdated: serverTimestamp() });
+                else await setDoc(rRef, { userId: user.id, subjectId, stars: tbCorr, lastUpdated: serverTimestamp() });
 
-                const topics = await fetchTopicsByTextbook(topic.textbookId);
+                const tbTopics = await fetchTopicsByTextbook(tbId);
                 const pSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
                 const pMap: Record<string, string> = {};
                 pSnap.forEach((d) => { pMap[d.id] = (d.data() as { medal: string }).medal; });
-                const allGreen = topics.every((t) => (t.id === topic.id ? medal : pMap[t.id]) === "green");
-                if (allGreen && topics.length > 0) {
-                    const bRef = doc(db, "users", user.id, "badges", topic.textbookId);
+                const allGreen = tbTopics.every((t) => {
+                    const p = payloads.get(t.id);
+                    return (p ? p.medal : pMap[t.id]) === "green";
+                });
+                if (allGreen && tbTopics.length > 0) {
+                    const bRef = doc(db, "users", user.id, "badges", tbId);
                     if (!(await getDoc(bRef)).exists()) {
                         await setDoc(bRef, {
                             name: `Знаток: ${tbSnap.data().title}`,
                             description: "Вы прошли все темы учебника на идеальный результат",
-                            textbookId: topic.textbookId, icon: "🏆", unlockedAt: serverTimestamp(),
+                            textbookId: tbId, icon: "🏆", unlockedAt: serverTimestamp(),
                         });
                     }
                 }
             }
-        } catch { /* ignore */ } finally {
+        } catch {
+            setSaveError("Не удалось сохранить результат. Проверьте соединение и попробуйте снова.");
             setIsSaving(false);
-            router.push(navSubjectId ? `/subject/${navSubjectId}` : "/");
+            return;
         }
-    }, [user, topic, questions, secs, resetStats, router]);
+        setIsSaving(false);
+        router.push(navSubjectId ? `/subject/${navSubjectId}` : "/");
+    }, [user, allTopics, questions, secs, resetStats, router, buildTopicPayloads]);
+
+    /* ─ save partial — сохраняет прогресс без завершения ─ */
+    const handleSavePartial = useCallback(async () => {
+        if (!user || allTopics.length === 0) return;
+        const states = qStatesRef.current;
+        const hasAnyAnswer = states.some((s) => s.status !== "unanswered");
+        if (!hasAnyAnswer) return;
+
+        const payloads = buildTopicPayloads(states);
+        try {
+            await Promise.all(Array.from(payloads.values()).map((p) => {
+                if (wasAlreadyCompletedRef.current.has(p.topicId)) {
+                    return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), { questionStatuses: p.questionStatuses }, { merge: true });
+                }
+                return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), {
+                    userId: user.id, topicId: p.topicId,
+                    solvedQuestions: p.corr, correctFirstCount: p.corrFirst, correctRetryCount: p.corrRetry,
+                    errors: p.errs, markedQuestions: p.markedCount,
+                    medal: "none", accuracy: 0, completedAt: null,
+                    questionStatuses: p.questionStatuses,
+                }, { merge: true });
+            }));
+        } catch { /* silent on back — user is leaving */ }
+    }, [user, allTopics, questions, buildTopicPayloads]);
 
     /* ─ save + next (сохраняет ответ и переходит дальше) ─ */
     const handleSaveAndNext = useCallback(() => {
@@ -316,16 +427,7 @@ export default function TestPage() {
     }, [answer, attempts, isText, q, idx, questions.length, goTo, handleFinish]);
 
     /* ─ question bank order ─ */
-    const bankOrder = useMemo(() => {
-        const arr = questions.map((_, i) => i);
-        if (!groupAnswered) return arr;
-        return [
-            ...arr.filter((i) => qStates[i]?.status === "correct-first"),
-            ...arr.filter((i) => qStates[i]?.status === "correct-retry"),
-            ...arr.filter((i) => qStates[i]?.status === "incorrect"),
-            ...arr.filter((i) => qStates[i]?.status === "unanswered"),
-        ];
-    }, [questions, qStates, groupAnswered]);
+    const bankOrder = useMemo(() => questions.map((_, i) => i), [questions]);
 
     /* ══════════════════════════════════ LOADING ════════════════════════════════ */
     if (isLoading) return (
@@ -357,13 +459,15 @@ export default function TestPage() {
                 <div className="flex items-center justify-between px-4 py-3 gap-4">
                     {/* Left: back + topic */}
                     <div className="flex items-center gap-3 min-w-0">
-                        <button type="button" onClick={() => router.back()}
+                        <button type="button" onClick={async () => { await handleSavePartial(); router.back(); }}
                             className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0">
                             <ArrowLeft className="w-4 h-4" />
                             <span className="hidden sm:inline">Назад</span>
                         </button>
                         <span className="text-border hidden sm:block">|</span>
-                        <span className="text-sm font-medium text-muted-foreground truncate hidden sm:block">{topic.title}</span>
+                        <span className="text-sm font-medium text-muted-foreground truncate hidden sm:block">
+                            {allTopics.length > 1 ? `${allTopics.length} темы` : topic?.title ?? ""}
+                        </span>
                     </div>
 
                     {/* Center: timer */}
@@ -438,7 +542,7 @@ export default function TestPage() {
                 <div className="h-1 bg-muted">
                     <div
                         className="h-full bg-[hsl(var(--brand-blue))] transition-all duration-300"
-                        style={{ width: `${((answeredCount) / questions.length) * 100}%` }}
+                        style={{ width: `${questions.length > 0 ? (answeredCount / questions.length) * 100 : 0}%` }}
                     />
                 </div>
             </div>
@@ -714,26 +818,13 @@ export default function TestPage() {
                             <span id="question-bank-title" className="text-sm font-bold text-foreground">
                                 Банк вопросов
                             </span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setGroupAnswered((v) => !v)}
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                        groupAnswered
-                                            ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))]"
-                                            : "border-border bg-card text-muted-foreground hover:bg-muted"
-                                    }`}
-                                >
-                                    Группировать
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowBank(false)}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowBank(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2.5 text-[11px] font-semibold text-muted-foreground sm:gap-3 sm:text-xs">
                             <span className="flex items-center gap-1.5">
@@ -749,8 +840,7 @@ export default function TestPage() {
                                 Ошибка
                             </span>
                             <span className="flex items-center gap-1.5">
-                                <span className="h-3.5 w-3.5 rounded-sm border-2 border-amber-400 bg-amber-50 sm:h-4 sm:w-4" />
-                                <Bookmark className="h-3 w-3 text-amber-500" />
+                                <Bookmark className="h-3.5 w-3.5 text-amber-500 fill-amber-400 sm:h-4 sm:w-4" />
                                 Отмечен
                             </span>
                         </div>
@@ -759,25 +849,46 @@ export default function TestPage() {
                                 {bankOrder.map((qi) => {
                                     const s = qStates[qi];
                                     const isCurrent = qi === idx;
+                                    const diff = questions[qi]?.difficulty;
+                                    const diffBg = diff === "easy"
+                                        ? "bg-emerald-100 dark:bg-emerald-900/50"
+                                        : diff === "medium"
+                                          ? "bg-amber-100 dark:bg-amber-900/50"
+                                          : diff === "hard"
+                                            ? "bg-red-100 dark:bg-red-900/50"
+                                            : "bg-muted";
                                     return (
                                         <button
                                             key={qi}
                                             type="button"
                                             onClick={() => goTo(qi)}
-                                            className={`relative flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold border-2 transition-all sm:h-10 sm:w-10 sm:rounded-xl sm:text-sm ${
-                                                s?.status === "correct-first"
-                                                    ? "border-emerald-400 bg-emerald-100 text-emerald-800"
-                                                    : s?.status === "correct-retry"
-                                                      ? "border-orange-400 bg-orange-100 text-orange-800"
-                                                      : s?.status === "incorrect"
-                                                        ? "border-red-400 bg-red-100 text-red-800"
-                                                        : "border-border bg-card text-muted-foreground hover:bg-muted"
-                                            } ${isCurrent ? "ring-2 ring-offset-1 ring-foreground/60 dark:ring-white/50 shadow-md" : ""}`}
+                                            className={`relative flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold border-2 transition-all sm:h-10 sm:w-10 sm:rounded-xl sm:text-sm ${diffBg} text-foreground ${
+                                                isCurrent
+                                                    ? "border-foreground shadow-md"
+                                                    : "border-transparent hover:opacity-75"
+                                            }`}
                                         >
                                             {qi + 1}
+                                            {/* Bookmark — top-left */}
                                             {s?.marked && (
-                                                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full border border-white bg-amber-400 sm:-right-1 sm:-top-1 sm:h-3 sm:w-3">
+                                                <span className="absolute -left-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full border border-white bg-amber-400 sm:-left-1 sm:-top-1 sm:h-3 sm:w-3">
                                                     <Bookmark className="h-1 w-1 fill-white text-white sm:h-1.5 sm:w-1.5" />
+                                                </span>
+                                            )}
+                                            {/* Status — top-right */}
+                                            {s?.status === "correct-first" && (
+                                                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full border border-white bg-emerald-500 sm:-right-1 sm:-top-1 sm:h-3 sm:w-3">
+                                                    <Check className="h-1.5 w-1.5 text-white sm:h-2 sm:w-2" strokeWidth={3} />
+                                                </span>
+                                            )}
+                                            {s?.status === "correct-retry" && (
+                                                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full border border-white bg-orange-400 sm:-right-1 sm:-top-1 sm:h-3 sm:w-3">
+                                                    <Check className="h-1.5 w-1.5 text-white sm:h-2 sm:w-2" strokeWidth={3} />
+                                                </span>
+                                            )}
+                                            {s?.status === "incorrect" && (
+                                                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full border border-white bg-red-500 sm:-right-1 sm:-top-1 sm:h-3 sm:w-3">
+                                                    <X className="h-1.5 w-1.5 text-white sm:h-2 sm:w-2" strokeWidth={3} />
                                                 </span>
                                             )}
                                         </button>
@@ -787,6 +898,21 @@ export default function TestPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* ─── SAVE ERROR BANNER ─── */}
+            {saveError && (
+                <div className="shrink-0 bg-red-50 dark:bg-red-950/40 border-t border-red-200 dark:border-red-800 px-4 py-2.5 flex items-center gap-3">
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300 flex-1">{saveError}</span>
+                    <button
+                        type="button"
+                        onClick={() => { setSaveError(null); void handleSaveAndNext(); }}
+                        className="text-xs font-bold text-red-700 dark:text-red-300 underline shrink-0"
+                    >Повторить</button>
+                    <button type="button" onClick={() => setSaveError(null)} className="shrink-0">
+                        <X className="h-4 w-4 text-red-500" />
+                    </button>
+                </div>
             )}
 
             {/* ─── BOTTOM BAR ─── */}
