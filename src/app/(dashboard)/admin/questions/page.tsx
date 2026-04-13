@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { adminFetchCollection, adminAddItem, adminDeleteItem } from "@/lib/admin-utils";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { adminFetchCollection, adminAddItem, adminDeleteItem, adminIncrementField } from "@/lib/admin-utils";
 import { Question, Topic, Textbook, Subject } from "@/lib/firestore-schema";
-import { Plus, Trash2 } from "lucide-react";
-import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic } from "@/lib/data-fetching";
+import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2 } from "lucide-react";
+import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic, fetchTopicsBySubject } from "@/lib/data-fetching";
+import { uploadToUploadcare } from "@/lib/uploadcare";
+import QuillEditor from "@/components/QuillEditor";
+
+type Mode = "textbook" | "direct";
 
 export default function AdminQuestionsPage() {
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -12,13 +17,14 @@ export default function AdminQuestionsPage() {
     const [topics, setTopics] = useState<Topic[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
 
+    const [mode, setMode] = useState<Mode>("textbook");
     const [selectedSubject, setSelectedSubject] = useState("");
     const [selectedTextbook, setSelectedTextbook] = useState("");
     const [selectedTopic, setSelectedTopic] = useState("");
 
     const [isAdding, setIsAdding] = useState(false);
 
-    // Форма
+    // Form
     const [text, setText] = useState("");
     const [optionA, setOptionA] = useState("");
     const [optionB, setOptionB] = useState("");
@@ -26,6 +32,10 @@ export default function AdminQuestionsPage() {
     const [optionD, setOptionD] = useState("");
     const [correctAnswer, setCorrectAnswer] = useState<"a" | "b" | "c" | "d">("a");
     const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState("");
+    const [imageUploading, setImageUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         adminFetchCollection("subjects", "name").then(data => {
@@ -33,22 +43,37 @@ export default function AdminQuestionsPage() {
         });
     }, []);
 
-    useEffect(() => {
-        if (selectedSubject) {
-            fetchTextbooksBySubject(selectedSubject).then(setTextbooks);
-            setSelectedTextbook("");
-            setSelectedTopic("");
-            setQuestions([]);
-        }
-    }, [selectedSubject]);
+    const switchMode = (m: Mode) => {
+        setMode(m);
+        setSelectedSubject("");
+        setSelectedTextbook("");
+        setSelectedTopic("");
+        setTopics([]);
+        setQuestions([]);
+        setIsAdding(false);
+    };
 
     useEffect(() => {
-        if (selectedTextbook) {
-            fetchTopicsByTextbook(selectedTextbook).then(setTopics);
-            setSelectedTopic("");
-            setQuestions([]);
+        if (!selectedSubject) return;
+        setSelectedTextbook("");
+        setSelectedTopic("");
+        setTopics([]);
+        setQuestions([]);
+        if (mode === "textbook") {
+            fetchTextbooksBySubject(selectedSubject).then(setTextbooks);
+        } else {
+            fetchTopicsBySubject(selectedSubject).then(topics => {
+                setTopics(topics);
+            });
         }
-    }, [selectedTextbook]);
+    }, [selectedSubject, mode]);
+
+    useEffect(() => {
+        if (mode !== "textbook" || !selectedTextbook) return;
+        fetchTopicsByTextbook(selectedTextbook).then(setTopics);
+        setSelectedTopic("");
+        setQuestions([]);
+    }, [selectedTextbook, mode]);
 
     useEffect(() => {
         if (selectedTopic) {
@@ -56,19 +81,43 @@ export default function AdminQuestionsPage() {
         }
     }, [selectedTopic]);
 
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const clearImage = () => {
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
+        setImageFile(null);
+        setImagePreview("");
+    };
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTopic) return;
+        setImageUploading(true);
         try {
-            const newQuestion = {
+            // Upload to Uploadcare only on submit
+            let uploadedUrl = "";
+            if (imageFile) {
+                uploadedUrl = await uploadToUploadcare(imageFile);
+            }
+
+            const newQuestion: Record<string, unknown> = {
                 text,
                 topicId: selectedTopic,
                 options: { a: optionA, b: optionB, c: optionC, d: optionD },
                 correctAnswer,
-                difficulty
+                difficulty,
             };
+            if (uploadedUrl) newQuestion.imageUrl = uploadedUrl;
             const created = await adminAddItem("questions", newQuestion);
             setQuestions(prev => [created as Question, ...prev]);
+            await adminIncrementField("topics", selectedTopic, "totalQuestions", 1);
 
             // Clear form
             setText("");
@@ -76,21 +125,28 @@ export default function AdminQuestionsPage() {
             setOptionB("");
             setOptionC("");
             setOptionD("");
+            clearImage();
             setIsAdding(false);
         } catch {
             alert("Ошибка при добавлении вопроса");
+        } finally {
+            setImageUploading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm("Вы уверены?")) return;
         try {
+            const q = questions.find(q => q.id === id);
             await adminDeleteItem("questions", id);
             setQuestions(prev => prev.filter(q => q.id !== id));
+            if (q?.topicId) await adminIncrementField("topics", q.topicId, "totalQuestions", -1);
         } catch {
             alert("Ошибка при удалении");
         }
     };
+
+    const topicDisabled = mode === "textbook" ? !selectedTextbook : !selectedSubject;
 
     return (
         <div className="flex flex-col gap-12">
@@ -109,8 +165,38 @@ export default function AdminQuestionsPage() {
                 </button>
             </div>
 
+            {/* Mode toggle */}
+            <div className="flex items-center gap-2 p-1 bg-muted rounded-xl w-fit">
+                <button
+                    type="button"
+                    onClick={() => switchMode("textbook")}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                        mode === "textbook"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    <BookOpen size={16} />
+                    С учебником
+                </button>
+                <button
+                    type="button"
+                    onClick={() => switchMode("direct")}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                        mode === "direct"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    <Layers size={16} />
+                    Без учебника
+                </button>
+            </div>
+
             {/* Selection Filters */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-card border border-border rounded-2xl p-6">
+            <section className={`grid grid-cols-1 gap-6 bg-card border border-border rounded-2xl p-6 ${
+                mode === "textbook" ? "md:grid-cols-3" : "md:grid-cols-2"
+            }`}>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Предмет</label>
                     <select
@@ -122,24 +208,26 @@ export default function AdminQuestionsPage() {
                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Учебник</label>
-                    <select
-                        value={selectedTextbook}
-                        onChange={e => setSelectedTextbook(e.target.value)}
-                        disabled={!selectedSubject}
-                        className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
-                    >
-                        <option value="">Выберите учебник</option>
-                        {textbooks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                    </select>
-                </div>
+                {mode === "textbook" && (
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Учебник</label>
+                        <select
+                            value={selectedTextbook}
+                            onChange={e => setSelectedTextbook(e.target.value)}
+                            disabled={!selectedSubject}
+                            className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
+                        >
+                            <option value="">Выберите учебник</option>
+                            {textbooks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                        </select>
+                    </div>
+                )}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Тема</label>
                     <select
                         value={selectedTopic}
                         onChange={e => setSelectedTopic(e.target.value)}
-                        disabled={!selectedTextbook}
+                        disabled={topicDisabled}
                         className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                     >
                         <option value="">Выберите тему</option>
@@ -150,12 +238,55 @@ export default function AdminQuestionsPage() {
 
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                    {/* Question text */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Текст вопроса</label>
-                        <textarea
-                            value={text} onChange={e => setText(e.target.value)} required
-                            className="w-full bg-muted border border-border rounded-lg p-4 h-32 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                        <QuillEditor
+                            value={text}
+                            onChange={setText}
                             placeholder="Как называется столица Франции?"
+                        />
+                    </div>
+
+                    {/* Image upload */}
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Изображение (необязательно)</label>
+                        {imagePreview ? (
+                            <div className="flex flex-col gap-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={imagePreview}
+                                    alt="preview"
+                                    style={{ display: "block", maxHeight: 220, maxWidth: "100%", objectFit: "contain", borderRadius: "0.75rem", border: "1px solid hsl(var(--border))", background: "hsl(var(--muted))" }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={clearImage}
+                                    className="flex items-center gap-1.5 w-fit text-sm text-red-500 hover:text-red-600 transition-colors"
+                                >
+                                    <X size={14} /> Удалить изображение
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={imageUploading}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50"
+                            >
+                                {imageUploading ? (
+                                    <><Loader2 size={16} className="animate-spin" /> Загрузка...</>
+                                ) : (
+                                    <><ImagePlus size={16} /> Добавить изображение</>
+                                )}
+                            </button>
+                        )}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
                         />
                     </div>
 
@@ -207,8 +338,9 @@ export default function AdminQuestionsPage() {
                                 </select>
                             </div>
                             <div className="pt-4">
-                                <button type="submit" className="w-full bg-foreground text-background py-4 rounded-xl font-semibold hover:opacity-90 transition-all shadow-md">
-                                    Добавить вопрос
+                                <button type="submit" disabled={imageUploading} className="w-full bg-foreground text-background py-4 rounded-xl font-semibold hover:opacity-90 disabled:opacity-60 transition-all shadow-md flex items-center justify-center gap-2">
+                                    {imageUploading && <Loader2 size={18} className="animate-spin" />}
+                                    {imageUploading ? "Загрузка изображения..." : "Добавить вопрос"}
                                 </button>
                             </div>
                         </div>
@@ -235,7 +367,13 @@ export default function AdminQuestionsPage() {
                                             </span>
                                             <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Правильно: {q.correctAnswer.toUpperCase()}</span>
                                         </div>
-                                        <p className="text-lg font-medium text-foreground leading-relaxed">{q.text}</p>
+                                        {q.imageUrl && (
+                                            <Image src={q.imageUrl} alt="" width={400} height={128} className="max-h-32 rounded-lg object-contain border border-border" />
+                                        )}
+                                        <div
+                                            className="text-lg font-medium text-foreground leading-relaxed ql-content"
+                                            dangerouslySetInnerHTML={{ __html: q.text }}
+                                        />
                                         <div className="grid grid-cols-2 gap-4">
                                             {Object.entries(q.options).map(([key, val]) => (
                                                 <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>

@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Inter } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

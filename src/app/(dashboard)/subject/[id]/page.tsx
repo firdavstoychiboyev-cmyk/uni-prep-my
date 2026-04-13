@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Subject, Topic, UserProgress } from "@/lib/firestore-schema";
-import { fetchTextbooksBySubject, fetchSubjectById, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { fetchTextbooksBySubject, fetchSubjectById, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -15,7 +15,23 @@ import {
     Check,
     Bookmark,
     BookmarkCheck,
+    Trophy,
 } from "lucide-react";
+
+type Medal = "none" | "green" | "grey" | "bronze";
+
+function medalColor(medal: Medal): string {
+    if (medal === "green") return "text-emerald-500";
+    if (medal === "grey") return "text-slate-400 dark:text-slate-500";
+    if (medal === "bronze") return "text-amber-500";
+    return "";
+}
+
+function accuracyColor(accuracy: number): string {
+    if (accuracy >= 80) return "text-emerald-600 dark:text-emerald-400";
+    if (accuracy >= 50) return "text-amber-600 dark:text-amber-400";
+    return "text-red-500 dark:text-red-400";
+}
 
 function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
     if (!prog) return null;
@@ -51,7 +67,7 @@ function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
 }
 
 type TopicGroup = {
-    textbookId: string;
+    textbookId: string | null;
     textbookTitle: string;
     topics: Topic[];
 };
@@ -141,9 +157,6 @@ function FilterButton<T extends string>({
             {open && (
                 <div className="absolute left-0 top-full mt-2 z-50 w-52 rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
                     <div className="py-1.5">
-                        <div className="px-4 pt-2 pb-1 text-xs font-black tracking-[0.16em] uppercase text-muted-foreground">
-                            {label}
-                        </div>
                         {options.map((opt) => {
                             const selected = opt.value === value;
                             return (
@@ -192,6 +205,16 @@ export default function SubjectPage() {
     // Filter bar visibility
     const [filtersOpen, setFiltersOpen] = useState(false);
 
+    // Collapsed textbook groups
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+    const toggleGroupCollapse = (key: string) => {
+        setCollapsedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    };
+
     // Filter values
     const [diffFilter, setDiffFilter] = useState<DiffFilter>("all");
     const [savedFilter, setSavedFilter] = useState<SavedFilter>("all");
@@ -206,17 +229,26 @@ export default function SubjectPage() {
     useEffect(() => {
         if (!id) return;
         const load = async () => {
-            const [subData, textData] = await Promise.all([
+            const [subData, textData, directTopics] = await Promise.all([
                 fetchSubjectById(id as string),
                 fetchTextbooksBySubject(id as string),
+                fetchTopicsBySubject(id as string),
             ]);
             setSubject(subData);
             const topicGroups: TopicGroup[] = [];
+            if (directTopics.length > 0) {
+                topicGroups.push({ textbookId: null, textbookTitle: "Общие темы", topics: directTopics });
+            }
             for (const tb of textData) {
                 const topics = await fetchTopicsByTextbook(tb.id);
                 topicGroups.push({ textbookId: tb.id, textbookTitle: tb.title, topics });
             }
             setGroups(topicGroups);
+            // Collapse all textbook groups by default, leave "direct" open
+            const textbookKeys = topicGroups
+                .filter(g => g.textbookId !== null)
+                .map(g => g.textbookId as string);
+            setCollapsedGroups(new Set(textbookKeys));
             setIsLoading(false);
         };
         load();
@@ -304,7 +336,7 @@ export default function SubjectPage() {
     }, []);
 
     const flatTopics = useMemo(() => {
-        const list: { topic: Topic; textbookId: string }[] = [];
+        const list: { topic: Topic; textbookId: string | null }[] = [];
         for (const g of groups)
             for (const t of g.topics)
                 list.push({ topic: t, textbookId: g.textbookId });
@@ -357,6 +389,19 @@ export default function SubjectPage() {
     const totalQuestions = useMemo(
         () => flatTopics.reduce((s, { topic }) => s + (topic.totalQuestions || 0), 0),
         [flatTopics]
+    );
+
+    const completedTopicsCount = useMemo(
+        () => flatTopics.filter(({ topic }) => {
+            const prog = progressMap[topic.id];
+            return prog && prog.medal && prog.medal !== "none";
+        }).length,
+        [flatTopics, progressMap]
+    );
+
+    const subjectCompletionPct = useMemo(
+        () => flatTopics.length === 0 ? 0 : Math.round((completedTopicsCount / flatTopics.length) * 100),
+        [completedTopicsCount, flatTopics.length]
     );
 
     const gradientClass = useMemo(() => {
@@ -437,8 +482,8 @@ export default function SubjectPage() {
                     onClick={() => setFiltersOpen((v) => !v)}
                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors duration-200 shadow-sm ${
                         filtersOpen || activeFilterCount > 0
-                            ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))]"
-                            : "border-border bg-card text-foreground hover:bg-muted"
+                            ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))] dark:bg-[hsl(var(--brand-blue))]/15 dark:border-[hsl(var(--brand-blue))]/50"
+                            : "border-border bg-card text-foreground hover:bg-muted dark:bg-muted/30 dark:hover:bg-muted/50"
                     }`}
                 >
                     <Filter className="w-4 h-4" />
@@ -521,10 +566,30 @@ export default function SubjectPage() {
                         disabled={!hasTopics}
                     />
                     <div className="min-w-0 flex-1">
-                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">{subject.name}</h2>
-                        <p className="mt-1 text-sm text-white/90 font-medium">
-                            {totalQuestions} {pluralQuestions(totalQuestions)}
-                        </p>
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">{subject.name}</h2>
+                                <p className="mt-0.5 text-sm text-white/80 font-medium">
+                                    {totalQuestions} {pluralQuestions(totalQuestions)}
+                                </p>
+                            </div>
+                            {completedTopicsCount > 0 && (
+                                <div className="shrink-0 text-right">
+                                    <span className="text-2xl sm:text-3xl font-bold tabular-nums drop-shadow-sm">{subjectCompletionPct}%</span>
+                                    <p className="text-xs text-white/75 font-medium mt-0.5">{completedTopicsCount} / {flatTopics.length} тем</p>
+                                </div>
+                            )}
+                        </div>
+                        {hasTopics && completedTopicsCount > 0 && (
+                            <div className="mt-4">
+                                <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-white/80 transition-all duration-700"
+                                        style={{ width: `${subjectCompletionPct}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -545,77 +610,213 @@ export default function SubjectPage() {
                         Сбросить фильтры
                     </button>
                 </div>
-            ) : (
-                <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden divide-y divide-border transition-shadow duration-300 hover:shadow-md">
-                    {displayGroups.map((group) => (
-                        <div key={group.textbookId} className="p-5 sm:p-6">
-                            <h3 className="text-base font-bold text-foreground mb-4 tracking-tight">{group.textbookTitle}</h3>
-                            <ul className="space-y-0">
-                                {group.topics.map((topic) => {
-                                    const q = topic.totalQuestions || 0;
-                                    const selected = selectedIds.has(topic.id);
-                                    const isSaved = savedTopics.has(topic.id);
-                                    const prog = progressMap[topic.id];
-                                    return (
-                                        <li key={topic.id}>
-                                            <div
-                                                role="button"
-                                                tabIndex={0}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter" || e.key === " ") {
-                                                        e.preventDefault();
-                                                        if (multiSelect) toggleTopic(topic.id);
-                                                        else router.push(`/test/${topic.id}`);
-                                                    }
-                                                }}
-                                                onClick={() => {
-                                                    if (multiSelect) toggleTopic(topic.id);
-                                                    else router.push(`/test/${topic.id}`);
-                                                }}
-                                                className={`flex cursor-pointer items-center gap-3 py-3 px-2 -mx-2 rounded-xl transition-colors duration-200 ${
-                                                    selected ? "bg-[hsl(var(--brand-blue-soft))]/50" : "hover:bg-muted/60"
-                                                }`}
-                                            >
-                                                <TopicCheckbox
-                                                    checked={selected}
-                                                    onChange={() => toggleTopic(topic.id)}
-                                                    stopPropagation
-                                                />
-                                                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                                                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                                                        {topic.title}
-                                                    </span>
-                                                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                                                        <TopicProgressStats prog={prog} />
-                                                        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap sm:text-sm">
-                                                            {q} {pluralQuestionsShort(q)}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => toggleSaved(topic.id, e)}
-                                                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                                                                isSaved
-                                                                    ? "text-[hsl(var(--brand-blue))] hover:bg-[hsl(var(--brand-blue-soft))]"
-                                                                    : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
+            ) : (() => {
+                const directGroup = displayGroups.find(g => g.textbookId === null);
+                const textbookGroups = displayGroups.filter(g => g.textbookId !== null);
+                const hasTwo = directGroup && textbookGroups.length > 0;
+
+                const renderTopicList = (group: TopicGroup) => (
+                    <ul className="space-y-0">
+                        {group.topics.map((topic) => {
+                            const q = topic.totalQuestions || 0;
+                            const selected = selectedIds.has(topic.id);
+                            const isSaved = savedTopics.has(topic.id);
+                            const prog = progressMap[topic.id];
+                            const isCompleted = prog && prog.medal && prog.medal !== "none";
+                            const topicPct = q > 0
+                                ? Math.min(100, Math.round(((prog?.correctFirstCount ?? prog?.solvedQuestions ?? 0) / q) * 100))
+                                : 0;
+                            return (
+                                <li key={topic.id}>
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                if (multiSelect) toggleTopic(topic.id);
+                                                else router.push(`/test/${topic.id}`);
+                                            }
+                                        }}
+                                        onClick={() => {
+                                            if (multiSelect) toggleTopic(topic.id);
+                                            else router.push(`/test/${topic.id}`);
+                                        }}
+                                        className={`flex cursor-pointer items-center gap-3 py-3 px-2 -mx-2 rounded-xl transition-colors duration-200 ${
+                                            selected ? "bg-[hsl(var(--brand-blue-soft))]/50 dark:bg-[hsl(var(--brand-blue))]/15" : "hover:bg-muted/60 dark:hover:bg-white/5"
+                                        }`}
+                                    >
+                                        <TopicCheckbox
+                                            checked={selected}
+                                            onChange={() => toggleTopic(topic.id)}
+                                            stopPropagation
+                                        />
+                                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                                            {/* Title + progress bar */}
+                                            <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+                                                <span className="truncate text-sm font-medium text-foreground leading-tight">
+                                                    {topic.title}
+                                                </span>
+                                                {q > 0 && (
+                                                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                                isCompleted ? "bg-emerald-500 dark:bg-emerald-400" : "bg-[hsl(var(--brand-blue))] opacity-70"
                                                             }`}
-                                                            title={isSaved ? "Убрать из сохранённых" : "Сохранить тему"}
-                                                        >
-                                                            {isSaved
-                                                                ? <BookmarkCheck className="w-4 h-4" />
-                                                                : <Bookmark className="w-4 h-4" />
-                                                            }
-                                                        </button>
+                                                            style={{ width: `${topicPct}%` }}
+                                                        />
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
-                                        </li>
+                                            {/* Right indicators */}
+                                            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                                                <TopicProgressStats prog={prog} />
+                                                {/* Medal + accuracy — desktop only */}
+                                                {isCompleted && (
+                                                    <div className="hidden sm:flex items-center gap-1">
+                                                        <Trophy
+                                                            size={12}
+                                                            className={medalColor(prog!.medal as Medal)}
+                                                        />
+                                                        {prog!.accuracy > 0 && (
+                                                            <span className={`text-xs font-semibold tabular-nums ${accuracyColor(prog!.accuracy)}`}>
+                                                                {Math.round(prog!.accuracy)}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {/* Medal icon only — mobile */}
+                                                {isCompleted && (
+                                                    <Trophy
+                                                        size={12}
+                                                        className={`sm:hidden ${medalColor(prog!.medal as Medal)}`}
+                                                    />
+                                                )}
+                                                <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap hidden sm:block">
+                                                    {q} {pluralQuestionsShort(q)}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap sm:hidden">
+                                                    {q}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => toggleSaved(topic.id, e)}
+                                                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                                                        isSaved
+                                                            ? "text-[hsl(var(--brand-blue))] hover:bg-[hsl(var(--brand-blue-soft))]"
+                                                            : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
+                                                    }`}
+                                                    title={isSaved ? "Убрать из сохранённых" : "Сохранить тему"}
+                                                >
+                                                    {isSaved
+                                                        ? <BookmarkCheck className="w-4 h-4" />
+                                                        : <Bookmark className="w-4 h-4" />
+                                                    }
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                );
+
+                return (
+                    <div className={hasTwo ? "grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 items-start" : ""}>
+                        {/* Left: Общие темы */}
+                        {directGroup && (() => {
+                            const dirCompleted = directGroup.topics.filter(t => {
+                                const p = progressMap[t.id];
+                                return p && p.medal && p.medal !== "none";
+                            }).length;
+                            const dirPct = directGroup.topics.length > 0
+                                ? Math.round((dirCompleted / directGroup.topics.length) * 100) : 0;
+                            return (
+                            <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+                                <div className="px-5 pt-4 pb-3 sm:px-6 border-b border-border bg-muted/30">
+                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                        <span className="text-sm font-bold text-foreground tracking-tight">Общие темы</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {dirCompleted > 0 && (
+                                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                    {dirCompleted} / {directGroup.topics.length}
+                                                </span>
+                                            )}
+                                            {dirCompleted === 0 && (
+                                                <span className="text-xs text-muted-foreground font-medium tabular-nums">{directGroup.topics.length} тем</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-all duration-700"
+                                            style={{ width: `${dirPct}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="px-5 py-3 sm:px-6">
+                                    {renderTopicList(directGroup)}
+                                </div>
+                            </div>
+                            );
+                        })()}
+
+                        {/* Right: Учебники */}
+                        {textbookGroups.length > 0 && (
+                            <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden divide-y divide-border">
+                                {textbookGroups.map((group) => {
+                                    const groupKey = group.textbookId as string;
+                                    const isCollapsed = collapsedGroups.has(groupKey);
+                                    const grpCompleted = group.topics.filter(t => {
+                                        const p = progressMap[t.id];
+                                        return p && p.medal && p.medal !== "none";
+                                    }).length;
+                                    const grpPct = group.topics.length > 0
+                                        ? Math.round((grpCompleted / group.topics.length) * 100) : 0;
+                                    return (
+                                        <div key={groupKey}>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleGroupCollapse(groupKey)}
+                                                className="flex w-full items-center justify-between gap-3 px-5 pt-4 pb-3 sm:px-6 hover:bg-muted/40 transition-colors text-left"
+                                            >
+                                                <span className="text-sm font-bold text-foreground tracking-tight leading-snug">{group.textbookTitle}</span>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {grpCompleted > 0 ? (
+                                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                            {grpCompleted} / {group.topics.length}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground font-medium tabular-nums">{group.topics.length} тем</span>
+                                                    )}
+                                                    <ChevronDown
+                                                        size={16}
+                                                        className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
+                                                    />
+                                                </div>
+                                            </button>
+                                            {/* Mini progress bar */}
+                                            <div className="h-0.5 w-full bg-muted overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500/70 dark:bg-emerald-400/70 transition-all duration-700"
+                                                    style={{ width: `${grpPct}%` }}
+                                                />
+                                            </div>
+                                            {!isCollapsed && (
+                                                <div className="px-5 py-3 sm:px-6">
+                                                    {renderTopicList(group)}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
-            )}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
 
             {/* FAB */}
             {hasTopics && (

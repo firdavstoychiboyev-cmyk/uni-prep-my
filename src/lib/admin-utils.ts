@@ -9,7 +9,8 @@ import {
     where,
     orderBy,
     serverTimestamp,
-    getCountFromServer
+    getCountFromServer,
+    increment
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -80,6 +81,19 @@ export const adminUpdateItem = async (collectionName: string, id: string, data: 
         });
     } catch (error) {
         console.error(`Error updating ${collectionName}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * Инкремент/декремент числового поля документа
+ */
+export const adminIncrementField = async (collectionName: string, id: string, field: string, delta: number) => {
+    try {
+        const docRef = doc(db, collectionName, id);
+        await updateDoc(docRef, { [field]: increment(delta) });
+    } catch (error) {
+        console.error(`Error incrementing ${field} in ${collectionName}:`, error);
         throw error;
     }
 };

@@ -106,3 +106,15 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* Rich text content rendered from Quill editor */
+.ql-content .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+.ql-content strong { font-weight: 700; }
+.ql-content em { font-style: italic; }
+.ql-content u { text-decoration: underline; }
+.ql-content sub { vertical-align: sub; font-size: 0.8em; }
+.ql-content sup { vertical-align: super; font-size: 0.8em; }

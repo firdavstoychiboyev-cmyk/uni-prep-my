@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Question, Topic, Medal } from "@/lib/firestore-schema";
 import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook } from "@/lib/data-fetching";
@@ -340,7 +341,7 @@ export default function TestPage() {
             });
 
             // Stars + badges per unique textbook
-            const textbookIds = Array.from(new Set(allTopics.map((t) => t.textbookId).filter(Boolean)));
+            const textbookIds = Array.from(new Set(allTopics.map((t) => t.textbookId).filter((id): id is string => Boolean(id))));
             for (const tbId of textbookIds) {
                 const tbSnap = await getDoc(doc(db, "textbooks", tbId));
                 if (!tbSnap.exists()) continue;
@@ -405,7 +406,7 @@ export default function TestPage() {
                 }, { merge: true });
             }));
         } catch { /* silent on back — user is leaving */ }
-    }, [user, allTopics, questions, buildTopicPayloads]);
+    }, [user, allTopics, buildTopicPayloads]);
 
     /* ─ save + next (сохраняет ответ и переходит дальше) ─ */
     const handleSaveAndNext = useCallback(() => {
@@ -619,8 +620,24 @@ export default function TestPage() {
                         </div>
                     )}
 
+                    {/* Question image */}
+                    {q?.imageUrl && (
+                        <div className="relative mb-5 max-h-64 w-full rounded-xl overflow-hidden border border-border bg-muted/30">
+                            <Image
+                                src={q.imageUrl}
+                                alt=""
+                                width={800}
+                                height={256}
+                                className="w-full max-h-64 object-contain"
+                            />
+                        </div>
+                    )}
+
                     {/* Question text */}
-                    <p className="text-lg font-medium text-foreground leading-relaxed mb-6">{q?.text}</p>
+                    <div
+                        className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content"
+                        dangerouslySetInnerHTML={{ __html: q?.text ?? "" }}
+                    />
 
                     {/* ─── TEXT INPUT (for English writing etc.) ─── */}
                     {isText ? (

@@ -47,6 +47,15 @@ export const fetchTopicsByTextbook = (textbookId: string): Promise<Topic[]> =>
         return topics.sort((a, b) => a.order - b.order);
     }, TTL_STATIC);
 
+export const fetchTopicsBySubject = (subjectId: string): Promise<Topic[]> =>
+    pageCache.fetch(`topics-direct:${subjectId}`, async () => {
+        const q = query(collection(db, "topics"), where("subjectId", "==", subjectId));
+        const snap = await getDocs(q);
+        return snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }) as Topic)
+            .sort((a, b) => a.order - b.order);
+    }, TTL_STATIC);
+
 export const fetchQuestionsByTopic = (topicId: string): Promise<Question[]> =>
     pageCache.fetch(`questions:${topicId}`, async () => {
         const q = query(collection(db, "questions"), where("topicId", "==", topicId));

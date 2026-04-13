@@ -39,7 +39,8 @@ export interface Textbook {
 
 export interface Topic {
   id: string;
-  textbookId: string;
+  textbookId?: string;   // опционально — отсутствует у тем без учебника
+  subjectId?: string;    // обязательно для тем без учебника
   title: string;
   order: number;
   totalQuestions: number;
@@ -61,6 +62,7 @@ export interface Question {
   explanation?: string; // step-by-step explanation shown after answering
   domain?: string;      // e.g. "Algebra", "Reading & Writing"
   skill?: string;       // e.g. "Linear equations in one variable"
+  imageUrl?: string;    // CDN URL of optional question image (Uploadcare)
 }
 
 export type Medal = "none" | "green" | "grey" | "bronze";

@@ -1,8 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.oneprep.xyz)"
+      "WebFetch(domain:www.oneprep.xyz)",
+      "Bash(npm install:*)"
     ]
   },
-  "enabledMcpjsonServers": ["context7"]
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
 }
