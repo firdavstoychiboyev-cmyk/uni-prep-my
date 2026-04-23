@@ -12,8 +12,8 @@ interface MathTextProps {
 
 declare global {
     interface Window {
-        renderMathInElement: any;
-        katex: any;
+        renderMathInElement: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        katex: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 }
 

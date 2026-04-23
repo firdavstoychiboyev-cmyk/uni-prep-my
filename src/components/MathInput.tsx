@@ -10,17 +10,16 @@ interface MathInputProps {
 
 declare global {
     interface Window {
-        jQuery: any;
-        $: any;
-        MathQuill: any;
+        jQuery: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        $: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        MathQuill: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 }
 
 export default function MathInput({ value, onChange, className }: MathInputProps) {
     const containerRef = useRef<HTMLSpanElement>(null);
-    const mathFieldRef = useRef<any>(null);
+    const mathFieldRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [isLoaded, setIsLoaded] = useState(false);
-    const isFirstValueRef = useRef(true);
 
     useEffect(() => {
         // Load dependencies from CDN
@@ -75,7 +74,6 @@ export default function MathInput({ value, onChange, className }: MathInputProps
             autoOperatorNames: 'sin cos tan arcsin arccos arctan sinh cosh tanh log ln lg',
         });
 
-        // Set initial value
         if (value) {
             mathField.latex(value);
         }
@@ -86,7 +84,7 @@ export default function MathInput({ value, onChange, className }: MathInputProps
             // Clean up if needed
             mathFieldRef.current = null;
         };
-    }, [isLoaded, onChange]);
+    }, [isLoaded, onChange, value]);
 
     // Update mathfield if value changes externally (carefully to avoid cursor reset)
     useEffect(() => {

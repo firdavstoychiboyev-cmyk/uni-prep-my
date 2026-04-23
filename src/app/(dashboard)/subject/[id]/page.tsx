@@ -749,12 +749,6 @@ export default function SubjectPage() {
                                         {textbookGroups.map((group) => {
                                             const groupKey = group.textbookId as string;
                                             const isCollapsed = collapsedGroups.has(groupKey);
-                                            const grpCompleted = group.topics.filter(t => {
-                                                const p = progressMap[t.id];
-                                                return p && p.medal && p.medal !== "none";
-                                            }).length;
-                                            const grpPct = group.topics.length > 0
-                                                ? Math.round((grpCompleted / group.topics.length) * 100) : 0;
                                             return (
                                                 <div key={groupKey} className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
                                                     <button
@@ -795,10 +789,6 @@ export default function SubjectPage() {
                                 <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
 
                                 {directGroup ? (() => {
-                                    const dirCompleted = directGroup.topics.filter(t => {
-                                        const p = progressMap[t.id];
-                                        return p && p.medal && p.medal !== "none";
-                                    }).length;
                                     return (
                                         <div className="space-y-4">
                                             {renderTopicList(directGroup)}
