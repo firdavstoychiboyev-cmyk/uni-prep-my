@@ -20,6 +20,8 @@ import {
     MoreVertical, Maximize2, Minimize2,
 } from "lucide-react";
 import { getMedalByErrors } from "@/lib/constants";
+import MathInput from "@/components/MathInput";
+import MathText from "@/components/MathText";
 
 /* ─── types ─────────────────────────────────────────── */
 type QStatus = "unanswered" | "correct-first" | "correct-retry" | "incorrect";
@@ -634,25 +636,23 @@ export default function TestPage() {
                     )}
 
                     {/* Question text */}
-                    <div
-                        className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content"
-                        dangerouslySetInnerHTML={{ __html: q?.text ?? "" }}
+                    <MathText
+                        content={q?.text ?? ""}
+                        className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content math-question-text"
                     />
 
                     {/* ─── TEXT INPUT (for English writing etc.) ─── */}
                     {isText ? (
                         <div className="space-y-3">
-                            <textarea
+                             <MathInput
                                 value={answer}
-                                onChange={(e) => { setAnswer(e.target.value); setChecked(false); }}
-                                rows={5}
-                                placeholder="Введите ваш ответ…"
-                                className={`w-full rounded-2xl border-2 p-4 text-base font-medium resize-none transition-all outline-none focus:ring-2 focus:ring-[hsl(var(--brand-blue))]/20 focus:border-[hsl(var(--brand-blue))] ${
+                                onChange={(v) => { setAnswer(v); setChecked(false); }}
+                                className={`w-full min-h-[120px] ${
                                     checked
                                         ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
-                                            ? "border-emerald-400 bg-emerald-50"
-                                            : "border-red-400 bg-red-50"
-                                        : "border-border bg-card"
+                                            ? "border-emerald-400"
+                                            : "border-red-400"
+                                        : ""
                                 }`}
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
@@ -735,8 +735,8 @@ export default function TestPage() {
                                                         {key.toUpperCase()}
                                                     </span>
                                                 )}
-                                                <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
-                                                    {val}
+                                                 <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
+                                                    <MathText content={val} as="span" />
                                                 </span>
                                                 {checked && isSelected && isCorrectOpt && (
                                                     <CheckCircle2 className="relative z-[2] h-5 w-5 shrink-0 text-emerald-500" />

@@ -3,8 +3,8 @@ import { db } from "./firebase";
 import { Textbook, Topic, Subject, Question } from "./firestore-schema";
 import { pageCache } from "./page-cache";
 
-const TTL_STATIC = 10 * 60 * 1000; // 10 min — subjects/textbooks/topics almost never change
-const TTL_QUESTIONS = 5 * 60 * 1000; // 5 min
+const TTL_STATIC = 15 * 1000; // 15 seconds — allows fast updates while still deduplicating concurrent calls
+const TTL_QUESTIONS = 2 * 60 * 1000; // 2 min
 
 export const fetchSubjects = (): Promise<Subject[]> =>
     pageCache.fetch("subjects", async () => {

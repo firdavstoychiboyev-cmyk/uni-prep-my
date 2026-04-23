@@ -229,27 +229,40 @@ export default function SubjectPage() {
     useEffect(() => {
         if (!id) return;
         const load = async () => {
-            const [subData, textData, directTopics] = await Promise.all([
-                fetchSubjectById(id as string),
-                fetchTextbooksBySubject(id as string),
-                fetchTopicsBySubject(id as string),
-            ]);
-            setSubject(subData);
-            const topicGroups: TopicGroup[] = [];
-            if (directTopics.length > 0) {
-                topicGroups.push({ textbookId: null, textbookTitle: "Общие темы", topics: directTopics });
+            try {
+                const [subData, textData, directTopics] = await Promise.all([
+                    fetchSubjectById(id as string),
+                    fetchTextbooksBySubject(id as string),
+                    fetchTopicsBySubject(id as string),
+                ]);
+                setSubject(subData);
+                
+                const topicGroups: TopicGroup[] = [];
+                if (directTopics.length > 0) {
+                    topicGroups.push({ textbookId: null, textbookTitle: "Общие темы", topics: directTopics });
+                }
+
+                // Fetch topics for all textbooks in parallel
+                const textbooksWithTopics = await Promise.all(
+                    textData.map(async (tb) => {
+                        const topics = await fetchTopicsByTextbook(tb.id);
+                        return { textbookId: tb.id, textbookTitle: tb.title, topics };
+                    })
+                );
+                
+                topicGroups.push(...textbooksWithTopics);
+                setGroups(topicGroups);
+
+                // Collapse all textbook groups by default, leave "direct" open
+                const textbookKeys = topicGroups
+                    .filter(g => g.textbookId !== null)
+                    .map(g => g.textbookId as string);
+                setCollapsedGroups(new Set(textbookKeys));
+            } catch (error) {
+                console.error("Failed to load subject data:", error);
+            } finally {
+                setIsLoading(false);
             }
-            for (const tb of textData) {
-                const topics = await fetchTopicsByTextbook(tb.id);
-                topicGroups.push({ textbookId: tb.id, textbookTitle: tb.title, topics });
-            }
-            setGroups(topicGroups);
-            // Collapse all textbook groups by default, leave "direct" open
-            const textbookKeys = topicGroups
-                .filter(g => g.textbookId !== null)
-                .map(g => g.textbookId as string);
-            setCollapsedGroups(new Set(textbookKeys));
-            setIsLoading(false);
         };
         load();
     }, [id]);
@@ -383,8 +396,8 @@ export default function SubjectPage() {
             : groups;
         return base
             .map((g) => ({ ...g, topics: g.topics.filter(topicPassesFilters) }))
-            .filter((g) => g.topics.length > 0);
-    }, [groups, randomize, topicPassesFilters]);
+            .filter((g) => g.topics.length > 0 || (activeFilterCount === 0 && g.textbookId !== null));
+    }, [groups, randomize, topicPassesFilters, activeFilterCount]);
 
     const totalQuestions = useMemo(
         () => flatTopics.reduce((s, { topic }) => s + (topic.totalQuestions || 0), 0),
@@ -456,6 +469,7 @@ export default function SubjectPage() {
         );
     }
 
+    const hasGroups = groups.length > 0;
     const hasTopics = flatTopics.length > 0;
 
     return (
@@ -595,7 +609,7 @@ export default function SubjectPage() {
             </div>
 
             {/* Topic tree */}
-            {!hasTopics ? (
+            {!hasGroups ? (
                 <div className="py-16 text-center rounded-3xl border border-border bg-muted/30">
                     <p className="text-muted-foreground font-medium">Учебники и темы для этого предмета пока не добавлены.</p>
                 </div>
@@ -723,96 +737,78 @@ export default function SubjectPage() {
                 );
 
                 return (
-                    <div className={hasTwo ? "grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 items-start" : ""}>
-                        {/* Left: Общие темы */}
-                        {directGroup && (() => {
-                            const dirCompleted = directGroup.topics.filter(t => {
-                                const p = progressMap[t.id];
-                                return p && p.medal && p.medal !== "none";
-                            }).length;
-                            const dirPct = directGroup.topics.length > 0
-                                ? Math.round((dirCompleted / directGroup.topics.length) * 100) : 0;
-                            return (
-                            <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                                <div className="px-5 pt-4 pb-3 sm:px-6 border-b border-border bg-muted/30">
-                                    <div className="flex items-center justify-between gap-3 mb-2">
-                                        <span className="text-sm font-bold text-foreground tracking-tight">Общие темы</span>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            {dirCompleted > 0 && (
-                                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                                    {dirCompleted} / {directGroup.topics.length}
-                                                </span>
-                                            )}
-                                            {dirCompleted === 0 && (
-                                                <span className="text-xs text-muted-foreground font-medium tabular-nums">{directGroup.topics.length} тем</span>
-                                            )}
-                                        </div>
+                    <div className="bg-card border border-border rounded-[2rem] shadow-sm overflow-hidden">
+                        <div className={hasTwo ? "grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] items-stretch" : "flex flex-col"}>
+                            {/* Left Column: Учебники */}
+                            <div className={`p-6 sm:p-8 ${hasTwo ? "lg:border-r border-border" : "border-b border-border"}`}>
+                                <h3 className="text-[17px] font-bold text-foreground mb-4">Учебники</h3>
+                                <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
+                                
+                                {textbookGroups.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {textbookGroups.map((group) => {
+                                            const groupKey = group.textbookId as string;
+                                            const isCollapsed = collapsedGroups.has(groupKey);
+                                            const grpCompleted = group.topics.filter(t => {
+                                                const p = progressMap[t.id];
+                                                return p && p.medal && p.medal !== "none";
+                                            }).length;
+                                            const grpPct = group.topics.length > 0
+                                                ? Math.round((grpCompleted / group.topics.length) * 100) : 0;
+                                            return (
+                                                <div key={groupKey} className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleGroupCollapse(groupKey)}
+                                                        className="flex w-full items-center justify-between gap-3 px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+                                                    >
+                                                        <span className="text-sm font-bold text-foreground tracking-tight leading-snug">{group.textbookTitle}</span>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className="text-xs text-muted-foreground font-medium tabular-nums">{group.topics.length} тем</span>
+                                                            <ChevronDown
+                                                                size={16}
+                                                                className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
+                                                            />
+                                                        </div>
+                                                    </button>
+                                                    {!isCollapsed && (
+                                                        <div className="px-5 py-3 bg-card border-t border-border">
+                                                            {group.topics.length > 0 ? renderTopicList(group) : (
+                                                                <p className="text-sm text-muted-foreground py-4 italic font-medium text-center">
+                                                                    Темы для этого учебника скоро появятся.
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-all duration-700"
-                                            style={{ width: `${dirPct}%` }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="px-5 py-3 sm:px-6">
-                                    {renderTopicList(directGroup)}
-                                </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground py-12 text-center italic">Учебники не добавлены</p>
+                                )}
                             </div>
-                            );
-                        })()}
 
-                        {/* Right: Учебники */}
-                        {textbookGroups.length > 0 && (
-                            <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden divide-y divide-border">
-                                {textbookGroups.map((group) => {
-                                    const groupKey = group.textbookId as string;
-                                    const isCollapsed = collapsedGroups.has(groupKey);
-                                    const grpCompleted = group.topics.filter(t => {
+                            {/* Right Column: Темы для изучения */}
+                            <div className="p-6 sm:p-8 bg-muted/5">
+                                <h3 className="text-[17px] font-bold text-foreground mb-4">Темы для изучения</h3>
+                                <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
+
+                                {directGroup ? (() => {
+                                    const dirCompleted = directGroup.topics.filter(t => {
                                         const p = progressMap[t.id];
                                         return p && p.medal && p.medal !== "none";
                                     }).length;
-                                    const grpPct = group.topics.length > 0
-                                        ? Math.round((grpCompleted / group.topics.length) * 100) : 0;
                                     return (
-                                        <div key={groupKey}>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleGroupCollapse(groupKey)}
-                                                className="flex w-full items-center justify-between gap-3 px-5 pt-4 pb-3 sm:px-6 hover:bg-muted/40 transition-colors text-left"
-                                            >
-                                                <span className="text-sm font-bold text-foreground tracking-tight leading-snug">{group.textbookTitle}</span>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    {grpCompleted > 0 ? (
-                                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                                            {grpCompleted} / {group.topics.length}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground font-medium tabular-nums">{group.topics.length} тем</span>
-                                                    )}
-                                                    <ChevronDown
-                                                        size={16}
-                                                        className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
-                                                    />
-                                                </div>
-                                            </button>
-                                            {/* Mini progress bar */}
-                                            <div className="h-0.5 w-full bg-muted overflow-hidden">
-                                                <div
-                                                    className="h-full bg-emerald-500/70 dark:bg-emerald-400/70 transition-all duration-700"
-                                                    style={{ width: `${grpPct}%` }}
-                                                />
-                                            </div>
-                                            {!isCollapsed && (
-                                                <div className="px-5 py-3 sm:px-6">
-                                                    {renderTopicList(group)}
-                                                </div>
-                                            )}
+                                        <div className="space-y-4">
+                                            {renderTopicList(directGroup)}
                                         </div>
                                     );
-                                })}
+                                })() : (
+                                    <p className="text-sm text-muted-foreground py-12 text-center italic">Дополнительные темы не найдены</p>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 );
             })()}

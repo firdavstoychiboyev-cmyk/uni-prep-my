@@ -5,6 +5,8 @@ import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } 
 import { Subject } from "@/lib/firestore-schema";
 import { getSubjectImage } from "@/lib/constants";
 import { Plus, Trash2, Edit2, X, BookOpen } from "lucide-react";
+import { pageCache } from "@/lib/page-cache";
+import { useStatsStore } from "@/store/useStatsStore";
 
 function hexForColorInput(c: string | undefined): string {
     const t = c?.trim() ?? "";
@@ -69,6 +71,7 @@ export default function AdminSubjectsPage() {
             const subjectId = generateSubjectId(name);
             const backgroundImage = getSubjectImage(subjectId);
             const newSubject = {
+                id: subjectId,
                 name,
                 emoji: "",
                 color,
@@ -76,6 +79,8 @@ export default function AdminSubjectsPage() {
                 backgroundImage,
             };
             const created = await adminAddItem("subjects", newSubject);
+            pageCache.invalidatePrefix("subject");
+            useStatsStore.getState().reset();
             setSubjects((prev) => [...prev, created as Subject]);
             setName("");
             setColor("#6366f1");
@@ -89,6 +94,8 @@ export default function AdminSubjectsPage() {
         if (!confirm("Вы уверены? Это не удалит связанные учебники.")) return;
         try {
             await adminDeleteItem("subjects", id);
+            pageCache.invalidatePrefix("subject");
+            useStatsStore.getState().reset();
             setSubjects(prev => prev.filter(s => s.id !== id));
             if (editingId === id) setEditingId(null);
         } catch {
@@ -124,6 +131,8 @@ export default function AdminSubjectsPage() {
                 backgroundImage: editBackgroundImage.trim() || getSubjectImage(editingId, editName.trim()),
             };
             await adminUpdateItem("subjects", editingId, payload);
+            pageCache.invalidatePrefix("subject");
+            useStatsStore.getState().reset();
             setSubjects((prev) =>
                 prev.map((s) => (s.id === editingId ? { ...s, ...payload } : s))
             );

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { adminFetchCollection, adminAddItem, adminDeleteItem } from "@/lib/admin-utils";
 import { Textbook, Subject } from "@/lib/firestore-schema";
 import { Plus, Trash2, Library } from "lucide-react";
+import { pageCache } from "@/lib/page-cache";
+import { useStatsStore } from "@/store/useStatsStore";
 
 export default function AdminTextbooksPage() {
     const [textbooks, setTextbooks] = useState<Textbook[]>([]);
@@ -33,6 +35,8 @@ export default function AdminTextbooksPage() {
         try {
             const newTextbook = { title, grade, subjectId, coverImage: "" };
             const created = await adminAddItem("textbooks", newTextbook);
+            pageCache.invalidatePrefix("textbooks");
+            useStatsStore.getState().reset();
             setTextbooks(prev => [created as Textbook, ...prev]);
             setTitle("");
             setGrade("");
@@ -46,6 +50,8 @@ export default function AdminTextbooksPage() {
         if (!confirm("Вы уверены?")) return;
         try {
             await adminDeleteItem("textbooks", id);
+            pageCache.invalidatePrefix("textbooks");
+            useStatsStore.getState().reset();
             setTextbooks(prev => prev.filter(t => t.id !== id));
         } catch {
             alert("Ошибка при удалении");
@@ -113,11 +119,12 @@ export default function AdminTextbooksPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {isLoading ? (
-                            [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-muted/20" />)
-                        ) : textbooks.length > 0 ? (
-                            textbooks.map(textbook => {
-                                const subject = subjects.find(s => s.id === textbook.subjectId);
+                                {isLoading ? (
+                                    [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-muted/20" />)
+                                ) : textbooks.length > 0 ? (
+                                    textbooks.map(textbook => {
+                                        const textbookSubjectId = String(textbook.subjectId).trim();
+                                        const subject = subjects.find(s => s.id === textbookSubjectId);
                                 return (
                                     <tr key={textbook.id} className="hover:bg-muted/40 transition-colors group text-sm">
                                         <td className="px-8 py-6">

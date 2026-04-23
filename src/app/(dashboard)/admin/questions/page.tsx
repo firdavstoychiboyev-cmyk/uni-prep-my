@@ -8,6 +8,8 @@ import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2 } from "lucide-re
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { uploadToUploadcare } from "@/lib/uploadcare";
 import QuillEditor from "@/components/QuillEditor";
+import MathInput from "@/components/MathInput";
+import MathText from "@/components/MathText";
 
 type Mode = "textbook" | "direct";
 
@@ -296,16 +298,15 @@ export default function AdminQuestionsPage() {
                             {["a", "b", "c", "d"].map((opt) => (
                                 <div key={opt} className="flex items-center gap-3">
                                     <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center font-bold uppercase text-muted-foreground">{opt}</span>
-                                    <input
+                                     <MathInput
                                         value={opt === "a" ? optionA : opt === "b" ? optionB : opt === "c" ? optionC : optionD}
-                                        onChange={e => {
-                                            if (opt === "a") setOptionA(e.target.value);
-                                            else if (opt === "b") setOptionB(e.target.value);
-                                            else if (opt === "c") setOptionC(e.target.value);
-                                            else setOptionD(e.target.value);
+                                        onChange={v => {
+                                            if (opt === "a") setOptionA(v);
+                                            else if (opt === "b") setOptionB(v);
+                                            else if (opt === "c") setOptionC(v);
+                                            else setOptionD(v);
                                         }}
-                                        required
-                                        className="flex-1 bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                                        className="flex-1"
                                     />
                                 </div>
                             ))}
@@ -370,14 +371,15 @@ export default function AdminQuestionsPage() {
                                         {q.imageUrl && (
                                             <Image src={q.imageUrl} alt="" width={400} height={128} className="max-h-32 rounded-lg object-contain border border-border" />
                                         )}
-                                        <div
-                                            className="text-lg font-medium text-foreground leading-relaxed ql-content"
-                                            dangerouslySetInnerHTML={{ __html: q.text }}
+                                        <MathText
+                                            content={q?.text ?? ""}
+                                            className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content math-question-text"
                                         />
                                         <div className="grid grid-cols-2 gap-4">
                                             {Object.entries(q.options).map(([key, val]) => (
-                                                <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>
-                                                    <span className="font-bold mr-2">{key.toUpperCase()}:</span> {val}
+                                                 <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>
+                                                    <span className="font-bold mr-2">{key.toUpperCase()}:</span>
+                                                    <MathText content={val} as="span" />
                                                 </div>
                                             ))}
                                         </div>

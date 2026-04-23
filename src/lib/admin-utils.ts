@@ -45,12 +45,21 @@ export const fetchAdminStats = async () => {
  */
 export const adminAddItem = async (collectionName: string, data: Record<string, unknown>) => {
     try {
-        const docRef = await addDoc(collection(db, collectionName), {
-            ...data,
+        const { id, ...rest } = data;
+        const finalData = {
+            ...rest,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-        });
-        return { id: docRef.id, ...data };
+        };
+
+        if (id && typeof id === "string") {
+            const { doc, setDoc } = await import("firebase/firestore");
+            await setDoc(doc(db, collectionName, id), finalData);
+            return { id, ...rest };
+        } else {
+            const docRef = await addDoc(collection(db, collectionName), finalData);
+            return { id: docRef.id, ...rest };
+        }
     } catch (error) {
         console.error(`Error adding to ${collectionName}:`, error);
         throw error;

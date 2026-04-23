@@ -5,6 +5,8 @@ import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } 
 import { Topic, Textbook, Subject } from "@/lib/firestore-schema";
 import { Plus, Trash2, ListTree, Edit2, X, BookOpen, Layers } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
+import { pageCache } from "@/lib/page-cache";
+import { useStatsStore } from "@/store/useStatsStore";
 
 type Mode = "textbook" | "direct";
 
@@ -85,6 +87,8 @@ export default function AdminTopicsPage() {
                 newTopic.subjectId = selectedSubject;
             }
             const created = await adminAddItem("topics", newTopic);
+            pageCache.invalidatePrefix("topics");
+            useStatsStore.getState().reset();
             setTopics(prev => [...prev, created as Topic].sort((a, b) => a.order - b.order));
             setTitle("");
             setOrder("");
@@ -98,6 +102,8 @@ export default function AdminTopicsPage() {
         if (!confirm("Вы уверены? Это не удалит вопросы в этой теме.")) return;
         try {
             await adminDeleteItem("topics", id);
+            pageCache.invalidatePrefix("topics");
+            useStatsStore.getState().reset();
             setTopics((prev) => prev.filter((t) => t.id !== id));
             if (editingId === id) setEditingId(null);
         } catch {
@@ -132,6 +138,8 @@ export default function AdminTopicsPage() {
             if (current.textbookId) payload.textbookId = current.textbookId;
             if (current.subjectId) payload.subjectId = current.subjectId;
             await adminUpdateItem("topics", editingId, payload);
+            pageCache.invalidatePrefix("topics");
+            useStatsStore.getState().reset();
             setTopics((prev) =>
                 prev
                     .map((t) => (t.id === editingId ? { ...t, ...payload } : t))
