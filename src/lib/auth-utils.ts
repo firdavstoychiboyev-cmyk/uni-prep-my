@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { User, UserRole } from "./firestore-schema";
+import { User, UserRole, Language, DEFAULT_LANGUAGE } from "./firestore-schema";
 import { pageCache } from "./page-cache";
 
 const googleProvider = new GoogleAuthProvider();
@@ -83,6 +83,11 @@ export const createUserProfile = async (
             updatedAt: new Date().toISOString()
         };
 
+        // Новым пользователям выставляем язык по умолчанию (русский)
+        if (!docSnap.exists() || !(docSnap.data() as User).language) {
+            userData.language = DEFAULT_LANGUAGE;
+        }
+
         if (role) {
             userData.role = role;
             userData.subjects = subjects;
@@ -112,9 +117,31 @@ export const updateUserProfile = async (uid: string, data: { name: string; surna
         await setDoc(userRef, updateData, { merge: true });
 
         const finalSnap = await getDoc(userRef);
-        return { id: uid, ...finalSnap.data() } as User;
+        const updated = { id: uid, ...finalSnap.data() } as User;
+        pageCache.invalidate(`userProfile:${uid}`);
+        pageCache.set(`userProfile:${uid}`, updated, 5 * 60 * 1000);
+        return updated;
     } catch (error) {
         console.error("Error updating user profile:", error);
+        throw error;
+    }
+};
+
+/**
+ * Сохранение выбранного языка в профиль пользователя
+ */
+export const updateUserLanguage = async (uid: string, language: Language) => {
+    try {
+        const userRef = doc(db, "users", uid);
+        await setDoc(userRef, { language, updatedAt: new Date().toISOString() }, { merge: true });
+
+        const finalSnap = await getDoc(userRef);
+        const updated = { id: uid, ...finalSnap.data() } as User;
+        pageCache.invalidate(`userProfile:${uid}`);
+        pageCache.set(`userProfile:${uid}`, updated, 5 * 60 * 1000);
+        return updated;
+    } catch (error) {
+        console.error("Error updating user language:", error);
         throw error;
     }
 };

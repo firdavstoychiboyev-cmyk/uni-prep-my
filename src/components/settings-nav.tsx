@@ -1,29 +1,35 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { User2, Palette, Trophy, ShieldAlert } from "lucide-react";
+import { User2, Palette, Trophy, ShieldAlert, Languages } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-type Item = { label: string; id: "profile" | "appearance" | "achievements" | "account-actions"; icon: typeof User2 };
-const groups: Array<{ title: string; items: Item[] }> = [
+type Item = { labelKey: string; id: "profile" | "language" | "appearance" | "achievements" | "account-actions"; icon: typeof User2 };
+const groups: Array<{ titleKey: string; items: Item[] }> = [
     {
-        title: "АККАУНТ",
-        items: [{ label: "Профиль", id: "profile", icon: User2 }],
+        titleKey: "settings.account",
+        items: [{ labelKey: "settings.profile", id: "profile", icon: User2 }],
     },
     {
-        title: "ВНЕШНИЙ ВИД",
-        items: [{ label: "Внешний вид", id: "appearance", icon: Palette }],
+        titleKey: "settings.language",
+        items: [{ labelKey: "settings.language", id: "language", icon: Languages }],
     },
     {
-        title: "ДОСТИЖЕНИЯ",
-        items: [{ label: "Достижения", id: "achievements", icon: Trophy }],
+        titleKey: "settings.appearance",
+        items: [{ labelKey: "settings.appearance", id: "appearance", icon: Palette }],
     },
     {
-        title: "ДЕЙСТВИЯ",
-        items: [{ label: "Действия аккаунта", id: "account-actions", icon: ShieldAlert }],
+        titleKey: "settings.achievements",
+        items: [{ labelKey: "settings.achievements", id: "achievements", icon: Trophy }],
+    },
+    {
+        titleKey: "settings.accountActions",
+        items: [{ labelKey: "settings.accountActions", id: "account-actions", icon: ShieldAlert }],
     },
 ];
 
 export default function SettingsNav() {
+    const { t } = useTranslation();
     const allItems = useMemo(() => groups.flatMap((g) => g.items), []);
     const [active, setActive] = useState<Item["id"]>("profile");
     const scrollWrapRef = useRef<HTMLDivElement | null>(null);
@@ -76,9 +82,9 @@ export default function SettingsNav() {
                 className="p-6 max-h-[calc(100vh-6rem)] overflow-auto"
             >
                 {groups.map((g) => (
-                    <div key={g.title} className="mb-6 last:mb-0">
+                    <div key={g.titleKey} className="mb-6 last:mb-0">
                         <div className="px-3 mb-2 text-[11px] font-black tracking-[0.18em] uppercase text-muted-foreground">
-                            {g.title}
+                            {t(g.titleKey)}
                         </div>
                         <nav className="flex flex-col gap-1">
                             {g.items.map((it) => {
@@ -98,7 +104,7 @@ export default function SettingsNav() {
                                         <Icon
                                             className={`w-4 h-4 ${active === it.id ? "text-[hsl(var(--brand-blue))]" : "text-muted-foreground"}`}
                                         />
-                                        <span className="text-sm font-semibold">{it.label}</span>
+                                        <span className="text-sm font-semibold">{t(it.labelKey)}</span>
                                     </button>
                                 );
                             })}

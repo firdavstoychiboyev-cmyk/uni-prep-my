@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { fetchSubjects } from "@/lib/data-fetching";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
     LayoutDashboard,
     Award,
@@ -54,11 +55,11 @@ function getSubjectIcon(name: string): LucideIcon {
 }
 
 const mainLinks = (isTeacher: boolean) => [
-    { name: "Главная", href: "/", icon: LayoutDashboard },
-    ...(isTeacher ? [{ name: "Мои классы", href: "/classes", icon: GraduationCap }] : []),
-    { name: "Статистика", href: "/statistics", icon: BarChart3 },
-    { name: "Мои достижения", href: "/achievements", icon: Award },
-    { name: "Мой профиль", href: "/profile", icon: CircleUserRound },
+    { nameKey: "nav.home", href: "/", icon: LayoutDashboard },
+    ...(isTeacher ? [{ nameKey: "nav.classes", href: "/classes", icon: GraduationCap }] : []),
+    { nameKey: "nav.statistics", href: "/statistics", icon: BarChart3 },
+    { nameKey: "nav.achievements", href: "/achievements", icon: Award },
+    { nameKey: "nav.profile", href: "/profile", icon: CircleUserRound },
 ];
 
 function Sidebar() {
@@ -66,6 +67,7 @@ function Sidebar() {
     const { subjects, loaded, setSubjects } = useSubjectsStore();
     const { isOpen, isCollapsed, close, toggleCollapsed } = useSidebarStore();
     const pathname = usePathname();
+    const { t } = useTranslation();
 
     useEffect(() => {
         if (!loaded) fetchSubjects().then(setSubjects);
@@ -114,7 +116,7 @@ function Sidebar() {
                     )}
 
                     {/* Mobile: close drawer */}
-                    <button onClick={close} className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors" aria-label="Закрыть меню">
+                    <button onClick={close} className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors" aria-label={t("sidebar.closeMenu")}>
                         <X size={18} className="text-muted-foreground" />
                     </button>
 
@@ -122,8 +124,8 @@ function Sidebar() {
                     <button
                         onClick={toggleCollapsed}
                         className={`hidden md:flex p-1.5 rounded-lg hover:bg-muted transition-colors ${isCollapsed ? "mt-2" : ""}`}
-                        aria-label={isCollapsed ? "Развернуть меню" : "Свернуть меню"}
-                        title={isCollapsed ? "Развернуть" : "Свернуть"}
+                        aria-label={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+                        title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
                     >
                         {isCollapsed
                             ? <PanelLeft size={16} className="text-muted-foreground" />
@@ -135,8 +137,9 @@ function Sidebar() {
                 {/* ── Main navigation ── */}
                 <nav className={`pt-3 pb-2 ${isCollapsed ? "md:px-2 px-3" : "px-3"}`}>
                     <ul className="flex flex-col gap-0.5">
-                        {links.map(({ name, href, icon: Icon }) => {
+                        {links.map(({ nameKey, href, icon: Icon }) => {
                             const active = pathname === href;
+                            const name = t(nameKey);
                             return (
                                 <li key={href}>
                                     <Link
@@ -164,7 +167,7 @@ function Sidebar() {
                 {/* ── Subjects ── */}
                 <div className={`pt-2 pb-3 flex-1 ${isCollapsed ? "md:px-2 px-3" : "px-3"}`}>
                     <p className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5 ${isCollapsed ? "md:hidden px-3" : "px-3"}`}>
-                        Предметы
+                        {t("nav.subjects")}
                     </p>
                     {subjects.length > 0 ? (
                         <ul className="flex flex-col gap-0.5">
@@ -220,7 +223,7 @@ function Sidebar() {
                                 className="mt-1 inline-flex items-center gap-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <Settings size={12} className="text-muted-foreground" />
-                                Настройки
+                                {t("nav.settings")}
                             </Link>
                         </div>
                     </div>

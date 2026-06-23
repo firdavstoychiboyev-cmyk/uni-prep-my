@@ -2,20 +2,24 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } from "@/lib/admin-utils";
-import { Topic, Textbook, Subject } from "@/lib/firestore-schema";
+import { Topic, Textbook, Subject, Language } from "@/lib/firestore-schema";
 import { Plus, Trash2, ListTree, Edit2, X, BookOpen, Layers } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { pageCache } from "@/lib/page-cache";
 import { useStatsStore } from "@/store/useStatsStore";
+import AdminLanguageToggle from "@/components/admin-language-toggle";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type Mode = "textbook" | "direct";
 
 export default function AdminTopicsPage() {
+    const { t } = useTranslation();
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [textbooks, setTextbooks] = useState<Textbook[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
 
     const [mode, setMode] = useState<Mode>("textbook");
+    const [contentLang, setContentLang] = useState<Language>("ru");
     const [selectedSubject, setSelectedSubject] = useState("");
     const [selectedTextbook, setSelectedTextbook] = useState("");
 
@@ -48,6 +52,9 @@ export default function AdminTopicsPage() {
         setEditingId(null);
     };
 
+    // Предметы выбранного языка (отсутствие языка трактуется как 'ru')
+    const visibleSubjects = subjects.filter((s) => (s.language ?? "ru") === contentLang);
+
     useEffect(() => {
         if (selectedSubject && mode === "textbook") {
             fetchTextbooksBySubject(selectedSubject).then(setTextbooks);
@@ -56,19 +63,19 @@ export default function AdminTopicsPage() {
         }
         if (selectedSubject && mode === "direct") {
             setEditingId(null);
-            fetchTopicsBySubject(selectedSubject).then(setTopics);
+            fetchTopicsBySubject(selectedSubject, contentLang).then(setTopics);
         }
-    }, [selectedSubject, mode]);
+    }, [selectedSubject, mode, contentLang]);
 
     useEffect(() => {
         if (mode !== "textbook") return;
         setEditingId(null);
         if (selectedTextbook) {
-            fetchTopicsByTextbook(selectedTextbook).then(setTopics);
+            fetchTopicsByTextbook(selectedTextbook, contentLang).then(setTopics);
         } else {
             setTopics([]);
         }
-    }, [selectedTextbook, mode]);
+    }, [selectedTextbook, mode, contentLang]);
 
     const canAdd = mode === "textbook" ? Boolean(selectedTextbook) : Boolean(selectedSubject);
 
@@ -80,6 +87,7 @@ export default function AdminTopicsPage() {
                 title,
                 order: parseInt(order) || topics.length + 1,
                 totalQuestions: 0,
+                language: contentLang,
             };
             if (mode === "textbook") {
                 newTopic.textbookId = selectedTextbook;
@@ -94,20 +102,20 @@ export default function AdminTopicsPage() {
             setOrder("");
             setIsAdding(false);
         } catch {
-            alert("Ошибка при добавлении темы");
+            alert(t("admin.errorAddTopic"));
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Вы уверены? Это не удалит вопросы в этой теме.")) return;
+        if (!confirm(t("admin.confirmDeleteTopic"))) return;
         try {
             await adminDeleteItem("topics", id);
             pageCache.invalidatePrefix("topics");
             useStatsStore.getState().reset();
-            setTopics((prev) => prev.filter((t) => t.id !== id));
+            setTopics((prev) => prev.filter((tp) => tp.id !== id));
             if (editingId === id) setEditingId(null);
         } catch {
-            alert("Ошибка при удалении");
+            alert(t("admin.errorDelete"));
         }
     };
 
@@ -125,10 +133,10 @@ export default function AdminTopicsPage() {
         if (!editingId) return;
         const orderNum = Number.parseInt(editOrder, 10);
         if (Number.isNaN(orderNum)) {
-            alert("Порядок — целое число");
+            alert(t("admin.orderInt"));
             return;
         }
-        const current = topics.find((t) => t.id === editingId);
+        const current = topics.find((tp) => tp.id === editingId);
         if (!current) return;
         try {
             const payload: Record<string, unknown> = {
@@ -142,25 +150,25 @@ export default function AdminTopicsPage() {
             useStatsStore.getState().reset();
             setTopics((prev) =>
                 prev
-                    .map((t) => (t.id === editingId ? { ...t, ...payload } : t))
+                    .map((tp) => (tp.id === editingId ? { ...tp, ...payload } : tp))
                     .sort((a, b) => a.order - b.order)
             );
             setEditingId(null);
         } catch {
-            alert("Ошибка при сохранении");
+            alert(t("admin.errorSave"));
         }
     };
 
     const emptyMessage = mode === "textbook"
-        ? (!selectedTextbook ? "Пожалуйста, выберите учебник, чтобы увидеть темы" : "Темы не найдены.")
-        : (!selectedSubject ? "Пожалуйста, выберите предмет, чтобы увидеть темы" : "Темы не найдены.");
+        ? (!selectedTextbook ? t("admin.selectTextbookToSeeTopics") : t("admin.noTopics"))
+        : (!selectedSubject ? t("admin.selectSubjectToSeeTopics") : t("admin.noTopics"));
 
     return (
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
                 <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">Темы.</h1>
-                    <p className="text-muted-foreground mt-2">Управление главами и разделами.</p>
+                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.topicsTitle")}</h1>
+                    <p className="text-muted-foreground mt-2">{t("admin.topicsSubtitle")}</p>
                 </section>
                 <button
                     onClick={() => {
@@ -171,8 +179,24 @@ export default function AdminTopicsPage() {
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
                 >
                     <Plus size={20} />
-                    <span>Новая тема</span>
+                    <span>{t("admin.newTopic")}</span>
                 </button>
+            </div>
+
+            {/* Language toggle */}
+            <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.contentLang")}</label>
+                <AdminLanguageToggle
+                    value={contentLang}
+                    onChange={(l) => {
+                        setContentLang(l);
+                        setSelectedSubject("");
+                        setSelectedTextbook("");
+                        setTopics([]);
+                        setIsAdding(false);
+                        setEditingId(null);
+                    }}
+                />
             </div>
 
             {/* Mode toggle */}
@@ -187,7 +211,7 @@ export default function AdminTopicsPage() {
                     }`}
                 >
                     <BookOpen size={16} />
-                    С учебником
+                    {t("admin.withTextbook")}
                 </button>
                 <button
                     type="button"
@@ -199,34 +223,34 @@ export default function AdminTopicsPage() {
                     }`}
                 >
                     <Layers size={16} />
-                    Без учебника
+                    {t("admin.withoutTextbook")}
                 </button>
             </div>
 
             {/* Filters */}
             <section className={`grid grid-cols-1 gap-6 bg-card border border-border rounded-2xl p-6 ${mode === "textbook" ? "md:grid-cols-2" : "md:grid-cols-1 max-w-sm"}`}>
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Фильтр по предмету</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.filterBySubject")}</label>
                     <select
                         value={selectedSubject}
                         onChange={e => setSelectedSubject(e.target.value)}
                         className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none"
                     >
-                        <option value="">Выберите предмет</option>
-                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        <option value="">{t("admin.selectSubject")}</option>
+                        {visibleSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
                 {mode === "textbook" && (
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Фильтр по учебнику</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.filterByTextbook")}</label>
                         <select
                             value={selectedTextbook}
                             onChange={e => setSelectedTextbook(e.target.value)}
                             disabled={!selectedSubject}
                             className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                         >
-                            <option value="">Выберите учебник</option>
-                            {textbooks.map(t => <option key={t.id} value={t.id}>{t.title} ({t.grade} класс)</option>)}
+                            <option value="">{t("admin.selectTextbook")}</option>
+                            {textbooks.map(tb => <option key={tb.id} value={tb.id}>{tb.title} ({t("admin.gradeShort", { grade: String(tb.grade) })})</option>)}
                         </select>
                     </div>
                 )}
@@ -235,7 +259,7 @@ export default function AdminTopicsPage() {
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 flex flex-col md:flex-row gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex-[2] space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Название темы</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.topicTitle")}</label>
                         <input
                             value={title} onChange={e => setTitle(e.target.value)} required
                             className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
@@ -243,7 +267,7 @@ export default function AdminTopicsPage() {
                         />
                     </div>
                     <div className="w-24 space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Порядок</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.order")}</label>
                         <input
                             type="number"
                             value={order} onChange={e => setOrder(e.target.value)} required
@@ -252,7 +276,7 @@ export default function AdminTopicsPage() {
                         />
                     </div>
                     <button type="submit" className="bg-foreground text-background px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all">
-                        Создать
+                        {t("admin.create")}
                     </button>
                 </form>
             )}
@@ -261,10 +285,10 @@ export default function AdminTopicsPage() {
                 <table className="w-full text-left">
                     <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">Порядок</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">Название</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">Вопросы</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest text-right">Действия</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.order")}</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.questionsCol")}</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest text-right">{t("admin.actions")}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -292,7 +316,7 @@ export default function AdminTopicsPage() {
                                                         editingId === topic.id ? cancelEdit() : startEdit(topic)
                                                     }
                                                     className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                                                    title={editingId === topic.id ? "Закрыть" : "Редактировать"}
+                                                    title={editingId === topic.id ? t("common.close") : t("common.edit")}
                                                 >
                                                     {editingId === topic.id ? <X size={18} /> : <Edit2 size={18} />}
                                                 </button>
@@ -310,11 +334,11 @@ export default function AdminTopicsPage() {
                                         <tr className="border-b border-border bg-muted/25">
                                             <td colSpan={4} className="px-8 py-6">
                                                 <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
-                                                    <p className="text-sm font-semibold text-foreground">Редактирование темы</p>
+                                                    <p className="text-sm font-semibold text-foreground">{t("admin.editTopic")}</p>
                                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                                         <div className="space-y-2 sm:col-span-2">
                                                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                                                Название
+                                                                {t("admin.name")}
                                                             </label>
                                                             <input
                                                                 value={editTitle}
@@ -325,7 +349,7 @@ export default function AdminTopicsPage() {
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                                                Порядок
+                                                                {t("admin.order")}
                                                             </label>
                                                             <input
                                                                 type="number"
@@ -340,14 +364,14 @@ export default function AdminTopicsPage() {
                                                             type="submit"
                                                             className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
                                                         >
-                                                            Сохранить
+                                                            {t("common.save")}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={cancelEdit}
                                                             className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
                                                         >
-                                                            Отмена
+                                                            {t("common.cancel")}
                                                         </button>
                                                     </div>
                                                 </form>

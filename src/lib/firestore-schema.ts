@@ -4,6 +4,11 @@
 
 export type UserRole = "student" | "teacher" | "admin";
 
+/** Язык контента и интерфейса. По умолчанию — русский. */
+export type Language = "ru" | "uz";
+
+export const DEFAULT_LANGUAGE: Language = "ru";
+
 export interface User {
   id: string; // Firebase UID
   shortId: string; // Короткий ID (только буквы и цифры)
@@ -12,6 +17,7 @@ export interface User {
   surname?: string; // Фамилия (опционально)
   role: UserRole;
   subjects: string[]; // массив ID предметов
+  language?: Language; // предпочитаемый язык контента ('ru' | 'uz'); по умолчанию 'ru'
   createdAt: string;
   updatedAt?: string; // Дата последнего обновления
   avatar: string; // URL аватара
@@ -23,6 +29,13 @@ export interface Subject {
   emoji: string;
   color: string;
   order: number;
+  language?: Language; // язык предмета ('ru' | 'uz'); отсутствие трактуется как 'ru'
+  /**
+   * Можно ли автоматически переводить контент этого предмета на другой язык.
+   * true / отсутствует → переводится автоматически (будущий переводчик).
+   * false → языковой предмет (Русский, родной язык) — ведётся вручную отдельно для каждого языка.
+   */
+  translatable?: boolean;
   backgroundImage: string;
   topicCount?: number; // Количество тем
   questionCount?: number; // Количество вопросов
@@ -43,6 +56,7 @@ export interface Topic {
   subjectId?: string;    // обязательно для тем без учебника
   title: string;
   order: number;
+  language?: Language; // язык темы ('ru' | 'uz'); отсутствие трактуется как 'ru'
   totalQuestions: number;
 }
 
@@ -58,6 +72,7 @@ export interface Question {
   };
   correctAnswer: string; // "a"|"b"|"c"|"d" for MC, any string for text input
   difficulty: "easy" | "medium" | "hard";
+  language?: Language; // язык вопроса ('ru' | 'uz'); отсутствие трактуется как 'ru'
   type?: "mc" | "text"; // defaults to "mc"; "text" = free-text answer (e.g. English writing)
   explanation?: string; // step-by-step explanation shown after answering
   domain?: string;      // e.g. "Algebra", "Reading & Writing"

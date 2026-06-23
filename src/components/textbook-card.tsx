@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { Textbook } from "@/lib/firestore-schema";
 import { BookOpen, ArrowRight } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface TextbookCardProps {
     textbook: Textbook;
 }
 
 export default function TextbookCard({ textbook }: TextbookCardProps) {
+    const { t } = useTranslation();
     return (
         <Link
             href={`/textbook/${textbook.id}`}
@@ -18,7 +20,7 @@ export default function TextbookCard({ textbook }: TextbookCardProps) {
             <div className="relative h-40 w-full bg-white/5 flex items-center justify-center overflow-hidden">
                 {/* Grade badge */}
                 <div className="absolute top-3 right-3 bg-white/10 border border-white/15 backdrop-blur px-2.5 py-1 rounded-full">
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">{textbook.grade} класс</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">{t("card.grade", { grade: String(textbook.grade) })}</span>
                 </div>
 
                 {/* Book icon */}
@@ -36,7 +38,7 @@ export default function TextbookCard({ textbook }: TextbookCardProps) {
                     {textbook.title}
                 </h3>
                 <div className="flex items-center gap-1.5 mt-3 text-white/40 group-hover:text-white/70 transition-colors">
-                    <span className="text-xs font-bold uppercase tracking-widest">Открыть</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">{t("common.open")}</span>
                     <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                 </div>
             </div>

@@ -8,6 +8,7 @@ import { fetchTextbooksBySubject, fetchSubjectById, fetchTopicsByTextbook, fetch
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
     ChevronRight,
     Filter,
@@ -34,6 +35,7 @@ function accuracyColor(accuracy: number): string {
 }
 
 function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
+    const { t } = useTranslation();
     if (!prog) return null;
     const total = prog.solvedQuestions ?? 0;
     const marked = prog.markedQuestions ?? 0;
@@ -47,7 +49,7 @@ function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <span
                 className={`inline-flex items-center gap-1 ${correctFirst > 0 ? "text-emerald-600" : "text-muted-foreground"}`}
-                title="Верно с первой попытки"
+                title={t("subject.correctFirst")}
             >
                 <span className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
                     correctFirst > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
@@ -57,7 +59,7 @@ function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
                 <span className="text-sm font-semibold tabular-nums">{correctFirst}</span>
             </span>
             {marked > 0 && (
-                <span className="inline-flex items-center gap-1 text-amber-600" title="Отмечено в тесте">
+                <span className="inline-flex items-center gap-1 text-amber-600" title={t("subject.markedInTest")}>
                     <Bookmark className="h-4 w-4 shrink-0 fill-amber-400 text-amber-600" aria-hidden />
                     <span className="text-sm font-semibold tabular-nums">{marked}</span>
                 </span>
@@ -194,6 +196,7 @@ export default function SubjectPage() {
     const { id } = useParams();
     const router = useRouter();
     const { user } = useAuthStore();
+    const { t, language } = useTranslation();
     const [groups, setGroups] = useState<TopicGroup[]>([]);
     const [subject, setSubject] = useState<Subject | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -464,7 +467,7 @@ export default function SubjectPage() {
     if (!subject) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <p className="text-muted-foreground text-lg font-medium">Предмет не найден</p>
+                <p className="text-muted-foreground text-lg font-medium">{t("subject.notFound")}</p>
             </div>
         );
     }
@@ -477,7 +480,7 @@ export default function SubjectPage() {
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
                 <Link href="/" className="hover:text-foreground transition-colors duration-200">
-                    Главная
+                    {t("nav.home")}
                 </Link>
                 <ChevronRight size={14} className="text-border" />
                 <span className="text-foreground">{subject.name}</span>
@@ -485,7 +488,7 @@ export default function SubjectPage() {
 
             {/* Title */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Банк вопросов</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("subject.questionBank")}</h1>
                 <p className="text-sm text-muted-foreground mt-1">{subject.name}</p>
             </div>
 
@@ -501,7 +504,7 @@ export default function SubjectPage() {
                     }`}
                 >
                     <Filter className="w-4 h-4" />
-                    Фильтры
+                    {t("subject.filters")}
                     {activeFilterCount > 0 && (
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--brand-blue))] text-white text-[11px] font-bold">
                             {activeFilterCount}
@@ -516,44 +519,44 @@ export default function SubjectPage() {
             {filtersOpen && (
                 <div className="flex flex-wrap items-center gap-2">
                     <FilterButton<DiffFilter>
-                        label="Сложность"
+                        label={t("subject.difficulty")}
                         value={diffFilter}
                         onChange={setDiffFilter}
                         options={[
-                            { value: "all", label: "Все" },
-                            { value: "easy", label: "Лёгкий" },
-                            { value: "medium", label: "Средний" },
-                            { value: "hard", label: "Сложный" },
+                            { value: "all", label: t("common.all") },
+                            { value: "easy", label: t("subject.diff.easy") },
+                            { value: "medium", label: t("subject.diff.medium") },
+                            { value: "hard", label: t("subject.diff.hard") },
                         ]}
                     />
                     <FilterButton<SavedFilter>
-                        label="Сохранённые"
+                        label={t("subject.saved")}
                         value={savedFilter}
                         onChange={setSavedFilter}
                         options={[
-                            { value: "all", label: "Все" },
-                            { value: "saved", label: "Только сохранённые" },
-                            { value: "not_marked", label: "Не помечены" },
+                            { value: "all", label: t("common.all") },
+                            { value: "saved", label: t("subject.saved.only") },
+                            { value: "not_marked", label: t("subject.saved.notMarked") },
                         ]}
                     />
                     <FilterButton<CompletedFilter>
-                        label="Пройденные"
+                        label={t("subject.completedFilter")}
                         value={completedFilter}
                         onChange={setCompletedFilter}
                         options={[
-                            { value: "all", label: "Все" },
-                            { value: "solved", label: "Только решённые" },
-                            { value: "unsolved", label: "Только нерешённые" },
+                            { value: "all", label: t("common.all") },
+                            { value: "solved", label: t("subject.completed.solved") },
+                            { value: "unsolved", label: t("subject.completed.unsolved") },
                         ]}
                     />
                     <FilterButton<AnswerFilter>
-                        label="Статус ответа"
+                        label={t("subject.answerStatus")}
                         value={answerFilter}
                         onChange={setAnswerFilter}
                         options={[
-                            { value: "all", label: "Все" },
-                            { value: "incorrect", label: "Только ошибочные" },
-                            { value: "correct", label: "Только правильные" },
+                            { value: "all", label: t("common.all") },
+                            { value: "incorrect", label: t("subject.answer.incorrect") },
+                            { value: "correct", label: t("subject.answer.correct") },
                         ]}
                     />
                     {activeFilterCount > 0 && (
@@ -562,7 +565,7 @@ export default function SubjectPage() {
                             onClick={resetFilters}
                             className="px-3.5 py-2 rounded-xl border border-border bg-card text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
                         >
-                            Сбросить
+                            {t("common.reset")}
                         </button>
                     )}
                 </div>
@@ -584,13 +587,13 @@ export default function SubjectPage() {
                             <div>
                                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">{subject.name}</h2>
                                 <p className="mt-0.5 text-sm text-white/80 font-medium">
-                                    {totalQuestions} {pluralQuestions(totalQuestions)}
+                                    {totalQuestions} {pluralQuestions(totalQuestions, language)}
                                 </p>
                             </div>
                             {completedTopicsCount > 0 && (
                                 <div className="shrink-0 text-right">
                                     <span className="text-2xl sm:text-3xl font-bold tabular-nums drop-shadow-sm">{subjectCompletionPct}%</span>
-                                    <p className="text-xs text-white/75 font-medium mt-0.5">{completedTopicsCount} / {flatTopics.length} тем</p>
+                                    <p className="text-xs text-white/75 font-medium mt-0.5">{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
                                 </div>
                             )}
                         </div>
@@ -611,17 +614,17 @@ export default function SubjectPage() {
             {/* Topic tree */}
             {!hasGroups ? (
                 <div className="py-16 text-center rounded-3xl border border-border bg-muted/30">
-                    <p className="text-muted-foreground font-medium">Учебники и темы для этого предмета пока не добавлены.</p>
+                    <p className="text-muted-foreground font-medium">{t("subject.noContent")}</p>
                 </div>
             ) : displayGroups.length === 0 ? (
                 <div className="py-16 text-center rounded-3xl border border-border bg-muted/30">
-                    <p className="text-muted-foreground font-medium">Нет тем, соответствующих выбранным фильтрам.</p>
+                    <p className="text-muted-foreground font-medium">{t("subject.noFilterMatch")}</p>
                     <button
                         type="button"
                         onClick={resetFilters}
                         className="mt-4 px-5 py-2 rounded-xl border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted transition-colors"
                     >
-                        Сбросить фильтры
+                        {t("subject.resetFilters")}
                     </button>
                 </div>
             ) : (() => {
@@ -707,7 +710,7 @@ export default function SubjectPage() {
                                                     />
                                                 )}
                                                 <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap hidden sm:block">
-                                                    {q} {pluralQuestionsShort(q)}
+                                                    {q} {pluralQuestionsShort(q, language)}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap sm:hidden">
                                                     {q}
@@ -720,7 +723,7 @@ export default function SubjectPage() {
                                                             ? "text-[hsl(var(--brand-blue))] hover:bg-[hsl(var(--brand-blue-soft))]"
                                                             : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
                                                     }`}
-                                                    title={isSaved ? "Убрать из сохранённых" : "Сохранить тему"}
+                                                    title={isSaved ? t("subject.unsave") : t("subject.saveTopic")}
                                                 >
                                                     {isSaved
                                                         ? <BookmarkCheck className="w-4 h-4" />
@@ -741,7 +744,7 @@ export default function SubjectPage() {
                         <div className={hasTwo ? "grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] items-stretch" : "flex flex-col"}>
                             {/* Left Column: Учебники */}
                             <div className={`p-6 sm:p-8 ${hasTwo ? "lg:border-r border-border" : "border-b border-border"}`}>
-                                <h3 className="text-[17px] font-bold text-foreground mb-4">Учебники</h3>
+                                <h3 className="text-[17px] font-bold text-foreground mb-4">{t("subject.textbooks")}</h3>
                                 <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
                                 
                                 {textbookGroups.length > 0 ? (
@@ -758,7 +761,7 @@ export default function SubjectPage() {
                                                     >
                                                         <span className="text-sm font-bold text-foreground tracking-tight leading-snug">{group.textbookTitle}</span>
                                                         <div className="flex items-center gap-2 shrink-0">
-                                                            <span className="text-xs text-muted-foreground font-medium tabular-nums">{group.topics.length} тем</span>
+                                                            <span className="text-xs text-muted-foreground font-medium tabular-nums">{t("subject.topicsCount", { count: group.topics.length })}</span>
                                                             <ChevronDown
                                                                 size={16}
                                                                 className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
@@ -769,7 +772,7 @@ export default function SubjectPage() {
                                                         <div className="px-5 py-3 bg-card border-t border-border">
                                                             {group.topics.length > 0 ? renderTopicList(group) : (
                                                                 <p className="text-sm text-muted-foreground py-4 italic font-medium text-center">
-                                                                    Темы для этого учебника скоро появятся.
+                                                                    {t("subject.topicsComingSoon")}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -779,13 +782,13 @@ export default function SubjectPage() {
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground py-12 text-center italic">Учебники не добавлены</p>
+                                    <p className="text-sm text-muted-foreground py-12 text-center italic">{t("subject.noTextbooks")}</p>
                                 )}
                             </div>
 
                             {/* Right Column: Темы для изучения */}
                             <div className="p-6 sm:p-8 bg-muted/5">
-                                <h3 className="text-[17px] font-bold text-foreground mb-4">Темы для изучения</h3>
+                                <h3 className="text-[17px] font-bold text-foreground mb-4">{t("subject.topicsToStudy")}</h3>
                                 <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
 
                                 {directGroup ? (() => {
@@ -795,7 +798,7 @@ export default function SubjectPage() {
                                         </div>
                                     );
                                 })() : (
-                                    <p className="text-sm text-muted-foreground py-12 text-center italic">Дополнительные темы не найдены</p>
+                                    <p className="text-sm text-muted-foreground py-12 text-center italic">{t("subject.noExtraTopics")}</p>
                                 )}
                             </div>
                         </div>
@@ -813,7 +816,7 @@ export default function SubjectPage() {
                         disabled={selectedIds.size === 0}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-8 py-3.5 text-sm font-bold text-background shadow-lg transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
                     >
-                        Начать практику ({selectedIds.size})
+                        {t("subject.startPractice", { count: selectedIds.size })}
                         <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
@@ -822,7 +825,8 @@ export default function SubjectPage() {
     );
 }
 
-function pluralQuestions(n: number) {
+function pluralQuestions(n: number, language: string) {
+    if (language === "uz") return "ta savol";
     const m = n % 100; const m10 = n % 10;
     if (m >= 11 && m <= 14) return "вопросов";
     if (m10 === 1) return "вопрос";
@@ -830,10 +834,6 @@ function pluralQuestions(n: number) {
     return "вопросов";
 }
 
-function pluralQuestionsShort(n: number) {
-    const m = n % 100; const m10 = n % 10;
-    if (m >= 11 && m <= 14) return "вопросов";
-    if (m10 === 1) return "вопрос";
-    if (m10 >= 2 && m10 <= 4) return "вопроса";
-    return "вопросов";
+function pluralQuestionsShort(n: number, language: string) {
+    return pluralQuestions(n, language);
 }

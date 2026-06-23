@@ -2,11 +2,13 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } from "@/lib/admin-utils";
-import { Subject } from "@/lib/firestore-schema";
+import { Subject, Language } from "@/lib/firestore-schema";
 import { getSubjectImage } from "@/lib/constants";
 import { Plus, Trash2, Edit2, X, BookOpen } from "lucide-react";
 import { pageCache } from "@/lib/page-cache";
 import { useStatsStore } from "@/store/useStatsStore";
+import AdminLanguageToggle from "@/components/admin-language-toggle";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 function hexForColorInput(c: string | undefined): string {
     const t = c?.trim() ?? "";
@@ -19,14 +21,19 @@ function hexForColorInput(c: string | undefined): string {
 }
 
 export default function AdminSubjectsPage() {
+    const { t } = useTranslation();
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    // Язык создаваемого/отображаемого контента
+    const [contentLang, setContentLang] = useState<Language>("ru");
+
     // Форма создания
     const [name, setName] = useState("");
     const [color, setColor] = useState("#6366f1");
+    const [translatable, setTranslatable] = useState(true);
 
     // Форма редактирования
     const [editName, setEditName] = useState("");
@@ -65,17 +72,24 @@ export default function AdminSubjectsPage() {
         return id || "subject";
     };
 
+    // Предметы выбранного языка (отсутствие языка трактуется как 'ru')
+    const visibleSubjects = subjects.filter((s) => (s.language ?? "ru") === contentLang);
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const subjectId = generateSubjectId(name);
-            const backgroundImage = getSubjectImage(subjectId);
+            // ID должен быть уникальным между языками — добавляем суффикс для не-русского
+            const baseId = generateSubjectId(name);
+            const subjectId = contentLang === "ru" ? baseId : `${baseId}-${contentLang}`;
+            const backgroundImage = getSubjectImage(baseId);
             const newSubject = {
                 id: subjectId,
                 name,
                 emoji: "",
                 color,
-                order: subjects.length,
+                order: visibleSubjects.length,
+                language: contentLang,
+                translatable,
                 backgroundImage,
             };
             const created = await adminAddItem("subjects", newSubject);
@@ -84,14 +98,15 @@ export default function AdminSubjectsPage() {
             setSubjects((prev) => [...prev, created as Subject]);
             setName("");
             setColor("#6366f1");
+            setTranslatable(true);
             setIsAdding(false);
         } catch {
-            alert("Ошибка при добавлении предмета");
+            alert(t("admin.errorAdd"));
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Вы уверены? Это не удалит связанные учебники.")) return;
+        if (!confirm(t("admin.confirmDeleteSubject"))) return;
         try {
             await adminDeleteItem("subjects", id);
             pageCache.invalidatePrefix("subject");
@@ -99,7 +114,7 @@ export default function AdminSubjectsPage() {
             setSubjects(prev => prev.filter(s => s.id !== id));
             if (editingId === id) setEditingId(null);
         } catch {
-            alert("Ошибка при удалении");
+            alert(t("admin.errorDelete"));
         }
     };
 
@@ -119,7 +134,7 @@ export default function AdminSubjectsPage() {
         if (!editingId) return;
         const orderNum = Number.parseInt(editOrder, 10);
         if (Number.isNaN(orderNum)) {
-            alert("Порядок — целое число");
+            alert(t("admin.orderInt"));
             return;
         }
         try {
@@ -138,7 +153,7 @@ export default function AdminSubjectsPage() {
             );
             setEditingId(null);
         } catch {
-            alert("Ошибка при сохранении");
+            alert(t("admin.errorSave"));
         }
     };
 
@@ -146,8 +161,8 @@ export default function AdminSubjectsPage() {
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
                 <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">Предметы.</h1>
-                    <p className="text-muted-foreground mt-2">Управление корневым уровнем иерархии контента.</p>
+                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.subjectsTitle")}</h1>
+                    <p className="text-muted-foreground mt-2">{t("admin.subjectsSubtitle")}</p>
                 </section>
                 <button
                     onClick={() => {
@@ -157,14 +172,19 @@ export default function AdminSubjectsPage() {
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 transition-all shadow-sm"
                 >
                     <Plus size={20} />
-                    <span>Новый предмет</span>
+                    <span>{t("admin.newSubject")}</span>
                 </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.contentLang")}</label>
+                <AdminLanguageToggle value={contentLang} onChange={(l) => { setContentLang(l); setEditingId(null); setIsAdding(false); }} />
             </div>
 
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 flex flex-col lg:flex-row gap-6 lg:items-end animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex-1 space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Название</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</label>
                         <input
                             value={name} onChange={e => setName(e.target.value)} required
                             className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
@@ -172,7 +192,7 @@ export default function AdminSubjectsPage() {
                         />
                     </div>
                     <div className="w-28 space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Цвет</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.color")}</label>
                         <input
                             type="color"
                             value={color}
@@ -180,8 +200,17 @@ export default function AdminSubjectsPage() {
                             className="h-12 w-full cursor-pointer rounded-lg border border-border bg-muted p-1"
                         />
                     </div>
+                    <label className="flex items-center gap-3 lg:pb-3 cursor-pointer select-none" title={t("admin.translatableHint")}>
+                        <input
+                            type="checkbox"
+                            checked={translatable}
+                            onChange={(e) => setTranslatable(e.target.checked)}
+                            className="h-5 w-5 rounded border-border accent-[hsl(var(--brand-blue))]"
+                        />
+                        <span className="text-sm font-medium text-foreground whitespace-nowrap">{t("admin.translatable")}</span>
+                    </label>
                     <button type="submit" className="bg-foreground text-background px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all">
-                        Добавить
+                        {t("common.add")}
                     </button>
                 </form>
             )}
@@ -190,15 +219,15 @@ export default function AdminSubjectsPage() {
                 <table className="w-full text-left">
                     <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">Предмет</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest text-right">Действия</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.subjectColName")}</th>
+                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest text-right">{t("admin.actions")}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100">
                         {isLoading ? (
                             [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-muted/20" />)
-                        ) : subjects.length > 0 ? (
-                            subjects.map((subject) => (
+                        ) : visibleSubjects.length > 0 ? (
+                            visibleSubjects.map((subject) => (
                                 <Fragment key={subject.id}>
                                     <tr className="hover:bg-muted/40 transition-colors group">
                                         <td className="px-8 py-6">
@@ -215,7 +244,7 @@ export default function AdminSubjectsPage() {
                                                 </span>
                                                 <div className="min-w-0">
                                                     <span className="font-semibold text-foreground tracking-tight block">{subject.name}</span>
-                                                    <span className="text-xs text-muted-foreground tabular-nums">Порядок: {subject.order ?? 0}</span>
+                                                    <span className="text-xs text-muted-foreground tabular-nums">{t("admin.orderN", { n: subject.order ?? 0 })}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -225,7 +254,7 @@ export default function AdminSubjectsPage() {
                                                     type="button"
                                                     onClick={() => (editingId === subject.id ? cancelEdit() : startEdit(subject))}
                                                     className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                                                    title={editingId === subject.id ? "Закрыть" : "Редактировать"}
+                                                    title={editingId === subject.id ? t("common.close") : t("common.edit")}
                                                 >
                                                     {editingId === subject.id ? <X size={18} /> : <Edit2 size={18} />}
                                                 </button>
@@ -243,10 +272,10 @@ export default function AdminSubjectsPage() {
                                         <tr className="border-b border-border bg-muted/25">
                                             <td colSpan={2} className="px-8 py-6">
                                                 <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
-                                                    <p className="text-sm font-semibold text-foreground">Редактирование</p>
+                                                    <p className="text-sm font-semibold text-foreground">{t("admin.editing")}</p>
                                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                                         <div className="space-y-2 sm:col-span-2">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Название</label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</label>
                                                             <input
                                                                 value={editName}
                                                                 onChange={(e) => setEditName(e.target.value)}
@@ -255,7 +284,7 @@ export default function AdminSubjectsPage() {
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Порядок</label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.order")}</label>
                                                             <input
                                                                 type="number"
                                                                 value={editOrder}
@@ -264,7 +293,7 @@ export default function AdminSubjectsPage() {
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Цвет (акцент)</label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.colorAccent")}</label>
                                                             <input
                                                                 type="color"
                                                                 value={editColor}
@@ -273,7 +302,7 @@ export default function AdminSubjectsPage() {
                                                             />
                                                         </div>
                                                         <div className="space-y-2 sm:col-span-2 lg:col-span-4">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Фон (URL или путь)</label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.background")}</label>
                                                             <input
                                                                 value={editBackgroundImage}
                                                                 onChange={(e) => setEditBackgroundImage(e.target.value)}
@@ -287,14 +316,14 @@ export default function AdminSubjectsPage() {
                                                             type="submit"
                                                             className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
                                                         >
-                                                            Сохранить
+                                                            {t("common.save")}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={cancelEdit}
                                                             className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
                                                         >
-                                                            Отмена
+                                                            {t("common.cancel")}
                                                         </button>
                                                     </div>
                                                 </form>
@@ -305,7 +334,7 @@ export default function AdminSubjectsPage() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={2} className="px-8 py-12 text-center text-muted-foreground font-medium">Предметы не найдены.</td>
+                                <td colSpan={2} className="px-8 py-12 text-center text-muted-foreground font-medium">{t("admin.noSubjects")}</td>
                             </tr>
                         )}
                     </tbody>

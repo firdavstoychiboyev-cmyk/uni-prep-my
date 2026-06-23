@@ -18,6 +18,7 @@ import {
     CheckCircle2, ChevronRight, BookOpen,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface SubjectTopics {
     [subjectId: string]: string[];
@@ -25,6 +26,7 @@ interface SubjectTopics {
 
 export default function StatisticsPage() {
     const { user } = useAuthStore();
+    const { t } = useTranslation();
     const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
     const {
         stats: cachedStats,
@@ -125,18 +127,18 @@ export default function StatisticsPage() {
                     <BarChart3 className="h-6 w-6 text-[hsl(var(--brand-blue))] dark:text-sky-300" />
                 </div>
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Статистика</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">Прогресс и достижения по всем предметам</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("nav.statistics")}</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">{t("stats.subtitle")}</p>
                 </div>
             </div>
 
             {/* Global metric cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
-                    { title: "Решено задач", value: String(globalStats?.totalSolved ?? 0), icon: ListChecks, bg: "bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/25" },
-                    { title: "Точность", value: `${globalStats?.accuracy ?? 0}%`, icon: Target, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                    { title: "Медали", value: String(totalMedals), icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/30" },
-                    { title: "Серия", value: "—", icon: Flame, bg: "bg-rose-50 dark:bg-rose-950/30" },
+                    { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks, bg: "bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/25" },
+                    { title: t("stats.accuracy"), value: `${globalStats?.accuracy ?? 0}%`, icon: Target, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+                    { title: t("stats.medals"), value: String(totalMedals), icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/30" },
+                    { title: t("stats.streak"), value: "—", icon: Flame, bg: "bg-rose-50 dark:bg-rose-950/30" },
                 ].map(({ title, value, icon: Icon, bg }) => (
                     <div key={title} className={`rounded-2xl border border-border p-4 sm:p-5 ${bg}`}>
                         <div className="flex items-start justify-between gap-2">
@@ -159,20 +161,20 @@ export default function StatisticsPage() {
                         <TrendingUp className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
-                        <div className="font-bold text-foreground">Активность</div>
+                        <div className="font-bold text-foreground">{t("stats.activity")}</div>
                         <div className="text-xs text-muted-foreground">
-                            Всего решено: <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span>
+                            {t("stats.totalSolvedLabel")} <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span>
                         </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
                     <div className="pt-1 text-[10px] text-muted-foreground leading-6">
                         <div className="h-4" />
-                        <div className="h-6 flex items-center">Пн</div>
+                        <div className="h-6 flex items-center">{t("stats.mon")}</div>
                         <div className="h-6" />
-                        <div className="h-6 flex items-center">Ср</div>
+                        <div className="h-6 flex items-center">{t("stats.wed")}</div>
                         <div className="h-6" />
-                        <div className="h-6 flex items-center">Пт</div>
+                        <div className="h-6 flex items-center">{t("stats.fri")}</div>
                     </div>
                     <div className="overflow-x-auto pb-1">
                         <div className="grid gap-1 w-max" style={{ gridTemplateColumns: "repeat(26, 10px)" }}>
@@ -188,14 +190,14 @@ export default function StatisticsPage() {
                             })}
                         </div>
                         <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
-                            <span>Меньше</span>
+                            <span>{t("stats.less")}</span>
                             <span className="inline-flex items-center gap-1">
                                 <span className="w-2.5 h-2.5 rounded-[3px] bg-muted border border-border" />
                                 <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]/35" />
                                 <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]/65" />
                                 <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]" />
                             </span>
-                            <span>Больше</span>
+                            <span>{t("stats.more")}</span>
                         </div>
                     </div>
                 </div>
@@ -203,7 +205,7 @@ export default function StatisticsPage() {
 
             {/* Per-subject detailed cards */}
             <section>
-                <h2 className="text-lg font-bold text-foreground mb-5">По предметам</h2>
+                <h2 className="text-lg font-bold text-foreground mb-5">{t("stats.bySubjects")}</h2>
 
                 {isLoading ? (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -234,14 +236,14 @@ export default function StatisticsPage() {
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="font-bold text-foreground truncate">{subject.name}</div>
-                                                <div className="text-xs text-muted-foreground">{topics.length} тем</div>
+                                                <div className="text-xs text-muted-foreground">{t("subject.topicsCount", { count: topics.length })}</div>
                                             </div>
                                         </div>
                                         <Link
                                             href={`/subject/${subject.id}`}
                                             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition-colors"
                                         >
-                                            К предмету
+                                            {t("stats.toSubject")}
                                             <ChevronRight className="w-4 h-4" />
                                         </Link>
                                     </div>
@@ -250,13 +252,13 @@ export default function StatisticsPage() {
                                         {/* Stats grid */}
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="rounded-xl border border-border bg-muted/50 p-4">
-                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground">Звёзды</div>
+                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground">{t("stats.stars")}</div>
                                                 <div className="mt-2 text-2xl font-extrabold tabular-nums text-foreground">
                                                     {loaded ? stars : <span className="text-muted-foreground/40">—</span>}
                                                 </div>
                                             </div>
                                             <div className="rounded-xl border border-border bg-muted/50 p-4">
-                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground">Прогресс</div>
+                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground">{t("stats.progress")}</div>
                                                 <div className="mt-2 text-2xl font-extrabold tabular-nums text-foreground">
                                                     {loaded ? `${pct}%` : <span className="text-muted-foreground/40">—</span>}
                                                 </div>
@@ -271,21 +273,21 @@ export default function StatisticsPage() {
 
                                         {/* Medals */}
                                         <div className="rounded-xl border border-border bg-muted/50 p-4">
-                                            <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground mb-3">Медали по темам</div>
+                                            <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground mb-3">{t("stats.medalsByTopic")}</div>
                                             {loaded ? (
                                                 <div className="flex flex-wrap gap-2">
                                                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-sm font-bold text-emerald-800 dark:text-emerald-200">
                                                         <CheckCircle2 className="w-3.5 h-3.5" />
-                                                        {medals.green} зелёных
+                                                        {t("stats.greenMedals", { count: medals.green })}
                                                     </span>
                                                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border text-sm font-bold text-foreground">
-                                                        {medals.grey} серых
+                                                        {t("stats.greyMedals", { count: medals.grey })}
                                                     </span>
                                                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 text-sm font-bold text-orange-800 dark:text-orange-200">
-                                                        {medals.bronze} бронзовых
+                                                        {t("stats.bronzeMedals", { count: medals.bronze })}
                                                     </span>
                                                     {totalMedalsSubject > 0 && (
-                                                        <span className="text-xs text-muted-foreground self-center">Всего: {totalMedalsSubject}</span>
+                                                        <span className="text-xs text-muted-foreground self-center">{t("stats.total", { count: totalMedalsSubject })}</span>
                                                     )}
                                                 </div>
                                             ) : (
@@ -298,7 +300,7 @@ export default function StatisticsPage() {
                                         {/* Topic list */}
                                         {showTopics.length > 0 && (
                                             <div>
-                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground mb-3">Темы</div>
+                                                <div className="text-[11px] font-bold tracking-wide uppercase text-muted-foreground mb-3">{t("stats.topics")}</div>
                                                 <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                                                     {showTopics.map((t) => (
                                                         <div key={t} className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40 last:border-0">
@@ -311,7 +313,7 @@ export default function StatisticsPage() {
                                                         </div>
                                                     ))}
                                                     {rest > 0 && (
-                                                        <p className="text-xs text-muted-foreground pt-1">+ ещё {rest} тем</p>
+                                                        <p className="text-xs text-muted-foreground pt-1">{t("stats.moreTopics", { count: rest })}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -326,7 +328,7 @@ export default function StatisticsPage() {
 
             {/* Subject cards grid */}
             <section>
-                <h2 className="text-lg font-bold text-foreground mb-4">Быстрый переход</h2>
+                <h2 className="text-lg font-bold text-foreground mb-4">{t("stats.quickAccess")}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {subjects.map((subject) => {
                         const progress = subjectProgress[subject.id] || {

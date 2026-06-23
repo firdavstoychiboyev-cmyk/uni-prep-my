@@ -3,23 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { adminFetchCollection, adminAddItem, adminDeleteItem, adminIncrementField } from "@/lib/admin-utils";
-import { Question, Topic, Textbook, Subject } from "@/lib/firestore-schema";
+import { Question, Topic, Textbook, Subject, Language } from "@/lib/firestore-schema";
 import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2 } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic, fetchTopicsBySubject } from "@/lib/data-fetching";
+import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { uploadToUploadcare } from "@/lib/uploadcare";
 import QuillEditor from "@/components/QuillEditor";
 import MathInput from "@/components/MathInput";
 import MathText from "@/components/MathText";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type Mode = "textbook" | "direct";
 
 export default function AdminQuestionsPage() {
+    const { t } = useTranslation();
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [textbooks, setTextbooks] = useState<Textbook[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
 
     const [mode, setMode] = useState<Mode>("textbook");
+    const [contentLang, setContentLang] = useState<Language>("ru");
     const [selectedSubject, setSelectedSubject] = useState("");
     const [selectedTextbook, setSelectedTextbook] = useState("");
     const [selectedTopic, setSelectedTopic] = useState("");
@@ -55,6 +59,9 @@ export default function AdminQuestionsPage() {
         setIsAdding(false);
     };
 
+    // Предметы выбранного языка (отсутствие языка трактуется как 'ru')
+    const visibleSubjects = subjects.filter((s) => (s.language ?? "ru") === contentLang);
+
     useEffect(() => {
         if (!selectedSubject) return;
         setSelectedTextbook("");
@@ -64,24 +71,24 @@ export default function AdminQuestionsPage() {
         if (mode === "textbook") {
             fetchTextbooksBySubject(selectedSubject).then(setTextbooks);
         } else {
-            fetchTopicsBySubject(selectedSubject).then(topics => {
+            fetchTopicsBySubject(selectedSubject, contentLang).then(topics => {
                 setTopics(topics);
             });
         }
-    }, [selectedSubject, mode]);
+    }, [selectedSubject, mode, contentLang]);
 
     useEffect(() => {
         if (mode !== "textbook" || !selectedTextbook) return;
-        fetchTopicsByTextbook(selectedTextbook).then(setTopics);
+        fetchTopicsByTextbook(selectedTextbook, contentLang).then(setTopics);
         setSelectedTopic("");
         setQuestions([]);
-    }, [selectedTextbook, mode]);
+    }, [selectedTextbook, mode, contentLang]);
 
     useEffect(() => {
         if (selectedTopic) {
-            fetchQuestionsByTopic(selectedTopic).then(setQuestions);
+            fetchQuestionsByTopic(selectedTopic, contentLang).then(setQuestions);
         }
-    }, [selectedTopic]);
+    }, [selectedTopic, contentLang]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -115,6 +122,7 @@ export default function AdminQuestionsPage() {
                 options: { a: optionA, b: optionB, c: optionC, d: optionD },
                 correctAnswer,
                 difficulty,
+                language: contentLang,
             };
             if (uploadedUrl) newQuestion.imageUrl = uploadedUrl;
             const created = await adminAddItem("questions", newQuestion);
@@ -130,21 +138,21 @@ export default function AdminQuestionsPage() {
             clearImage();
             setIsAdding(false);
         } catch {
-            alert("Ошибка при добавлении вопроса");
+            alert(t("admin.errorAddQuestion"));
         } finally {
             setImageUploading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Вы уверены?")) return;
+        if (!confirm(t("admin.confirm"))) return;
         try {
             const q = questions.find(q => q.id === id);
             await adminDeleteItem("questions", id);
             setQuestions(prev => prev.filter(q => q.id !== id));
             if (q?.topicId) await adminIncrementField("topics", q.topicId, "totalQuestions", -1);
         } catch {
-            alert("Ошибка при удалении");
+            alert(t("admin.errorDelete"));
         }
     };
 
@@ -154,8 +162,8 @@ export default function AdminQuestionsPage() {
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
                 <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">Вопросы.</h1>
-                    <p className="text-muted-foreground mt-2">Создание и управление вопросами викторины для каждой темы.</p>
+                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.questionsTitle")}</h1>
+                    <p className="text-muted-foreground mt-2">{t("admin.questionsSubtitle")}</p>
                 </section>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
@@ -163,8 +171,25 @@ export default function AdminQuestionsPage() {
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
                 >
                     <Plus size={20} />
-                    <span>Новый вопрос</span>
+                    <span>{t("admin.newQuestion")}</span>
                 </button>
+            </div>
+
+            {/* Language toggle */}
+            <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.contentLang")}</label>
+                <AdminLanguageToggle
+                    value={contentLang}
+                    onChange={(l) => {
+                        setContentLang(l);
+                        setSelectedSubject("");
+                        setSelectedTextbook("");
+                        setSelectedTopic("");
+                        setTopics([]);
+                        setQuestions([]);
+                        setIsAdding(false);
+                    }}
+                />
             </div>
 
             {/* Mode toggle */}
@@ -179,7 +204,7 @@ export default function AdminQuestionsPage() {
                     }`}
                 >
                     <BookOpen size={16} />
-                    С учебником
+                    {t("admin.withTextbook")}
                 </button>
                 <button
                     type="button"
@@ -191,7 +216,7 @@ export default function AdminQuestionsPage() {
                     }`}
                 >
                     <Layers size={16} />
-                    Без учебника
+                    {t("admin.withoutTextbook")}
                 </button>
             </div>
 
@@ -200,40 +225,40 @@ export default function AdminQuestionsPage() {
                 mode === "textbook" ? "md:grid-cols-3" : "md:grid-cols-2"
             }`}>
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Предмет</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("common.subject")}</label>
                     <select
                         value={selectedSubject}
                         onChange={e => setSelectedSubject(e.target.value)}
                         className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none"
                     >
-                        <option value="">Выберите предмет</option>
-                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        <option value="">{t("admin.selectSubject")}</option>
+                        {visibleSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
                 {mode === "textbook" && (
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Учебник</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("subject.textbooks")}</label>
                         <select
                             value={selectedTextbook}
                             onChange={e => setSelectedTextbook(e.target.value)}
                             disabled={!selectedSubject}
                             className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                         >
-                            <option value="">Выберите учебник</option>
-                            {textbooks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                            <option value="">{t("admin.selectTextbook")}</option>
+                            {textbooks.map(tb => <option key={tb.id} value={tb.id}>{tb.title}</option>)}
                         </select>
                     </div>
                 )}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Тема</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.topic")}</label>
                     <select
                         value={selectedTopic}
                         onChange={e => setSelectedTopic(e.target.value)}
                         disabled={topicDisabled}
                         className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none disabled:opacity-50"
                     >
-                        <option value="">Выберите тему</option>
-                        {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                        <option value="">{t("admin.selectTopic")}</option>
+                        {topics.map(tp => <option key={tp.id} value={tp.id}>{tp.title}</option>)}
                     </select>
                 </div>
             </section>
@@ -242,17 +267,17 @@ export default function AdminQuestionsPage() {
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
                     {/* Question text */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Текст вопроса</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.questionText")}</label>
                         <QuillEditor
                             value={text}
                             onChange={setText}
-                            placeholder="Как называется столица Франции?"
+                            placeholder={t("admin.questionPlaceholder")}
                         />
                     </div>
 
                     {/* Image upload */}
                     <div className="space-y-3">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Изображение (необязательно)</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.imageOptional")}</label>
                         {imagePreview ? (
                             <div className="flex flex-col gap-2">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -266,7 +291,7 @@ export default function AdminQuestionsPage() {
                                     onClick={clearImage}
                                     className="flex items-center gap-1.5 w-fit text-sm text-red-500 hover:text-red-600 transition-colors"
                                 >
-                                    <X size={14} /> Удалить изображение
+                                    <X size={14} /> {t("admin.removeImage")}
                                 </button>
                             </div>
                         ) : (
@@ -277,9 +302,9 @@ export default function AdminQuestionsPage() {
                                 className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50"
                             >
                                 {imageUploading ? (
-                                    <><Loader2 size={16} className="animate-spin" /> Загрузка...</>
+                                    <><Loader2 size={16} className="animate-spin" /> {t("admin.uploading")}</>
                                 ) : (
-                                    <><ImagePlus size={16} /> Добавить изображение</>
+                                    <><ImagePlus size={16} /> {t("admin.addImage")}</>
                                 )}
                             </button>
                         )}
@@ -294,7 +319,7 @@ export default function AdminQuestionsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Варианты ответов</label>
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.answerOptions")}</label>
                             {["a", "b", "c", "d"].map((opt) => (
                                 <div key={opt} className="flex items-center gap-3">
                                     <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center font-bold uppercase text-muted-foreground">{opt}</span>
@@ -314,34 +339,34 @@ export default function AdminQuestionsPage() {
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Правильный ответ</label>
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.correctAnswer")}</label>
                                 <select
                                     value={correctAnswer}
                                     onChange={e => setCorrectAnswer(e.target.value as "a" | "b" | "c" | "d")}
                                     className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                 >
-                                    <option value="a">Вариант A</option>
-                                    <option value="b">Вариант B</option>
-                                    <option value="c">Вариант C</option>
-                                    <option value="d">Вариант D</option>
+                                    <option value="a">{t("admin.option", { letter: "A" })}</option>
+                                    <option value="b">{t("admin.option", { letter: "B" })}</option>
+                                    <option value="c">{t("admin.option", { letter: "C" })}</option>
+                                    <option value="d">{t("admin.option", { letter: "D" })}</option>
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Сложность</label>
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.difficulty")}</label>
                                 <select
                                     value={difficulty}
                                     onChange={e => setDifficulty(e.target.value as "easy" | "medium" | "hard")}
                                     className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                 >
-                                    <option value="easy">Простой</option>
-                                    <option value="medium">Средний</option>
-                                    <option value="hard">Сложный</option>
+                                    <option value="easy">{t("admin.diffEasy")}</option>
+                                    <option value="medium">{t("admin.diffMedium")}</option>
+                                    <option value="hard">{t("admin.diffHard")}</option>
                                 </select>
                             </div>
                             <div className="pt-4">
                                 <button type="submit" disabled={imageUploading} className="w-full bg-foreground text-background py-4 rounded-xl font-semibold hover:opacity-90 disabled:opacity-60 transition-all shadow-md flex items-center justify-center gap-2">
                                     {imageUploading && <Loader2 size={18} className="animate-spin" />}
-                                    {imageUploading ? "Загрузка изображения..." : "Добавить вопрос"}
+                                    {imageUploading ? t("admin.uploadingImage") : t("admin.addQuestion")}
                                 </button>
                             </div>
                         </div>
@@ -351,8 +376,8 @@ export default function AdminQuestionsPage() {
 
             <section className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                 <div className="p-8 border-b border-border flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-foreground tracking-tight">Список вопросов</h2>
-                    <span className="text-sm text-muted-foreground font-medium">{questions.length} всего</span>
+                    <h2 className="text-xl font-semibold text-foreground tracking-tight">{t("admin.questionsList")}</h2>
+                    <span className="text-sm text-muted-foreground font-medium">{t("admin.totalCount", { count: questions.length })}</span>
                 </div>
                 <div className="divide-y divide-border">
                     {questions.length > 0 ? (
@@ -364,9 +389,9 @@ export default function AdminQuestionsPage() {
                                             <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-muted ${q.difficulty === "easy" ? "text-green-600" :
                                                 q.difficulty === "medium" ? "text-orange-600" : "text-red-600"
                                                 }`}>
-                                                {q.difficulty === "easy" ? "Простой" : q.difficulty === "medium" ? "Средний" : "Сложный"}
+                                                {q.difficulty === "easy" ? t("admin.diffEasy") : q.difficulty === "medium" ? t("admin.diffMedium") : t("admin.diffHard")}
                                             </span>
-                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Правильно: {q.correctAnswer.toUpperCase()}</span>
+                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">{t("admin.correctShort", { letter: q.correctAnswer.toUpperCase() })}</span>
                                         </div>
                                         {q.imageUrl && (
                                             <Image src={q.imageUrl} alt="" width={400} height={128} className="max-h-32 rounded-lg object-contain border border-border" />
@@ -392,7 +417,7 @@ export default function AdminQuestionsPage() {
                         ))
                     ) : (
                         <div className="px-8 py-24 text-center text-muted-foreground font-medium italic">
-                            {!selectedTopic ? "Выберите тему для управления ее вопросами." : "Вопросы для этой темы не найдены."}
+                            {!selectedTopic ? t("admin.selectTopicToManage") : t("admin.noQuestionsForTopic")}
                         </div>
                     )}
                 </div>

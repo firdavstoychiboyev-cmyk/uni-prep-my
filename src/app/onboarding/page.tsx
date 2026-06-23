@@ -9,6 +9,7 @@ import { createUserProfile } from "@/lib/auth-utils";
 import { auth } from "@/lib/firebase";
 import { UserRole } from "@/lib/firestore-schema";
 import { SUBJECTS } from "@/lib/constants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const THEME_KEY = "uni-prep-theme";
 
@@ -21,6 +22,7 @@ export default function OnboardingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
     const { setUser } = useAuthStore();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const root = document.documentElement;
@@ -47,7 +49,7 @@ export default function OnboardingPage() {
     const handleFinish = async () => {
         if (!role || name.length < 2) return;
         if (role === "teacher" && selectedSubjects.length === 0 && step === 2) {
-            alert("Пожалуйста, выберите хотя бы один предмет.");
+            alert(t("onboarding.selectSubject"));
             return;
         }
 
@@ -64,7 +66,7 @@ export default function OnboardingPage() {
             router.push("/");
         } catch (error) {
             console.error("Error saving profile:", error);
-            alert("Ошибка при сохранении профиля.");
+            alert(t("onboarding.saveError"));
         } finally {
             setIsSubmitting(false);
         }
@@ -121,10 +123,10 @@ export default function OnboardingPage() {
                                 <div>
                                     <div className="mb-8 text-center">
                                         <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-                                            Кто вы?
+                                            {t("onboarding.whoAreYou")}
                                         </h1>
                                         <p className="mt-2 text-sm text-neutral-500">
-                                            Выберите роль в системе
+                                            {t("onboarding.chooseRole")}
                                         </p>
                                     </div>
                                     <div className="mb-8 grid grid-cols-1 gap-3">
@@ -148,10 +150,10 @@ export default function OnboardingPage() {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <span className="block text-base font-bold text-neutral-900">
-                                                    Ученик
+                                                    {t("onboarding.student")}
                                                 </span>
                                                 <span className="mt-0.5 block text-xs text-neutral-500">
-                                                    Учусь и прохожу материалы и тесты
+                                                    {t("onboarding.studentDesc")}
                                                 </span>
                                             </div>
                                             {role === "student" ? (
@@ -179,10 +181,10 @@ export default function OnboardingPage() {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <span className="block text-base font-bold text-neutral-900">
-                                                    Учитель
+                                                    {t("onboarding.teacher")}
                                                 </span>
                                                 <span className="mt-0.5 block text-xs text-neutral-500">
-                                                    Веду занятия и выбираю предметы
+                                                    {t("onboarding.teacherDesc")}
                                                 </span>
                                             </div>
                                             {role === "teacher" ? (
@@ -196,7 +198,7 @@ export default function OnboardingPage() {
                                         disabled={!role}
                                         className={primaryBtnClass}
                                     >
-                                        <span>Продолжить</span>
+                                        <span>{t("common.continue")}</span>
                                         <ArrowRight className="h-4 w-4" strokeWidth={2} />
                                     </button>
                                 </div>
@@ -206,35 +208,35 @@ export default function OnboardingPage() {
                                 <div>
                                     <div className="mb-8 text-center">
                                         <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-                                            Ваш профиль
+                                            {t("onboarding.yourProfile")}
                                         </h1>
                                         <p className="mt-2 text-sm text-neutral-500">
-                                            Так вас будут видеть в системе
+                                            {t("onboarding.profileDesc")}
                                         </p>
                                     </div>
                                     <div className="mb-8 space-y-4">
                                         <div className="space-y-1.5">
                                             <label className="ml-0.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                                                Имя
+                                                {t("settings.name")}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
-                                                placeholder="Ваше имя"
+                                                placeholder={t("onboarding.namePlaceholder")}
                                                 className="w-full rounded-2xl border border-neutral-200 bg-white p-4 text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
                                                 required
                                             />
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="ml-0.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                                                Фамилия
+                                                {t("settings.surname")}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={surname}
                                                 onChange={(e) => setSurname(e.target.value)}
-                                                placeholder="По желанию"
+                                                placeholder={t("onboarding.surnameOptional")}
                                                 className="w-full rounded-2xl border border-neutral-200 bg-white p-4 text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
                                             />
                                         </div>
@@ -245,7 +247,7 @@ export default function OnboardingPage() {
                                         disabled={!isNameValid || isSubmitting}
                                         className={primaryBtnClass}
                                     >
-                                        <span>{isSubmitting ? "Сохранение…" : "Продолжить"}</span>
+                                        <span>{isSubmitting ? t("common.saving") : t("common.continue")}</span>
                                         {!isSubmitting ? (
                                             <ArrowRight className="h-4 w-4" strokeWidth={2} />
                                         ) : null}
@@ -257,10 +259,10 @@ export default function OnboardingPage() {
                                 <div>
                                     <div className="mb-8 text-center">
                                         <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-                                            Предметы
+                                            {t("onboarding.subjects")}
                                         </h1>
                                         <p className="mt-2 text-sm text-neutral-500">
-                                            Выберите предметы, которые преподаёте
+                                            {t("onboarding.subjectsDesc")}
                                         </p>
                                     </div>
                                     <div className="mb-8 grid max-h-[min(300px,45vh)] grid-cols-2 gap-3 overflow-y-auto pr-1">
@@ -298,7 +300,7 @@ export default function OnboardingPage() {
                                         disabled={selectedSubjects.length === 0 || isSubmitting}
                                         className={primaryBtnClass}
                                     >
-                                        <span>{isSubmitting ? "Завершение…" : "Начать работу"}</span>
+                                        <span>{isSubmitting ? t("onboarding.finishing") : t("onboarding.start")}</span>
                                         {!isSubmitting ? (
                                             <ArrowRight className="h-4 w-4" strokeWidth={2} />
                                         ) : null}

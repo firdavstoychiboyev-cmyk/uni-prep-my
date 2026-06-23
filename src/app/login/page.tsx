@@ -5,20 +5,12 @@ import Image from "next/image";
 import { Library, ClipboardCheck, LineChart, type LucideIcon } from "lucide-react";
 import { signInWithGoogle } from "@/lib/auth-utils";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const features: { icon: LucideIcon; text: string }[] = [
-    {
-        icon: Library,
-        text: "Материалы и тренировка по темам в карточках предметов",
-    },
-    {
-        icon: ClipboardCheck,
-        text: "Тесты с мгновенной обратной связью",
-    },
-    {
-        icon: LineChart,
-        text: "Графики прогресса и достижения на главной",
-    },
+const features: { icon: LucideIcon; textKey: string }[] = [
+    { icon: Library, textKey: "login.feature1" },
+    { icon: ClipboardCheck, textKey: "login.feature2" },
+    { icon: LineChart, textKey: "login.feature3" },
 ];
 
 const THEME_KEY = "uni-prep-theme";
@@ -26,6 +18,7 @@ const THEME_KEY = "uni-prep-theme";
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const { isLoading } = useAuthStore();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const root = document.documentElement;
@@ -46,7 +39,7 @@ export default function LoginPage() {
             setError(null);
             await signInWithGoogle();
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Ошибка при входе через Google";
+            const errorMessage = err instanceof Error ? err.message : t("login.error");
             setError(errorMessage);
         }
     };
@@ -76,10 +69,10 @@ export default function LoginPage() {
                         <div className="px-6 py-8 sm:px-8 sm:py-10">
                             <div className="mb-8 text-center">
                                 <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-                                    С возвращением
+                                    {t("login.welcomeBack")}
                                 </h1>
                                 <p className="mt-3 text-sm leading-relaxed text-neutral-500 sm:text-base">
-                                    Войдите через Google, чтобы продолжить занятия и смотреть прогресс на главной.
+                                    {t("login.subtitle")}
                                 </p>
                             </div>
 
@@ -99,19 +92,19 @@ export default function LoginPage() {
                                 className="flex w-full items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white py-4 pl-5 pr-6 text-sm font-semibold text-neutral-900 shadow-sm transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                             >
                                 <Image src="/google.png" alt="" width={22} height={22} className="shrink-0" />
-                                {isLoading ? "Подключение…" : "Войти через Google"}
+                                {isLoading ? t("login.connecting") : t("login.signInGoogle")}
                             </button>
 
                             <ul className="mt-10 space-y-4">
-                                {features.map(({ icon: Icon, text }) => (
-                                    <li key={text} className="flex gap-3">
+                                {features.map(({ icon: Icon, textKey }) => (
+                                    <li key={textKey} className="flex gap-3">
                                         <div
                                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 text-neutral-500"
                                             aria-hidden
                                         >
                                             <Icon className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.75} />
                                         </div>
-                                        <span className="text-sm leading-snug text-neutral-500">{text}</span>
+                                        <span className="text-sm leading-snug text-neutral-500">{t(textKey)}</span>
                                     </li>
                                 ))}
                             </ul>

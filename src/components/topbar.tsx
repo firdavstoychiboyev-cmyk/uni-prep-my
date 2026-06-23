@@ -9,6 +9,7 @@ import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { logOut } from "@/lib/auth-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type MenuItem = {
     label: string;
@@ -23,6 +24,7 @@ export default function Topbar() {
     const { user } = useAuthStore();
     const { subjects } = useSubjectsStore();
     const { toggle } = useSidebarStore();
+    const { t } = useTranslation();
 
     const [query, setQuery] = useState("");
     const [openSearch, setOpenSearch] = useState(false);
@@ -71,11 +73,11 @@ export default function Topbar() {
     }, [query, subjects]);
 
     const userMenu: MenuItem[] = [
-        { label: "Профиль", href: "/profile", icon: User2, visible: true },
-        { label: "Мои классы", href: "/classes", icon: GraduationCap, visible: user?.role === "teacher" },
-        { label: "Админ", href: "/admin", icon: Shield, visible: user?.role === "admin" },
+        { label: t("topbar.account"), href: "/profile", icon: User2, visible: true },
+        { label: t("nav.classes"), href: "/classes", icon: GraduationCap, visible: user?.role === "teacher" },
+        { label: t("nav.admin"), href: "/admin", icon: Shield, visible: user?.role === "admin" },
         {
-            label: "Выйти",
+            label: t("nav.logout"),
             icon: LogOut,
             visible: true,
             onClick: async () => {
@@ -118,7 +120,7 @@ export default function Topbar() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && results[0]) handleSelect(results[0].href);
                                 }}
-                                placeholder="Поиск по предметам…"
+                                placeholder={t("search.placeholder")}
                                 className="flex-1 bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground focus:outline-none"
                             />
                             <button
@@ -134,7 +136,7 @@ export default function Topbar() {
                             {query.trim().length === 0 ? (
                                 <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
                                     <Search className="w-9 h-9 opacity-20" />
-                                    <p className="text-sm font-medium">Введите название предмета</p>
+                                    <p className="text-sm font-medium">{t("search.prompt")}</p>
                                 </div>
                             ) : results.length > 0 ? (
                                 <div className="py-2">
@@ -150,15 +152,15 @@ export default function Topbar() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm font-semibold text-foreground truncate">{r.label}</div>
-                                                <div className="text-[11px] text-muted-foreground mt-0.5">Открыть предмет</div>
+                                                <div className="text-[11px] text-muted-foreground mt-0.5">{t("search.openSubject")}</div>
                                             </div>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                                    <p className="text-sm font-medium">Ничего не найдено</p>
-                                    <p className="text-xs">Попробуйте другой запрос</p>
+                                    <p className="text-sm font-medium">{t("search.empty")}</p>
+                                    <p className="text-xs">{t("search.tryAnother")}</p>
                                 </div>
                             )}
                         </div>
@@ -174,7 +176,7 @@ export default function Topbar() {
                     <button
                         onClick={toggle}
                         className="md:hidden p-2 -ml-1 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Открыть меню"
+                        aria-label={t("sidebar.openMenu")}
                     >
                         <Menu className="w-5 h-5 text-foreground" />
                     </button>
@@ -188,7 +190,7 @@ export default function Topbar() {
                         className="hidden md:flex items-center gap-3 h-10 pl-4 pr-5 rounded-2xl border border-border bg-muted/50 hover:bg-muted transition-colors w-[min(400px,40vw)]"
                     >
                         <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground font-medium flex-1 text-left">Поиск по предметам…</span>
+                        <span className="text-sm text-muted-foreground font-medium flex-1 text-left">{t("search.placeholder")}</span>
                     </button>
 
                     <div className="flex-1" />
@@ -197,7 +199,7 @@ export default function Topbar() {
                     <button
                         onClick={() => setOpenSearch(true)}
                         className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Поиск"
+                        aria-label={t("common.search")}
                     >
                         <Search className="w-5 h-5 text-muted-foreground" />
                     </button>

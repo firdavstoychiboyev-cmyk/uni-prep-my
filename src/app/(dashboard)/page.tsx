@@ -7,8 +7,10 @@ import { useStatsStore } from "@/store/useStatsStore";
 import SubjectCard from "@/components/subject-card";
 import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function HomePage() {
+    const { t } = useTranslation();
     const { user } = useAuthStore();
     const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
     const {
@@ -61,9 +63,9 @@ export default function HomePage() {
             {/* Subjects Grid */}
             <section>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Доступные предметы</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{t("home.availableSubjects")}</h2>
                     <span className="self-start rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground sm:self-auto sm:text-sm">
-                        {subjects.length} предметов
+                        {t("home.subjectsCount", { count: subjects.length })}
                     </span>
                 </div>
 
@@ -98,15 +100,15 @@ export default function HomePage() {
             {/* Footer Support */}
             <section className="rounded-3xl border border-border bg-muted/50 py-16 text-center dark:bg-muted/30">
                 <div className="px-8">
-                    <h2 className="mb-4 text-3xl font-bold text-foreground">Нужна помощь?</h2>
+                    <h2 className="mb-4 text-3xl font-bold text-foreground">{t("home.needHelp")}</h2>
                     <p className="mx-auto mb-8 max-w-md font-medium text-muted-foreground">
-                        Наша команда всегда на связи, чтобы помочь вам с любыми вопросами по обучению.
+                        {t("home.supportText")}
                     </p>
                     <button
                         type="button"
                         className="rounded-2xl bg-foreground px-9 py-3.5 font-bold text-background shadow-sm transition-all hover:opacity-90 active:scale-95"
                     >
-                        Написать в поддержку
+                        {t("home.contactSupport")}
                     </button>
                 </div>
             </section>

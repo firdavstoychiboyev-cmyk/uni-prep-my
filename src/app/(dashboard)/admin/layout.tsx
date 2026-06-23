@@ -6,11 +6,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
+    const { t } = useTranslation();
 
     useEffect(() => {
         if (!isLoading && (!user || user.role !== "admin")) {
@@ -29,11 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     const menuItems = [
-        { name: "Панель", href: "/admin", icon: LayoutDashboard },
-        { name: "Предметы", href: "/admin/subjects", icon: BookOpen },
-        { name: "Учебники", href: "/admin/textbooks", icon: Library },
-        { name: "Темы", href: "/admin/topics", icon: ListTree },
-        { name: "Вопросы", href: "/admin/questions", icon: HelpCircle },
+        { name: t("admin.dashboard"), href: "/admin", icon: LayoutDashboard },
+        { name: t("nav.subjects"), href: "/admin/subjects", icon: BookOpen },
+        { name: t("subject.textbooks"), href: "/admin/textbooks", icon: Library },
+        { name: t("stats.topics"), href: "/admin/topics", icon: ListTree },
+        { name: t("admin.questions"), href: "/admin/questions", icon: HelpCircle },
     ];
 
     return (
@@ -44,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-lg font-bold text-background">
                         A
                     </div>
-                    <span className="font-semibold tracking-tight text-foreground">Админка</span>
+                    <span className="font-semibold tracking-tight text-foreground">{t("admin.panel")}</span>
                 </div>
 
                 <nav className="mt-4 flex-1 space-y-1 p-4">
@@ -73,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                     >
                         <ArrowLeft size={18} />
-                        Вернуться
+                        {t("admin.back")}
                     </Link>
                 </div>
             </aside>
@@ -104,7 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground transition-all shrink-0 ml-auto"
                         >
                             <ArrowLeft size={14} />
-                            Назад
+                            {t("common.back")}
                         </Link>
                     </div>
                 </div>

@@ -12,9 +12,11 @@ import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils
 import { updateUserProfile } from "@/lib/auth-utils";
 import { Star, ShieldCheck, Copy, Check, Settings2, X } from "lucide-react";
 import { getSubjectMeta, ACCENT_ICON_BG, ACCENT_ICON_COLORS } from "@/lib/subject-icons";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function ProfilePage() {
     const { user, setUser } = useAuthStore();
+    const { t } = useTranslation();
     const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
     const { subjectProgress, loadedForUser, setSubjectProgress, setRatings, setLoadedForUser } = useStatsStore();
 
@@ -87,7 +89,7 @@ export default function ProfilePage() {
             setUser(updatedUser);
             setIsEditModalOpen(false);
         } catch {
-            alert("Ошибка при обновлении профиля");
+            alert(t("settings.profileError"));
         } finally {
             setIsUpdating(false);
         }
@@ -116,7 +118,7 @@ export default function ProfilePage() {
                     </h1>
                     <span className="flex items-center gap-1.5 text-[10px] bg-muted border border-border px-3 py-1 rounded-full text-muted-foreground font-bold uppercase tracking-widest">
                         <ShieldCheck size={11} />
-                        {user.role === "teacher" ? "Учитель" : "Ученик"}
+                        {user.role === "teacher" ? t("role.teacher") : t("role.student")}
                     </span>
                 </div>
 
@@ -127,13 +129,13 @@ export default function ProfilePage() {
                         <code className="text-xs text-muted-foreground font-mono font-bold tracking-wider">
                             ID: {user.shortId || user.id}
                         </code>
-                        <button onClick={copyId} className="p-1 hover:bg-muted rounded-lg transition-all text-muted-foreground hover:text-foreground" title="Копировать ID">
+                        <button onClick={copyId} className="p-1 hover:bg-muted rounded-lg transition-all text-muted-foreground hover:text-foreground" title={t("profile.copyId")}>
                             {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
                         </button>
                     </div>
                     <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-muted/50 border border-border rounded-xl text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all active:scale-[0.98] text-sm">
                         <Settings2 size={14} />
-                        Изменить профиль
+                        {t("profile.editProfile")}
                     </button>
                 </div>
             </section>
@@ -143,22 +145,22 @@ export default function ProfilePage() {
                     <div className="w-full max-w-md bg-card border border-border rounded-3xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-8">
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-2xl font-bold text-foreground tracking-tight">Редактировать профиль</h2>
+                                <h2 className="text-2xl font-bold text-foreground tracking-tight">{t("settings.editProfileTitle")}</h2>
                                 <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors"><X size={24} /></button>
                             </div>
                             <form onSubmit={handleUpdateProfile} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Имя</label>
-                                    <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70" placeholder="Иван" required />
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">{t("settings.name")}</label>
+                                    <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70" placeholder={t("onboarding.namePlaceholder")} required />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Фамилия</label>
-                                    <input type="text" value={newSurname} onChange={(e) => setNewSurname(e.target.value)} className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70" placeholder="Петров" />
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">{t("settings.surname")}</label>
+                                    <input type="text" value={newSurname} onChange={(e) => setNewSurname(e.target.value)} className="w-full p-4 bg-muted/50 border border-border rounded-2xl focus:border-ring focus:ring-1 focus:ring-ring/25 focus:outline-none transition-colors font-medium text-foreground placeholder:text-muted-foreground/70" placeholder={t("onboarding.surnameOptional")} />
                                 </div>
                                 <div className="flex gap-4 pt-4">
-                                    <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-4 border border-border text-muted-foreground rounded-2xl font-bold hover:bg-muted/50 transition-all">Отмена</button>
+                                    <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-4 border border-border text-muted-foreground rounded-2xl font-bold hover:bg-muted/50 transition-all">{t("common.cancel")}</button>
                                     <button type="submit" disabled={isUpdating || newName.length < 2} className="flex-1 py-4 bg-foreground text-background rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50">
-                                        {isUpdating ? "Сохранение..." : "Сохранить"}
+                                        {isUpdating ? t("common.saving") : t("common.save")}
                                     </button>
                                 </div>
                             </form>
@@ -170,8 +172,8 @@ export default function ProfilePage() {
             {user.role === "student" && (
                 <section>
                     <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-xl font-bold text-foreground tracking-tight">Мои классы</h2>
-                        <span className="text-sm text-muted-foreground">{classes.length} групп</span>
+                        <h2 className="text-xl font-bold text-foreground tracking-tight">{t("nav.classes")}</h2>
+                        <span className="text-sm text-muted-foreground">{t("profile.groupsCount", { count: classes.length })}</span>
                     </div>
                     {isLoading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -194,7 +196,7 @@ export default function ProfilePage() {
                         </div>
                     ) : (
                         <div className="p-12 text-center rounded-2xl border border-border bg-muted/50 text-muted-foreground font-medium">
-                            Вы еще не состоите ни в одном классе.
+                            {t("profile.noClasses")}
                         </div>
                     )}
                 </section>
@@ -202,8 +204,8 @@ export default function ProfilePage() {
 
             <section>
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-xl font-bold text-foreground tracking-tight">Прогресс по предметам</h2>
-                    <p className="text-sm text-muted-foreground">% пройденных тем</p>
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">{t("profile.subjectProgress")}</h2>
+                    <p className="text-sm text-muted-foreground">{t("profile.percentTopics")}</p>
                 </div>
                 {isLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

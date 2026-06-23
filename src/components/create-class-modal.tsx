@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SUBJECTS } from "@/lib/constants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface CreateClassModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface CreateClassModalProps {
 }
 
 export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateClassModalProps) {
+    const { t } = useTranslation();
     const [name, setName] = useState("");
     const [subjectId, setSubjectId] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,18 +38,18 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70">
             <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-card shadow-lg animate-in fade-in zoom-in duration-200">
                 <div className="p-8 md:p-10">
-                    <h2 className="mb-6 text-2xl font-bold tracking-tight text-foreground">Новый класс</h2>
+                    <h2 className="mb-6 text-2xl font-bold tracking-tight text-foreground">{t("ccm.title")}</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-7">
                         <div className="space-y-2">
                             <label className="ml-1 block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                                Название класса
+                                {t("ccm.nameLabel")}
                             </label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder={'Например, 10 "Б" Математика'}
+                                placeholder={t("ccm.namePlaceholder")}
                                 className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-border focus:outline-none focus:ring-2 focus:ring-ring/30"
                                 required
                             />
@@ -55,7 +57,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
 
                         <div className="space-y-3">
                             <label className="ml-1 block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                                Предмет
+                                {t("common.subject")}
                             </label>
                             <div className="grid max-h-52 grid-cols-2 gap-3 overflow-y-auto pr-1">
                                 {SUBJECTS.map((s) => {
@@ -87,14 +89,14 @@ export default function CreateClassModal({ isOpen, onClose, onCreated }: CreateC
                                 onClick={onClose}
                                 className="flex-1 rounded-2xl border border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
                             >
-                                Отмена
+                                {t("common.cancel")}
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
                                 className="flex-1 rounded-2xl bg-foreground py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
                             >
-                                {isSubmitting ? "Создание..." : "Создать класс"}
+                                {isSubmitting ? t("ccm.creating") : t("classes.create")}
                             </button>
                         </div>
                     </form>

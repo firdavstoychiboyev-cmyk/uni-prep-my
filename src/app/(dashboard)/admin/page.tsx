@@ -11,8 +11,10 @@ import {
     HelpCircle,
     ArrowRight
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AdminDashboard() {
+    const { t } = useTranslation();
     const [stats, setStats] = useState<{ subjects: number; textbooks: number; topics: number; questions: number; students: number; teachers: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -24,20 +26,20 @@ export default function AdminDashboard() {
     }, []);
 
     const statCards = [
-        { label: "Ученики", value: stats?.students, icon: GraduationCap, color: "text-blue-600" },
-        { label: "Учителя", value: stats?.teachers, icon: Users, color: "text-purple-600" },
-        { label: "Предметы", value: stats?.subjects, icon: BookOpen, color: "text-green-600" },
-        { label: "Учебники", value: stats?.textbooks, icon: Library, color: "text-orange-600" },
-        { label: "Темы", value: stats?.topics, icon: ListTree, color: "text-rose-600" },
-        { label: "Вопросы", value: stats?.questions, icon: HelpCircle, color: "text-amber-600" },
+        { label: t("admin.students"), value: stats?.students, icon: GraduationCap, color: "text-blue-600" },
+        { label: t("admin.teachers"), value: stats?.teachers, icon: Users, color: "text-purple-600" },
+        { label: t("nav.subjects"), value: stats?.subjects, icon: BookOpen, color: "text-green-600" },
+        { label: t("subject.textbooks"), value: stats?.textbooks, icon: Library, color: "text-orange-600" },
+        { label: t("stats.topics"), value: stats?.topics, icon: ListTree, color: "text-rose-600" },
+        { label: t("admin.questions"), value: stats?.questions, icon: HelpCircle, color: "text-amber-600" },
     ];
 
     return (
         <div className="flex flex-col gap-12">
             <section>
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground">Обзор.</h1>
+                <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.overview")}</h1>
                 <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">
-                    Общая статистика системы и панель управления контентом.
+                    {t("admin.overviewSubtitle")}
                 </p>
             </section>
 
@@ -69,10 +71,9 @@ export default function AdminDashboard() {
             </section>
 
             <section className="rounded-2xl border border-border bg-card p-8">
-                <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">Управление контентом.</h2>
+                <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">{t("admin.contentMgmt")}</h2>
                 <p className="max-w-2xl text-sm italic leading-relaxed text-muted-foreground">
-                    Совет: Иерархия контента: Предмет → Учебник → Тема → Вопрос.
-                    Соблюдайте осторожность при удалении данных.
+                    {t("admin.hierarchyTip")}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
@@ -82,7 +83,7 @@ export default function AdminDashboard() {
                     >
                         <div className="flex items-center gap-3">
                             <BookOpen size={18} className="text-muted-foreground group-hover:text-foreground" />
-                            <span className="font-medium text-foreground">Управление предметами</span>
+                            <span className="font-medium text-foreground">{t("admin.manageSubjects")}</span>
                         </div>
                         <ArrowRight
                             size={16}
@@ -95,7 +96,7 @@ export default function AdminDashboard() {
                     >
                         <div className="flex items-center gap-3">
                             <Library size={18} className="text-muted-foreground group-hover:text-foreground" />
-                            <span className="font-medium text-foreground">Управление учебниками</span>
+                            <span className="font-medium text-foreground">{t("admin.manageTextbooks")}</span>
                         </div>
                         <ArrowRight
                             size={16}
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
                     >
                         <div className="flex items-center gap-3">
                             <ListTree size={18} className="text-muted-foreground group-hover:text-foreground" />
-                            <span className="font-medium text-foreground">Управление темами</span>
+                            <span className="font-medium text-foreground">{t("admin.manageTopics")}</span>
                         </div>
                         <ArrowRight
                             size={16}
@@ -121,7 +122,7 @@ export default function AdminDashboard() {
                     >
                         <div className="flex items-center gap-3">
                             <HelpCircle size={18} className="text-muted-foreground group-hover:text-foreground" />
-                            <span className="font-medium text-foreground">Управление вопросами</span>
+                            <span className="font-medium text-foreground">{t("admin.manageQuestions")}</span>
                         </div>
                         <ArrowRight
                             size={16}

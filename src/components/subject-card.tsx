@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Subject } from "@/lib/firestore-schema";
 import { Star, ChevronRight } from "lucide-react";
 import { getSubjectMeta, AccentKey } from "@/lib/subject-icons";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface SubjectCardProps {
     subject: Subject;
@@ -81,6 +82,7 @@ export default function SubjectCard({
     medals = { green: 0, grey: 0, bronze: 0 },
     progress = 0,
 }: SubjectCardProps) {
+    const { t } = useTranslation();
     const totalMedals = medals.green + medals.grey + medals.bronze;
     const { icon: Icon, accent: accentKey } = getSubjectMeta(subject.name, subject.id);
     const accent = ACCENTS[accentKey];
@@ -99,7 +101,7 @@ export default function SubjectCard({
                 <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-[13.5px] text-foreground leading-snug truncate">{subject.name}</h3>
                     <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                        {progress >= 100 ? "Завершено" : progress > 0 ? `${progress}% пройдено` : "Не начато"}
+                        {progress >= 100 ? t("card.completed") : progress > 0 ? t("card.percentDone", { percent: progress }) : t("card.notStarted")}
                     </p>
                 </div>
                 <ChevronRight size={15} className="text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground/60" />
@@ -142,7 +144,7 @@ export default function SubjectCard({
                         )}
                     </>
                 ) : (
-                    <span className="text-[11px] text-muted-foreground/40 font-medium">Начни обучение</span>
+                    <span className="text-[11px] text-muted-foreground/40 font-medium">{t("card.startLearning")}</span>
                 )}
             </div>
         </Link>

@@ -8,9 +8,11 @@ import { createClass, fetchTeacherClasses } from "@/lib/class-utils";
 import CreateClassModal from "@/components/create-class-modal";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function ClassesPage() {
     const { user } = useAuthStore();
+    const { t } = useTranslation();
     const [classes, setClasses] = useState<Class[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,9 +45,9 @@ export default function ClassesPage() {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
                 <div className="max-w-sm rounded-2xl border border-border bg-card px-8 py-10 text-center">
-                    <h2 className="mb-2 text-xl font-semibold text-foreground">Доступ ограничен</h2>
+                    <h2 className="mb-2 text-xl font-semibold text-foreground">{t("classes.accessRestricted")}</h2>
                     <p className="text-sm text-muted-foreground">
-                        Страница управления классами доступна только для учителей.
+                        {t("classes.teacherOnly")}
                     </p>
                 </div>
             </div>
@@ -57,10 +59,10 @@ export default function ClassesPage() {
             <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
                 <section>
                     <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
-                        Мои классы
+                        {t("nav.classes")}
                     </h1>
                     <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                        Создавайте учебные группы, делитесь материалами и отслеживайте прогресс учеников в одном месте.
+                        {t("classes.subtitle")}
                     </p>
                 </section>
 
@@ -70,7 +72,7 @@ export default function ClassesPage() {
                     className="inline-flex items-center justify-center gap-2 self-start rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background shadow-sm transition-all hover:opacity-90 active:scale-[0.97] md:self-auto"
                 >
                     <Plus size={18} />
-                    <span>Создать класс</span>
+                    <span>{t("classes.create")}</span>
                 </button>
             </div>
 
@@ -105,17 +107,17 @@ export default function ClassesPage() {
                                                         {cls.name}
                                                     </h3>
                                                     <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                                                        {subject?.name || "Предмет не указан"}
+                                                        {subject?.name || t("classes.noSubject")}
                                                     </span>
                                                 </div>
                                             </div>
                                             <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                                                {cls.students.length} учеников
+                                                {t("classes.studentsCount", { count: cls.students.length })}
                                             </span>
                                         </div>
 
                                         <div className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
-                                            <span>Управление классом</span>
+                                            <span>{t("classes.manage")}</span>
                                             <span className="transition-transform group-hover:translate-x-1">→</span>
                                         </div>
                                     </div>
@@ -125,14 +127,14 @@ export default function ClassesPage() {
                     </div>
                 ) : (
                     <div className="rounded-2xl border border-border bg-muted/50 px-6 py-16 text-center dark:bg-muted/30">
-                        <p className="font-medium text-muted-foreground">У вас пока нет созданных классов.</p>
+                        <p className="font-medium text-muted-foreground">{t("classes.empty")}</p>
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(true)}
                             className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97]"
                         >
                             <Plus size={16} />
-                            <span>Создать первый класс</span>
+                            <span>{t("classes.createFirst")}</span>
                         </button>
                     </div>
                 )}

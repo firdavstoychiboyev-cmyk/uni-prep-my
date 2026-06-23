@@ -22,6 +22,7 @@ import {
 import { getMedalByErrors } from "@/lib/constants";
 import MathInput from "@/components/MathInput";
 import MathText from "@/components/MathText";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /* ─── types ─────────────────────────────────────────── */
 type QStatus = "unanswered" | "correct-first" | "correct-retry" | "incorrect";
@@ -60,6 +61,9 @@ export default function TestPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const { reset: resetStats } = useStatsStore();
+    const { t } = useTranslation();
+    const diffLabel = (d?: string) =>
+        d === "easy" ? t("subject.diff.easy") : d === "medium" ? t("subject.diff.medium") : t("subject.diff.hard");
 
     // all selected topic IDs (multi-topic support via ?t=id1,id2,...)
     const allTopicIds = useMemo(() => {
@@ -378,7 +382,7 @@ export default function TestPage() {
                 }
             }
         } catch {
-            setSaveError("Не удалось сохранить результат. Проверьте соединение и попробуйте снова.");
+            setSaveError(t("test.saveError"));
             setIsSaving(false);
             return;
         }
@@ -437,14 +441,14 @@ export default function TestPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 rounded-full border-2 border-[hsl(var(--brand-blue))] border-t-transparent animate-spin" />
-                <p className="text-sm text-muted-foreground font-medium">Загрузка теста…</p>
+                <p className="text-sm text-muted-foreground font-medium">{t("test.loading")}</p>
             </div>
         </div>
     );
 
     if (!topic || questions.length === 0) return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <p className="text-muted-foreground">Вопросы не найдены</p>
+            <p className="text-muted-foreground">{t("test.noQuestions")}</p>
         </div>
     );
 
@@ -465,11 +469,11 @@ export default function TestPage() {
                         <button type="button" onClick={async () => { await handleSavePartial(); router.back(); }}
                             className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0">
                             <ArrowLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Назад</span>
+                            <span className="hidden sm:inline">{t("common.back")}</span>
                         </button>
                         <span className="text-border hidden sm:block">|</span>
                         <span className="text-sm font-medium text-muted-foreground truncate hidden sm:block">
-                            {allTopics.length > 1 ? `${allTopics.length} темы` : topic?.title ?? ""}
+                            {allTopics.length > 1 ? t("test.multiTopics", { count: allTopics.length }) : topic?.title ?? ""}
                         </span>
                     </div>
 
@@ -482,12 +486,12 @@ export default function TestPage() {
                         )}
                         <button type="button" onClick={() => setPaused((v) => !v)}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                            title={paused ? "Продолжить" : "Пауза"}>
+                            title={paused ? t("test.resume") : t("test.pause")}>
                             {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
                         </button>
                         <button type="button" onClick={() => setTimerVisible((v) => !v)}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                            title={timerVisible ? "Скрыть время" : "Показать время"}>
+                            title={timerVisible ? t("test.hideTime") : t("test.showTime")}>
                             {timerVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                     </div>
@@ -510,7 +514,7 @@ export default function TestPage() {
                                 aria-haspopup="menu"
                             >
                                 <MoreVertical className="h-5 w-5" strokeWidth={2} />
-                                <span className="text-[11px] font-semibold leading-none">Ещё</span>
+                                <span className="text-[11px] font-semibold leading-none">{t("test.more")}</span>
                             </button>
                             {moreMenuOpen && (
                                 <div
@@ -526,12 +530,12 @@ export default function TestPage() {
                                         {fullscreenActive ? (
                                             <>
                                                 <Minimize2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                Выйти из полноэкранного
+                                                {t("test.exitFullscreen")}
                                             </>
                                         ) : (
                                             <>
                                                 <Maximize2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                На весь экран
+                                                {t("test.fullscreen")}
                                             </>
                                         )}
                                     </button>
@@ -573,7 +577,7 @@ export default function TestPage() {
                                     ? <BookmarkCheck className="w-3.5 h-3.5" />
                                     : <Bookmark className="w-3.5 h-3.5" />
                                 }
-                                {qState.marked ? "Отмечен" : "Отметить"}
+                                {qState.marked ? t("test.marked") : t("test.mark")}
                             </button>
                         </div>
 
@@ -585,22 +589,22 @@ export default function TestPage() {
                             {showInfo && (
                                 <div className="absolute right-0 top-10 z-50 w-64 rounded-2xl border border-border bg-card shadow-xl p-5">
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-bold text-foreground">Информация</span>
+                                        <span className="text-sm font-bold text-foreground">{t("test.info")}</span>
                                         <button type="button" onClick={() => setShowInfo(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div>
-                                            <div className="text-xs text-muted-foreground mb-0.5">Сложность</div>
+                                            <div className="text-xs text-muted-foreground mb-0.5">{t("subject.difficulty")}</div>
                                             <div className="font-semibold capitalize">
-                                                {q?.difficulty === "easy" ? "Лёгкий" : q?.difficulty === "medium" ? "Средний" : "Сложный"}
+                                                {diffLabel(q?.difficulty)}
                                             </div>
                                         </div>
                                         {q?.domain && <div>
-                                            <div className="text-xs text-muted-foreground mb-0.5">Раздел</div>
+                                            <div className="text-xs text-muted-foreground mb-0.5">{t("test.domain")}</div>
                                             <div className="font-semibold">{q.domain}</div>
                                         </div>}
                                         {q?.skill && <div className="col-span-2">
-                                            <div className="text-xs text-muted-foreground mb-0.5">Навык</div>
+                                            <div className="text-xs text-muted-foreground mb-0.5">{t("test.skill")}</div>
                                             <div className="font-semibold">{q.skill}</div>
                                         </div>}
                                     </div>
@@ -617,7 +621,7 @@ export default function TestPage() {
                                 : q.difficulty === "medium" ? "bg-yellow-100 text-yellow-700"
                                 : "bg-red-100 text-red-700"
                             }`}>
-                                {q.difficulty === "easy" ? "Лёгкий" : q.difficulty === "medium" ? "Средний" : "Сложный"}
+                                {diffLabel(q.difficulty)}
                             </span>
                         </div>
                     )}
@@ -657,7 +661,7 @@ export default function TestPage() {
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
                                 <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4">
-                                    <div className="text-xs font-bold text-emerald-700 mb-1">Правильный ответ:</div>
+                                    <div className="text-xs font-bold text-emerald-700 mb-1">{t("test.correctAnswerLabel")}</div>
                                     <div className="text-base font-medium text-gray-900">{q?.correctAnswer}</div>
                                 </div>
                             )}
@@ -669,7 +673,7 @@ export default function TestPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowCrossOutColumn((v) => !v)}
-                                    title={showCrossOutColumn ? "Скрыть круги зачёркивания" : "Показать круги — нажмите букву, чтобы зачеркнуть вариант"}
+                                    title={showCrossOutColumn ? t("test.hideCross") : t("test.showCross")}
                                     className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
                                         showCrossOutColumn
                                             ? "border-zinc-400 bg-zinc-200 text-zinc-800 shadow-sm"
@@ -754,7 +758,7 @@ export default function TestPage() {
                                                             e.stopPropagation();
                                                             toggleCrossOutOption(key);
                                                         }}
-                                                        title={isCrossed ? "Снять зачёркивание" : "Зачеркнуть вариант"}
+                                                        title={isCrossed ? t("test.uncross") : t("test.cross")}
                                                         className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-serif text-sm font-bold transition-colors hover:opacity-90 ${railLetterCls}`}
                                                     >
                                                         {isCrossed && (
@@ -781,7 +785,7 @@ export default function TestPage() {
                         <div className="mt-4">
                             <button type="button" onClick={() => setShowExplanation((v) => !v)}
                                 className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[hsl(var(--brand-blue))]/30 bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))] text-sm font-semibold hover:opacity-90 transition-all">
-                                <span>Объяснение</span>
+                                <span>{t("test.explanation")}</span>
                                 <ChevronRight className={`w-4 h-4 transition-transform ${showExplanation ? "rotate-90" : ""}`} />
                             </button>
                             {showExplanation && (
@@ -803,8 +807,8 @@ export default function TestPage() {
                                           : "bg-red-100 text-red-800 border border-red-200"
                             }`}>
                                 {isCorrect
-                                    ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">Правильно!</span></>
-                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">Неверно. {!isText && `Правильный ответ: ${q?.correctAnswer?.toUpperCase()}`}</span></>
+                                    ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.correct")}</span></>
+                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")} {!isText && t("test.correctAnswerInline", { answer: q?.correctAnswer?.toUpperCase() ?? "" })}</span></>
                                 }
                             </div>
                         );
@@ -820,7 +824,7 @@ export default function TestPage() {
                 <>
                     <button
                         type="button"
-                        aria-label="Закрыть банк вопросов"
+                        aria-label={t("test.closeBank")}
                         className="fixed inset-0 z-[44] bg-black/25"
                         onClick={() => setShowBank(false)}
                     />
@@ -833,7 +837,7 @@ export default function TestPage() {
                     >
                         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
                             <span id="question-bank-title" className="text-sm font-bold text-foreground">
-                                Банк вопросов
+                                {t("subject.questionBank")}
                             </span>
                             <button
                                 type="button"
@@ -846,19 +850,19 @@ export default function TestPage() {
                         <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2.5 text-[11px] font-semibold text-muted-foreground sm:gap-3 sm:text-xs">
                             <span className="flex items-center gap-1.5">
                                 <span className="h-3.5 w-3.5 rounded-sm bg-emerald-400 sm:h-4 sm:w-4 sm:rounded-md" />
-                                С первого раза
+                                {t("test.legendFirst")}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <span className="h-3.5 w-3.5 rounded-sm bg-orange-400 sm:h-4 sm:w-4 sm:rounded-md" />
-                                После попыток
+                                {t("test.legendRetry")}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <span className="h-3.5 w-3.5 rounded-sm bg-red-400 sm:h-4 sm:w-4 sm:rounded-md" />
-                                Ошибка
+                                {t("test.legendError")}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <Bookmark className="h-3.5 w-3.5 text-amber-500 fill-amber-400 sm:h-4 sm:w-4" />
-                                Отмечен
+                                {t("test.marked")}
                             </span>
                         </div>
                         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
@@ -925,7 +929,7 @@ export default function TestPage() {
                         type="button"
                         onClick={() => { setSaveError(null); void handleSaveAndNext(); }}
                         className="text-xs font-bold text-red-700 dark:text-red-300 underline shrink-0"
-                    >Повторить</button>
+                    >{t("test.retry")}</button>
                     <button type="button" onClick={() => setSaveError(null)} className="shrink-0">
                         <X className="h-4 w-4 text-red-500" />
                     </button>
@@ -946,7 +950,7 @@ export default function TestPage() {
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />
-                        Банк вопросов
+                        {t("subject.questionBank")}
                         <span className="text-xs text-muted-foreground tabular-nums">{answeredCount}/{questions.length}</span>
                         {showBank ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />}
                     </button>
@@ -964,17 +968,17 @@ export default function TestPage() {
                         disabled={!answer.trim() || checked}
                         className="flex-1 py-2.5 rounded-xl bg-[hsl(var(--brand-blue))] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
                     >
-                        Проверить
+                        {t("test.check")}
                     </button>
                     {idx < questions.length - 1 ? (
                         <button type="button" onClick={handleSaveAndNext}
                             className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98] transition-all">
-                            Далее<ChevronRight className="w-4 h-4" />
+                            {t("test.next")}<ChevronRight className="w-4 h-4" />
                         </button>
                     ) : (
                         <button type="button" onClick={handleSaveAndNext} disabled={isSaving}
                             className="flex flex-1 items-center justify-center gap-1 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold disabled:opacity-60 active:scale-[0.98] transition-all">
-                            {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />…</> : <>Перейти в темы<ChevronRight className="w-4 h-4" /></>}
+                            {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />…</> : <>{t("test.goToTopics")}<ChevronRight className="w-4 h-4" /></>}
                         </button>
                     )}
                 </div>
@@ -991,7 +995,7 @@ export default function TestPage() {
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />
-                        Банк вопросов
+                        {t("subject.questionBank")}
                         <span className="text-xs text-muted-foreground tabular-nums">{answeredCount}/{questions.length}</span>
                         {showBank ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />}
                     </button>
@@ -1006,17 +1010,17 @@ export default function TestPage() {
                             disabled={!answer.trim() || checked}
                             className="px-5 py-2.5 rounded-xl bg-[hsl(var(--brand-blue))] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Проверить
+                            {t("test.check")}
                         </button>
                         {idx < questions.length - 1 ? (
                             <button type="button" onClick={handleSaveAndNext}
                                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">
-                                Следующий<ChevronRight className="w-4 h-4" />
+                                {t("test.nextDesktop")}<ChevronRight className="w-4 h-4" />
                             </button>
                         ) : (
                             <button type="button" onClick={handleSaveAndNext} disabled={isSaving}
                                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60">
-                                {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Сохранение…</> : <>Перейти в темы<ChevronRight className="w-4 h-4" /></>}
+                                {isSaving ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />{t("common.saving")}</> : <>{t("test.goToTopics")}<ChevronRight className="w-4 h-4" /></>}
                             </button>
                         )}
                     </div>
