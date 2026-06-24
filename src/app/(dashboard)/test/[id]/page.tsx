@@ -105,6 +105,9 @@ export default function TestPage() {
     const [timerVisible, setTimerVisible] = useState(true);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // Per-question timer — resets on every navigation
+    const [perQuestionSecs, setPerQuestionSecs] = useState(0);
+
     const progressRestoredRef = useRef(false);
     const wasAlreadyCompletedRef = useRef<Set<string>>(new Set());
 
@@ -212,6 +215,14 @@ export default function TestPage() {
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [paused, isLoading]);
 
+    /* ─ per-question timer — resets on every navigation ─ */
+    useEffect(() => {
+        setPerQuestionSecs(0);
+        if (paused) return;
+        const interval = setInterval(() => setPerQuestionSecs((s) => s + 1), 1000);
+        return () => clearInterval(interval);
+    }, [idx, paused]);
+
     /* ─ beforeunload warning ─ */
     useEffect(() => {
         const handler = (e: BeforeUnloadEvent) => {
@@ -237,18 +248,13 @@ export default function TestPage() {
     /* ─ navigate to question ─ */
     const goTo = useCallback((i: number) => {
         setIdx(i);
-        const prevState = qStatesRef.current[i];
-        if (prevState && prevState.status !== "unanswered") {
-            setAnswer(prevState.answer);
-            setChecked(true);
-        } else {
-            setAnswer("");
-            setChecked(false);
-        }
+        setAnswer("");
+        setChecked(false);
         setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
         setShowInfo(false);
+        setPerQuestionSecs(0);
     }, []);
 
     /* ─ check answer (показывает фидбэк, не блокирует варианты) ─ */
@@ -256,15 +262,12 @@ export default function TestPage() {
         if (!q || checked || !answer.trim()) return;
         setAttempts((v) => v + 1);
         setChecked(true);
-        // Persist answer to qStates so goTo can restore checked state when navigating back
-        const isCorrect = (isText || isOpen)
-            ? answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
-            : answer === q.correctAnswer;
-        const merged = [...qStatesRef.current];
-        merged[idx] = { ...merged[idx], answer, status: isCorrect ? "correct-first" : "incorrect" };
-        qStatesRef.current = merged;
-        setQStates(merged);
-    }, [q, checked, answer, idx, isText, isOpen]);
+        setQStates((prev) => {
+            const next = [...prev];
+            next[idx] = { ...next[idx], answer };
+            return next;
+        });
+    }, [q, checked, answer, idx]);
 
     /* ─ toggle mark ─ */
     const toggleMark = useCallback(() => {
@@ -580,6 +583,7 @@ export default function TestPage() {
                             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background text-sm font-bold shrink-0">
                                 {idx + 1}
                             </span>
+                            <span className="text-xs font-mono text-muted-foreground tabular-nums">{fmt(perQuestionSecs)}</span>
                             <button
                                 type="button"
                                 onClick={toggleMark}
