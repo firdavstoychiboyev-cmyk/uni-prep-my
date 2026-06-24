@@ -42,13 +42,9 @@ export const fetchUserSubjectRatings = (userId: string): Promise<Record<string, 
 /** Global stats — derived from cached ratings + progress, no extra reads */
 export const fetchUserGlobalStats = async (userId: string): Promise<GlobalStats> => {
     try {
-        const [ratings, progress] = await Promise.all([
-            fetchRawRatings(userId),
-            fetchRawProgress(userId),
-        ]);
+        const progress = await fetchRawProgress(userId);
 
-        const totalSolved = Object.values(ratings).reduce((s, v) => s + v, 0);
-
+        let totalSolved = 0;
         let totalCorrect = 0;
         let totalAttempted = 0;
         const medals = { green: 0, grey: 0, bronze: 0 };
@@ -56,6 +52,7 @@ export const fetchUserGlobalStats = async (userId: string): Promise<GlobalStats>
         progress.forEach((data) => {
             const solved = (data as UserProgress & { solvedQuestions?: number }).solvedQuestions ?? 0;
             const errors = (data as UserProgress & { errors?: number }).errors ?? 0;
+            totalSolved += solved;
             totalCorrect += solved;
             totalAttempted += solved + errors;
             if (data.medal === "green") medals.green++;

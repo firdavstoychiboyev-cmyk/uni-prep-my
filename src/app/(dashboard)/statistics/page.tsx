@@ -11,7 +11,8 @@ import {
     fetchUserSubjectRatings,
     fetchSubjectProgress,
 } from "@/lib/stats-utils";
-import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { Topic } from "@/lib/firestore-schema";
+import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import SubjectCard from "@/components/subject-card";
 import {
     BarChart3, Target, Flame, ListChecks, TrendingUp, Trophy,
@@ -79,11 +80,17 @@ export default function StatisticsPage() {
                     const topicsPerTextbook = await Promise.all(
                         textbooks.map((tb) => fetchTopicsByTextbook(tb.id))
                     );
-                    const allTopics = topicsPerTextbook.flat();
+                    const textbookTopics = topicsPerTextbook.flat();
+
+                    const directTopics = await fetchTopicsBySubject(subject.id);
+
+                    const allTopicsMap = new Map<string, Topic>();
+                    [...textbookTopics, ...directTopics].forEach((t) => allTopicsMap.set(t.id, t));
+                    const allTopics = Array.from(allTopicsMap.values())
+                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
                     const allTopicIds = allTopics.map((t) => t.id);
-                    const titles = allTopics
-                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                        .map((t) => t.title);
+                    const titles = allTopics.map((t) => t.title);
 
                     setTopicsBySubject((prev) => ({ ...prev, [subject.id]: titles }));
 
@@ -107,10 +114,16 @@ export default function StatisticsPage() {
                 const topicsPerTextbook = await Promise.all(
                     textbooks.map((tb) => fetchTopicsByTextbook(tb.id))
                 );
-                const titles = topicsPerTextbook
-                    .flat()
+                const textbookTopics = topicsPerTextbook.flat();
+
+                const directTopics = await fetchTopicsBySubject(subject.id);
+
+                const allTopicsMap = new Map<string, Topic>();
+                [...textbookTopics, ...directTopics].forEach((t) => allTopicsMap.set(t.id, t));
+                const titles = Array.from(allTopicsMap.values())
                     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                     .map((t) => t.title);
+
                 setTopicsBySubject((prev) => ({ ...prev, [subject.id]: titles }));
             })
         );
