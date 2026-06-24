@@ -83,6 +83,8 @@ export default function TestPage() {
     const [qStates, setQStates] = useState<QState[]>([]);
     const qStatesRef = useRef<QState[]>([]);
     useEffect(() => { qStatesRef.current = qStates; }, [qStates]);
+    // Tracks live answer+checked per question index (includes checked-but-not-submitted state)
+    const pendingStatesRef = useRef<Record<number, { answer: string; checked: boolean }>>({});
 
     // Current question state
     const [idx, setIdx] = useState(0);
@@ -236,16 +238,25 @@ export default function TestPage() {
 
     /* ─ navigate to question ─ */
     const goTo = useCallback((i: number) => {
-        const s = qStatesRef.current[i];
-        const wasAnswered = s && s.status !== "unanswered";
+        // Snapshot current question's live state before leaving
+        pendingStatesRef.current[idx] = { answer, checked };
+
+        // Restore target question: prefer pending (checked-but-not-submitted), then saved
+        const pending = pendingStatesRef.current[i];
+        const saved = qStatesRef.current[i];
+        const restoreAnswer = pending !== undefined ? pending.answer
+            : saved?.status !== "unanswered" ? saved.answer : "";
+        const restoreChecked = pending !== undefined ? pending.checked
+            : (saved?.status !== "unanswered");
+
         setIdx(i);
-        setAnswer(wasAnswered ? s.answer : "");
-        setChecked(wasAnswered);
+        setAnswer(restoreAnswer);
+        setChecked(restoreChecked);
         setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
         setShowInfo(false);
-    }, []);
+    }, [idx, answer, checked]);
 
     /* ─ check answer (показывает фидбэк, не блокирует варианты) ─ */
     const handleCheck = useCallback(() => {
