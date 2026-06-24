@@ -186,6 +186,7 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.nextDesktop": "Следующий",
         "test.goToTopics": "Перейти в темы",
         "test.saveError": "Не удалось сохранить результат. Проверьте соединение и попробуйте снова.",
+        "test.openAnswerPlaceholder": "Введите ваш ответ…",
 
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Ваши награды за идеальное прохождение учебников и другие успехи в обучении.",
@@ -388,6 +389,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "admin.correctShort": "Правильно: {letter}",
         "admin.selectTopicToManage": "Выберите тему для управления ее вопросами.",
         "admin.noQuestionsForTopic": "Вопросы для этой темы не найдены.",
+        "admin.questionType": "Тип вопроса",
+        "admin.typeMC": "Множественный выбор",
+        "admin.typeOpen": "Открытый ответ",
+        "admin.openCorrectAnswer": "Правильный ответ (текст)",
+        "admin.openAnswerPlaceholder": "Введите правильный ответ…",
 
         // ── Login ────────────────────────────────────────────────
         "login.welcomeBack": "С возвращением",
@@ -579,7 +585,8 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.next": "Keyingi",
         "test.nextDesktop": "Keyingi",
         "test.goToTopics": "Mavzularga o‘tish",
-        "test.saveError": "Natijani saqlab bo‘lmadi. Aloqani tekshirib, qayta urinib ko‘ring.",
+        "test.saveError": "Natijani saqlab bo’lmadi. Aloqani tekshirib, qayta urinib ko’ring.",
+        "test.openAnswerPlaceholder": "Javobingizni kiriting…",
 
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Darsliklarni mukammal o‘tganingiz va boshqa muvaffaqiyatlaringiz uchun mukofotlaringiz.",
@@ -782,6 +789,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "admin.correctShort": "To‘g‘ri: {letter}",
         "admin.selectTopicToManage": "Savollarni boshqarish uchun mavzuni tanlang.",
         "admin.noQuestionsForTopic": "Bu mavzu uchun savollar topilmadi.",
+        "admin.questionType": "Savol turi",
+        "admin.typeMC": "Ko'p tanlov",
+        "admin.typeOpen": "Ochiq javob",
+        "admin.openCorrectAnswer": "To'g'ri javob (matn)",
+        "admin.openAnswerPlaceholder": "To'g'ri javobni kiriting…",
 
         // ── Login ────────────────────────────────────────────────
         "login.welcomeBack": "Xush kelibsiz",

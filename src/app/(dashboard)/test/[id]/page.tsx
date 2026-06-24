@@ -226,7 +226,9 @@ export default function TestPage() {
 
     /* ─ derived ─ */
     const q = questions[idx];
-    const isText = q?.type === "text" || (!!q && !q.options?.a && !q.options?.b);
+    // "text" = legacy MathQuill free-text (math writing); "open" = new plain-text answer
+    const isText = q?.type === "text" || (!!q && q.type !== "open" && !q.options?.a && !q.options?.b);
+    const isOpen = q?.type === "open";
     const qState = qStates[idx] ?? { status: "unanswered", marked: false, answer: "" };
     const crossedForQ = crossedOut[idx] ?? [];
 
@@ -418,7 +420,7 @@ export default function TestPage() {
     const handleSaveAndNext = useCallback(() => {
         let merged = qStatesRef.current;
         if (answer.trim() && q) {
-            const isCorrect = isText
+            const isCorrect = (isText || isOpen)
                 ? answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
                 : answer === q.correctAnswer;
             const status: QStatus = isCorrect
@@ -431,7 +433,7 @@ export default function TestPage() {
         }
         if (idx < questions.length - 1) goTo(idx + 1);
         else void handleFinish(merged);
-    }, [answer, attempts, isText, q, idx, questions.length, goTo, handleFinish]);
+    }, [answer, attempts, isText, isOpen, q, idx, questions.length, goTo, handleFinish]);
 
     /* ─ question bank order ─ */
     const bankOrder = useMemo(() => questions.map((_, i) => i), [questions]);
@@ -645,8 +647,31 @@ export default function TestPage() {
                         className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content math-question-text"
                     />
 
-                    {/* ─── TEXT INPUT (for English writing etc.) ─── */}
-                    {isText ? (
+                    {/* ─── OPEN ANSWER (plain textarea) ─── */}
+                    {isOpen ? (
+                        <div className="space-y-3">
+                            <textarea
+                                value={answer}
+                                onChange={(e) => { setAnswer(e.target.value); setChecked(false); }}
+                                placeholder={t("test.openAnswerPlaceholder")}
+                                rows={4}
+                                className={`w-full resize-none rounded-xl border-2 bg-muted px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
+                                    checked
+                                        ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
+                                            ? "border-emerald-400"
+                                            : "border-red-400"
+                                        : "border-border focus:border-[hsl(var(--brand-blue))]"
+                                }`}
+                            />
+                            {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
+                                <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4">
+                                    <div className="text-xs font-bold text-emerald-700 mb-1">{t("test.correctAnswerLabel")}</div>
+                                    <div className="text-base font-medium text-gray-900">{q?.correctAnswer}</div>
+                                </div>
+                            )}
+                        </div>
+                    ) : isText ? (
+                        /* ─── TEXT INPUT (MathQuill — for math writing etc.) ─── */
                         <div className="space-y-3">
                              <MathInput
                                 value={answer}
@@ -798,7 +823,7 @@ export default function TestPage() {
 
                     {/* Result feedback pill */}
                     {checked && answer && (() => {
-                        const isCorrect = isText
+                        const isCorrect = (isText || isOpen)
                             ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
                             : answer === q?.correctAnswer;
                         return (
@@ -808,7 +833,7 @@ export default function TestPage() {
                             }`}>
                                 {isCorrect
                                     ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.correct")}</span></>
-                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")} {!isText && t("test.correctAnswerInline", { answer: q?.correctAnswer?.toUpperCase() ?? "" })}</span></>
+                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")} {(!isText && !isOpen) && t("test.correctAnswerInline", { answer: q?.correctAnswer?.toUpperCase() ?? "" })}</span></>
                                 }
                             </div>
                         );

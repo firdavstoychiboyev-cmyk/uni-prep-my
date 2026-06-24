@@ -31,17 +31,23 @@ export default function AdminQuestionsPage() {
     const [isAdding, setIsAdding] = useState(false);
 
     // Form
+    const [questionType, setQuestionType] = useState<"mc" | "open">("mc");
     const [text, setText] = useState("");
     const [optionA, setOptionA] = useState("");
     const [optionB, setOptionB] = useState("");
     const [optionC, setOptionC] = useState("");
     const [optionD, setOptionD] = useState("");
-    const [correctAnswer, setCorrectAnswer] = useState<"a" | "b" | "c" | "d">("a");
+    const [correctAnswer, setCorrectAnswer] = useState<string>("a");
     const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState("");
     const [imageUploading, setImageUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleTypeChange = (t: "mc" | "open") => {
+        setQuestionType(t);
+        setCorrectAnswer(t === "mc" ? "a" : "");
+    };
 
     useEffect(() => {
         adminFetchCollection("subjects", "name").then(data => {
@@ -119,11 +125,14 @@ export default function AdminQuestionsPage() {
             const newQuestion: Record<string, unknown> = {
                 text,
                 topicId: selectedTopic,
-                options: { a: optionA, b: optionB, c: optionC, d: optionD },
                 correctAnswer,
                 difficulty,
                 language: contentLang,
+                type: questionType,
             };
+            if (questionType === "mc") {
+                newQuestion.options = { a: optionA, b: optionB, c: optionC, d: optionD };
+            }
             if (uploadedUrl) newQuestion.imageUrl = uploadedUrl;
             const created = await adminAddItem("questions", newQuestion);
             setQuestions(prev => [created as Question, ...prev]);
@@ -135,6 +144,7 @@ export default function AdminQuestionsPage() {
             setOptionB("");
             setOptionC("");
             setOptionD("");
+            setCorrectAnswer(questionType === "mc" ? "a" : "");
             clearImage();
             setIsAdding(false);
         } catch {
@@ -265,6 +275,35 @@ export default function AdminQuestionsPage() {
 
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                    {/* Question Type toggle */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.questionType")}</label>
+                        <div className="flex items-center gap-2 p-1 bg-muted rounded-xl w-fit">
+                            <button
+                                type="button"
+                                onClick={() => handleTypeChange("mc")}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                    questionType === "mc"
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                {t("admin.typeMC")}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleTypeChange("open")}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                    questionType === "open"
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                {t("admin.typeOpen")}
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Question text */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.questionText")}</label>
@@ -318,39 +357,55 @@ export default function AdminQuestionsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.answerOptions")}</label>
-                            {["a", "b", "c", "d"].map((opt) => (
-                                <div key={opt} className="flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center font-bold uppercase text-muted-foreground">{opt}</span>
-                                     <MathInput
-                                        value={opt === "a" ? optionA : opt === "b" ? optionB : opt === "c" ? optionC : optionD}
-                                        onChange={v => {
-                                            if (opt === "a") setOptionA(v);
-                                            else if (opt === "b") setOptionB(v);
-                                            else if (opt === "c") setOptionC(v);
-                                            else setOptionD(v);
-                                        }}
-                                        className="flex-1"
-                                    />
-                                </div>
-                            ))}
-                        </div>
+                        {questionType === "mc" ? (
+                            <div className="space-y-4">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.answerOptions")}</label>
+                                {["a", "b", "c", "d"].map((opt) => (
+                                    <div key={opt} className="flex items-center gap-3">
+                                        <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center font-bold uppercase text-muted-foreground">{opt}</span>
+                                        <MathInput
+                                            value={opt === "a" ? optionA : opt === "b" ? optionB : opt === "c" ? optionC : optionD}
+                                            onChange={v => {
+                                                if (opt === "a") setOptionA(v);
+                                                else if (opt === "b") setOptionB(v);
+                                                else if (opt === "c") setOptionC(v);
+                                                else setOptionD(v);
+                                            }}
+                                            className="flex-1"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.openCorrectAnswer")}</label>
+                                <textarea
+                                    value={correctAnswer}
+                                    onChange={e => setCorrectAnswer(e.target.value)}
+                                    placeholder={t("admin.openAnswerPlaceholder")}
+                                    rows={4}
+                                    required
+                                    className="w-full resize-none bg-muted border border-border rounded-lg p-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                                />
+                            </div>
+                        )}
 
                         <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.correctAnswer")}</label>
-                                <select
-                                    value={correctAnswer}
-                                    onChange={e => setCorrectAnswer(e.target.value as "a" | "b" | "c" | "d")}
-                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
-                                >
-                                    <option value="a">{t("admin.option", { letter: "A" })}</option>
-                                    <option value="b">{t("admin.option", { letter: "B" })}</option>
-                                    <option value="c">{t("admin.option", { letter: "C" })}</option>
-                                    <option value="d">{t("admin.option", { letter: "D" })}</option>
-                                </select>
-                            </div>
+                            {questionType === "mc" && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.correctAnswer")}</label>
+                                    <select
+                                        value={correctAnswer}
+                                        onChange={e => setCorrectAnswer(e.target.value)}
+                                        className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                                    >
+                                        <option value="a">{t("admin.option", { letter: "A" })}</option>
+                                        <option value="b">{t("admin.option", { letter: "B" })}</option>
+                                        <option value="c">{t("admin.option", { letter: "C" })}</option>
+                                        <option value="d">{t("admin.option", { letter: "D" })}</option>
+                                    </select>
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.difficulty")}</label>
                                 <select
@@ -391,7 +446,13 @@ export default function AdminQuestionsPage() {
                                                 }`}>
                                                 {q.difficulty === "easy" ? t("admin.diffEasy") : q.difficulty === "medium" ? t("admin.diffMedium") : t("admin.diffHard")}
                                             </span>
-                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">{t("admin.correctShort", { letter: q.correctAnswer.toUpperCase() })}</span>
+                                            {q.type === "open" ? (
+                                                <span className="text-xs font-bold tracking-widest text-purple-600">
+                                                    {t("admin.typeOpen")}: {q.correctAnswer.length > 40 ? q.correctAnswer.slice(0, 40) + "…" : q.correctAnswer}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-bold uppercase tracking-widest text-blue-600">{t("admin.correctShort", { letter: q.correctAnswer.toUpperCase() })}</span>
+                                            )}
                                         </div>
                                         {q.imageUrl && (
                                             <Image src={q.imageUrl} alt="" width={400} height={128} className="max-h-32 rounded-lg object-contain border border-border" />
@@ -400,14 +461,21 @@ export default function AdminQuestionsPage() {
                                             content={q?.text ?? ""}
                                             className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content math-question-text"
                                         />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {Object.entries(q.options).map(([key, val]) => (
-                                                 <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>
-                                                    <span className="font-bold mr-2">{key.toUpperCase()}:</span>
-                                                    <MathText content={val} as="span" />
-                                                </div>
-                                            ))}
-                                        </div>
+                                        {q.type === "open" ? (
+                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+                                                <span className="font-bold mr-2">{t("admin.correctAnswer")}:</span>
+                                                {q.correctAnswer}
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {Object.entries(q.options ?? {}).map(([key, val]) => (
+                                                    <div key={key} className={`rounded-lg border p-3 text-sm ${key === q.correctAnswer ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-border text-muted-foreground"}`}>
+                                                        <span className="font-bold mr-2">{key.toUpperCase()}:</span>
+                                                        <MathText content={val} as="span" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <button onClick={() => handleDelete(q.id)} className="p-2 text-muted-foreground/70 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
                                         <Trash2 size={20} />

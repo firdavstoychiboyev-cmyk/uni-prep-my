@@ -64,16 +64,16 @@ export interface Question {
   id: string;
   topicId: string;
   text: string;
-  options: {
+  options?: {
     a: string;
     b: string;
     c: string;
     d: string;
   };
-  correctAnswer: string; // "a"|"b"|"c"|"d" for MC, any string for text input
+  correctAnswer: string; // "a"|"b"|"c"|"d" for MC; any string for "text"/"open"
   difficulty: "easy" | "medium" | "hard";
   language?: Language; // язык вопроса ('ru' | 'uz'); отсутствие трактуется как 'ru'
-  type?: "mc" | "text"; // defaults to "mc"; "text" = free-text answer (e.g. English writing)
+  type?: "mc" | "text" | "open"; // defaults to "mc"; "text" = MathQuill answer; "open" = plain-text answer
   explanation?: string; // step-by-step explanation shown after answering
   domain?: string;      // e.g. "Algebra", "Reading & Writing"
   skill?: string;       // e.g. "Linear equations in one variable"
