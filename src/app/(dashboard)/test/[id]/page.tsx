@@ -87,8 +87,9 @@ export default function TestPage() {
     // Current question state
     const [idx, setIdx] = useState(0);
     const [answer, setAnswer] = useState("");
-    const [checked, setChecked] = useState(false);
     const [attempts, setAttempts] = useState(0);
+    const [triedWrong, setTriedWrong] = useState<string[]>([]);
+    const [solvedCorrect, setSolvedCorrect] = useState<string | null>(null);
     const [showExplanation, setShowExplanation] = useState(false);
 
     // Cross-out: show letter circles beside options + per-question crossed keys
@@ -106,7 +107,7 @@ export default function TestPage() {
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Per-question timer — resets on every navigation
-    const [perQuestionSecs, setPerQuestionSecs] = useState(0);
+    const [questionSecs, setQuestionSecs] = useState(0);
 
     const progressRestoredRef = useRef(false);
     const wasAlreadyCompletedRef = useRef<Set<string>>(new Set());
@@ -217,9 +218,9 @@ export default function TestPage() {
 
     /* ─ per-question timer — resets on every navigation ─ */
     useEffect(() => {
-        setPerQuestionSecs(0);
+        setQuestionSecs(0);
         if (paused) return;
-        const interval = setInterval(() => setPerQuestionSecs((s) => s + 1), 1000);
+        const interval = setInterval(() => setQuestionSecs((s) => s + 1), 1000);
         return () => clearInterval(interval);
     }, [idx, paused]);
 
@@ -242,6 +243,8 @@ export default function TestPage() {
     const isOpen = q?.type === "open";
     const qState = qStates[idx] ?? { status: "unanswered", marked: false, answer: "" };
     const crossedForQ = crossedOut[idx] ?? [];
+    // true once the student has checked at least one option this visit
+    const checked = solvedCorrect !== null || triedWrong.length > 0;
 
     const answeredCount = useMemo(() => qStates.filter((s) => s.status !== "unanswered").length, [qStates]);
 
@@ -249,25 +252,25 @@ export default function TestPage() {
     const goTo = useCallback((i: number) => {
         setIdx(i);
         setAnswer("");
-        setChecked(false);
         setAttempts(0);
+        setTriedWrong([]);
+        setSolvedCorrect(null);
         setShowExplanation(false);
         setShowBank(false);
         setShowInfo(false);
-        setPerQuestionSecs(0);
+        setQuestionSecs(0);
     }, []);
 
-    /* ─ check answer (показывает фидбэк, не блокирует варианты) ─ */
+    /* ─ check answer — allows multiple attempts, each wrong pick stays red ─ */
     const handleCheck = useCallback(() => {
-        if (!q || checked || !answer.trim()) return;
+        if (!q || !answer.trim() || solvedCorrect !== null || triedWrong.includes(answer)) return;
         setAttempts((v) => v + 1);
-        setChecked(true);
-        setQStates((prev) => {
-            const next = [...prev];
-            next[idx] = { ...next[idx], answer };
-            return next;
-        });
-    }, [q, checked, answer, idx]);
+        if (answer === q.correctAnswer) {
+            setSolvedCorrect(answer);
+        } else {
+            setTriedWrong((prev) => [...prev, answer]);
+        }
+    }, [q, answer, solvedCorrect, triedWrong]);
 
     /* ─ toggle mark ─ */
     const toggleMark = useCallback(() => {
@@ -496,23 +499,28 @@ export default function TestPage() {
                         </span>
                     </div>
 
-                    {/* Center: timer */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        {timerVisible ? (
-                            <span className="text-lg font-bold tabular-nums text-foreground min-w-[4rem] text-center">{fmt(secs)}</span>
-                        ) : (
-                            <span className="text-sm text-muted-foreground font-medium">••:••</span>
+                    {/* Center: per-question timer (big) + total session (subtle) */}
+                    <div className="flex flex-col items-center shrink-0">
+                        <div className="flex items-center gap-2">
+                            {timerVisible ? (
+                                <span className="text-lg font-bold tabular-nums text-foreground min-w-[4rem] text-center">{fmt(questionSecs)}</span>
+                            ) : (
+                                <span className="text-sm text-muted-foreground font-medium">••:••</span>
+                            )}
+                            <button type="button" onClick={() => setPaused((v) => !v)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                                title={paused ? t("test.resume") : t("test.pause")}>
+                                {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                            </button>
+                            <button type="button" onClick={() => setTimerVisible((v) => !v)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                                title={timerVisible ? t("test.hideTime") : t("test.showTime")}>
+                                {timerVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
+                        {timerVisible && (
+                            <span className="text-[10px] tabular-nums text-muted-foreground/50 leading-none">{fmt(secs)}</span>
                         )}
-                        <button type="button" onClick={() => setPaused((v) => !v)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                            title={paused ? t("test.resume") : t("test.pause")}>
-                            {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                        </button>
-                        <button type="button" onClick={() => setTimerVisible((v) => !v)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                            title={timerVisible ? t("test.hideTime") : t("test.showTime")}>
-                            {timerVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
                     </div>
 
                     {/* Right: counter + Ещё */}
@@ -583,7 +591,6 @@ export default function TestPage() {
                             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background text-sm font-bold shrink-0">
                                 {idx + 1}
                             </span>
-                            <span className="text-xs font-mono text-muted-foreground tabular-nums">{fmt(perQuestionSecs)}</span>
                             <button
                                 type="button"
                                 onClick={toggleMark}
@@ -670,7 +677,7 @@ export default function TestPage() {
                         <div className="space-y-3">
                             <textarea
                                 value={answer}
-                                onChange={(e) => { setAnswer(e.target.value); setChecked(false); }}
+                                onChange={(e) => { setAnswer(e.target.value); setTriedWrong([]); setSolvedCorrect(null); }}
                                 placeholder={t("test.openAnswerPlaceholder")}
                                 rows={4}
                                 className={`w-full resize-none rounded-xl border-2 bg-muted px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
@@ -693,7 +700,7 @@ export default function TestPage() {
                         <div className="space-y-3">
                              <MathInput
                                 value={answer}
-                                onChange={(v) => { setAnswer(v); setChecked(false); }}
+                                onChange={(v) => { setAnswer(v); setTriedWrong([]); setSolvedCorrect(null); }}
                                 className={`w-full min-h-[120px] ${
                                     checked
                                         ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
@@ -731,32 +738,32 @@ export default function TestPage() {
                             >
                                 {Object.entries(q?.options ?? {}).map(([key, val]) => {
                                     const isSelected = answer === key;
-                                    const isCorrectOpt = key === q?.correctAnswer;
+                                    const isWrong = triedWrong.includes(key);
+                                    const isSolved = key === solvedCorrect;
                                     const isCrossed = crossedForQ.includes(key);
+                                    // Blue only when actively selected and not yet judged
+                                    const isActiveBlue = isSelected && !isWrong && solvedCorrect === null;
 
                                     let cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
-                                    if (checked) {
-                                        if (isCorrectOpt) cls = "border-2 border-emerald-400 bg-emerald-50";
-                                        else if (isSelected && !isCorrectOpt) cls = "border-2 border-red-400 bg-red-50";
-                                        else cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
-                                    } else if (isSelected && !isCrossed) {
-                                        cls = "border-2 border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))]";
-                                    }
-                                    const letterCls = checked && isCorrectOpt
+                                    if (isSolved) cls = "border-2 border-emerald-400 bg-emerald-50";
+                                    else if (isWrong) cls = "border-2 border-red-400 bg-red-50";
+                                    else if (isActiveBlue && !isCrossed) cls = "border-2 border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))]";
+
+                                    const letterCls = isSolved
                                         ? "bg-emerald-500 border-emerald-400 text-white"
-                                        : checked && isSelected && !isCorrectOpt
+                                        : isWrong
                                         ? "bg-red-500 border-red-400 text-white"
-                                        : isSelected && !checked
+                                        : isActiveBlue
                                         ? "bg-[hsl(var(--brand-blue))] border-[hsl(var(--brand-blue))] text-white"
                                         : "border-border text-muted-foreground";
 
-                                    const railLetterCls = checked && isCorrectOpt
+                                    const railLetterCls = isSolved
                                         ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                                        : checked && isSelected && !isCorrectOpt
+                                        : isWrong
                                         ? "border-red-500 bg-red-50 text-red-800"
                                         : isCrossed
                                         ? "border-foreground bg-background text-foreground"
-                                        : isSelected && !checked
+                                        : isActiveBlue
                                         ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))]"
                                         : "border-foreground bg-background text-foreground";
 
@@ -764,7 +771,7 @@ export default function TestPage() {
                                         <Fragment key={key}>
                                             <button
                                                 type="button"
-                                                onClick={() => { setAnswer(key); setChecked(false); }}
+                                                onClick={() => { setAnswer(key); }}
                                                 className={`relative flex min-w-0 items-center gap-4 rounded-2xl p-4 text-left transition-all duration-200 ${cls}`}
                                             >
                                                 {isCrossed && (
@@ -785,10 +792,10 @@ export default function TestPage() {
                                                  <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
                                                     <MathText content={val} as="span" />
                                                 </span>
-                                                {checked && isCorrectOpt && (
+                                                {isSolved && (
                                                     <CheckCircle2 className="relative z-[2] h-5 w-5 shrink-0 text-emerald-500" />
                                                 )}
-                                                {checked && isSelected && !isCorrectOpt && (
+                                                {isWrong && (
                                                     <XCircle className="relative z-[2] h-5 w-5 shrink-0 text-red-500" />
                                                 )}
                                             </button>
@@ -839,11 +846,11 @@ export default function TestPage() {
                         </div>
                     )}
 
-                    {/* Result feedback pill */}
-                    {checked && answer && (() => {
-                        const isCorrect = (isText || isOpen)
+                    {/* Result feedback pill — shown only when current selection has been checked */}
+                    {answer && (solvedCorrect === answer || (isText || isOpen ? triedWrong.some(w => w.trim().toLowerCase() === answer.trim().toLowerCase()) : triedWrong.includes(answer))) && (() => {
+                        const isCorrect = solvedCorrect === answer || ((isText || isOpen)
                             ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
-                            : answer === q?.correctAnswer;
+                            : answer === q?.correctAnswer);
                         return (
                             <div className={`mt-4 flex items-center gap-2 px-4 py-3 rounded-xl ${
                                 isCorrect ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
@@ -851,7 +858,7 @@ export default function TestPage() {
                             }`}>
                                 {isCorrect
                                     ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.correct")}</span></>
-                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")} {(!isText && !isOpen) && t("test.correctAnswerInline", { answer: q?.correctAnswer?.toUpperCase() ?? "" })}</span></>
+                                    : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")}</span></>
                                 }
                             </div>
                         );
