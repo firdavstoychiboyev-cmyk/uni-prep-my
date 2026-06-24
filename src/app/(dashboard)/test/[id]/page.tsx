@@ -1015,7 +1015,7 @@ export default function TestPage() {
                     <button
                         type="button"
                         onClick={handleCheck}
-                        disabled={!answer.trim() || checked}
+                        disabled={!answer.trim() || solvedCorrect !== null || triedWrong.includes(answer)}
                         className="flex-1 py-2.5 rounded-xl bg-[hsl(var(--brand-blue))] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
                     >
                         {t("test.check")}
@@ -1057,7 +1057,7 @@ export default function TestPage() {
                         <button
                             type="button"
                             onClick={handleCheck}
-                            disabled={!answer.trim() || checked}
+                            disabled={!answer.trim() || solvedCorrect !== null || triedWrong.includes(answer)}
                             className="px-5 py-2.5 rounded-xl bg-[hsl(var(--brand-blue))] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {t("test.check")}
