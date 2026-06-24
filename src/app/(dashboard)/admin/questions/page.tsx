@@ -7,7 +7,7 @@ import { Question, Topic, Textbook, Subject, Language } from "@/lib/firestore-sc
 import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2 } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic, fetchTopicsBySubject } from "@/lib/data-fetching";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
-import { uploadToUploadcare } from "@/lib/uploadcare";
+import { uploadToStorage } from "@/lib/upload";
 import QuillEditor from "@/components/QuillEditor";
 import MathInput from "@/components/MathInput";
 import MathText from "@/components/MathText";
@@ -119,7 +119,7 @@ export default function AdminQuestionsPage() {
             // Upload to Uploadcare only on submit
             let uploadedUrl = "";
             if (imageFile) {
-                uploadedUrl = await uploadToUploadcare(imageFile);
+                uploadedUrl = await uploadToStorage(imageFile);
             }
 
             const newQuestion: Record<string, unknown> = {
