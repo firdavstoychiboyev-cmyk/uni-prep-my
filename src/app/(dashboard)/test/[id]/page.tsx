@@ -83,8 +83,6 @@ export default function TestPage() {
     const [qStates, setQStates] = useState<QState[]>([]);
     const qStatesRef = useRef<QState[]>([]);
     useEffect(() => { qStatesRef.current = qStates; }, [qStates]);
-    // Tracks live answer+checked per question index (includes checked-but-not-submitted state)
-    const pendingStatesRef = useRef<Record<number, { answer: string; checked: boolean }>>({});
 
     // Current question state
     const [idx, setIdx] = useState(0);
@@ -238,32 +236,35 @@ export default function TestPage() {
 
     /* ─ navigate to question ─ */
     const goTo = useCallback((i: number) => {
-        // Snapshot current question's live state before leaving
-        pendingStatesRef.current[idx] = { answer, checked };
-
-        // Restore target question: prefer pending (checked-but-not-submitted), then saved
-        const pending = pendingStatesRef.current[i];
-        const saved = qStatesRef.current[i];
-        const restoreAnswer = pending !== undefined ? pending.answer
-            : saved?.status !== "unanswered" ? saved.answer : "";
-        const restoreChecked = pending !== undefined ? pending.checked
-            : (saved?.status !== "unanswered");
-
         setIdx(i);
-        setAnswer(restoreAnswer);
-        setChecked(restoreChecked);
+        const prevState = qStatesRef.current[i];
+        if (prevState && prevState.status !== "unanswered") {
+            setAnswer(prevState.answer);
+            setChecked(true);
+        } else {
+            setAnswer("");
+            setChecked(false);
+        }
         setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
         setShowInfo(false);
-    }, [idx, answer, checked]);
+    }, []);
 
     /* ─ check answer (показывает фидбэк, не блокирует варианты) ─ */
     const handleCheck = useCallback(() => {
         if (!q || checked || !answer.trim()) return;
         setAttempts((v) => v + 1);
         setChecked(true);
-    }, [q, checked, answer]);
+        // Persist answer to qStates so goTo can restore checked state when navigating back
+        const isCorrect = (isText || isOpen)
+            ? answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
+            : answer === q.correctAnswer;
+        const merged = [...qStatesRef.current];
+        merged[idx] = { ...merged[idx], answer, status: isCorrect ? "correct-first" : "incorrect" };
+        qStatesRef.current = merged;
+        setQStates(merged);
+    }, [q, checked, answer, idx, isText, isOpen]);
 
     /* ─ toggle mark ─ */
     const toggleMark = useCallback(() => {
@@ -731,13 +732,13 @@ export default function TestPage() {
 
                                     let cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
                                     if (checked) {
-                                        if (isSelected && isCorrectOpt) cls = "border-2 border-emerald-400 bg-emerald-50";
+                                        if (isCorrectOpt) cls = "border-2 border-emerald-400 bg-emerald-50";
                                         else if (isSelected && !isCorrectOpt) cls = "border-2 border-red-400 bg-red-50";
                                         else cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
                                     } else if (isSelected && !isCrossed) {
                                         cls = "border-2 border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))]";
                                     }
-                                    const letterCls = checked && isSelected && isCorrectOpt
+                                    const letterCls = checked && isCorrectOpt
                                         ? "bg-emerald-500 border-emerald-400 text-white"
                                         : checked && isSelected && !isCorrectOpt
                                         ? "bg-red-500 border-red-400 text-white"
@@ -745,7 +746,7 @@ export default function TestPage() {
                                         ? "bg-[hsl(var(--brand-blue))] border-[hsl(var(--brand-blue))] text-white"
                                         : "border-border text-muted-foreground";
 
-                                    const railLetterCls = checked && isSelected && isCorrectOpt
+                                    const railLetterCls = checked && isCorrectOpt
                                         ? "border-emerald-500 bg-emerald-50 text-emerald-800"
                                         : checked && isSelected && !isCorrectOpt
                                         ? "border-red-500 bg-red-50 text-red-800"
@@ -780,7 +781,7 @@ export default function TestPage() {
                                                  <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
                                                     <MathText content={val} as="span" />
                                                 </span>
-                                                {checked && isSelected && isCorrectOpt && (
+                                                {checked && isCorrectOpt && (
                                                     <CheckCircle2 className="relative z-[2] h-5 w-5 shrink-0 text-emerald-500" />
                                                 )}
                                                 {checked && isSelected && !isCorrectOpt && (
