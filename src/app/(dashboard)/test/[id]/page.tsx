@@ -236,9 +236,11 @@ export default function TestPage() {
 
     /* ─ navigate to question ─ */
     const goTo = useCallback((i: number) => {
+        const s = qStatesRef.current[i];
+        const wasAnswered = s && s.status !== "unanswered";
         setIdx(i);
-        setAnswer("");       // не восстанавливаем предыдущий ответ
-        setChecked(false);   // не показываем предыдущий результат
+        setAnswer(wasAnswered ? s.answer : "");
+        setChecked(wasAnswered);
         setAttempts(0);
         setShowExplanation(false);
         setShowBank(false);
