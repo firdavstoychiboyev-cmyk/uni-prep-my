@@ -745,26 +745,26 @@ export default function TestPage() {
                                     const isActiveBlue = isSelected && !isWrong && solvedCorrect === null;
 
                                     let cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
-                                    if (isSolved) cls = "border-2 border-emerald-400 bg-emerald-50";
-                                    else if (isWrong) cls = "border-2 border-red-400 bg-red-50";
-                                    else if (isActiveBlue && !isCrossed) cls = "border-2 border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))]";
+                                    if (isWrong) cls = "border-2 border-red-500 bg-red-100 cursor-pointer";
+                                    else if (isSolved) cls = "border-2 border-green-500 bg-green-100 cursor-pointer";
+                                    else if (isActiveBlue && !isCrossed) cls = "border-2 border-blue-500 bg-blue-50 cursor-pointer";
 
-                                    const letterCls = isSolved
-                                        ? "bg-emerald-500 border-emerald-400 text-white"
-                                        : isWrong
-                                        ? "bg-red-500 border-red-400 text-white"
+                                    const letterCls = isWrong
+                                        ? "bg-red-500 border-red-500 text-white"
+                                        : isSolved
+                                        ? "bg-green-500 border-green-500 text-white"
                                         : isActiveBlue
-                                        ? "bg-[hsl(var(--brand-blue))] border-[hsl(var(--brand-blue))] text-white"
-                                        : "border-border text-muted-foreground";
+                                        ? "bg-blue-500 border-blue-500 text-white"
+                                        : "border-2 border-border text-muted-foreground bg-transparent";
 
-                                    const railLetterCls = isSolved
-                                        ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                                        : isWrong
-                                        ? "border-red-500 bg-red-50 text-red-800"
+                                    const railLetterCls = isWrong
+                                        ? "border-red-500 bg-red-100 text-red-800"
+                                        : isSolved
+                                        ? "border-green-500 bg-green-100 text-green-800"
                                         : isCrossed
                                         ? "border-foreground bg-background text-foreground"
                                         : isActiveBlue
-                                        ? "border-[hsl(var(--brand-blue))] bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))]"
+                                        ? "border-blue-500 bg-blue-50 text-blue-700"
                                         : "border-foreground bg-background text-foreground";
 
                                     return (
@@ -784,20 +784,19 @@ export default function TestPage() {
                                                 )}
                                                 {!showCrossOutColumn && (
                                                     <span
-                                                        className={`relative z-[2] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold ${letterCls}`}
+                                                        className={`relative z-[2] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${letterCls}`}
                                                     >
-                                                        {key.toUpperCase()}
+                                                        {isWrong
+                                                            ? <XCircle className="w-4 h-4" />
+                                                            : isSolved
+                                                            ? <CheckCircle2 className="w-4 h-4" />
+                                                            : key.toUpperCase()
+                                                        }
                                                     </span>
                                                 )}
-                                                 <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
+                                                <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
                                                     <MathText content={val} as="span" />
                                                 </span>
-                                                {isSolved && (
-                                                    <CheckCircle2 className="relative z-[2] h-5 w-5 shrink-0 text-emerald-500" />
-                                                )}
-                                                {isWrong && (
-                                                    <XCircle className="relative z-[2] h-5 w-5 shrink-0 text-red-500" />
-                                                )}
                                             </button>
                                             {showCrossOutColumn && (
                                                 <div className="flex items-center justify-center self-center">
