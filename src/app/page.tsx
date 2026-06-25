@@ -73,11 +73,11 @@ const content = {
 };
 
 const universities = [
-  { name: "JIDU", fullName: { uz: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", ru: "Университет мировой экономики и дипломатии" }, emoji: "🌍", grant: 189.0, contract: 185.7 },
-  { name: "TDYU", fullName: { uz: "Toshkent Davlat Yuridik Universiteti", ru: "Ташкентский государственный юридический университет" }, emoji: "⚖️", grant: 189.0, contract: 180.6 },
-  { name: "TDIU", fullName: { uz: "Toshkent Davlat Iqtisodiyot Universiteti", ru: "Ташкентский государственный экономический университет" }, emoji: "📊", grant: 185.5, contract: 169.3 },
-  { name: "O'zMU", fullName: { uz: "O'zbekiston Milliy Universiteti", ru: "Национальный университет Узбекистана" }, emoji: "🎓", grant: 181.0, contract: 158.0 },
-  { name: "TUIT", fullName: { uz: "Toshkent Axborot Texnologiyalari Universiteti", ru: "Ташкентский университет информационных технологий" }, emoji: "💻", grant: 176.0, contract: 148.0 },
+  { name: "JIDU", fullName: { uz: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", ru: "Университет мировой экономики и дипломатии" }, logo: "https://jidu.uz/local/templates/jidu/img/logo.png", grant: 189.0, contract: 185.7 },
+  { name: "TDYU", fullName: { uz: "Toshkent Davlat Yuridik Universiteti", ru: "Ташкентский государственный юридический университет" }, logo: "https://tdyu.uz/images/logo.png", grant: 189.0, contract: 180.6 },
+  { name: "TDIU", fullName: { uz: "Toshkent Davlat Iqtisodiyot Universiteti", ru: "Ташкентский государственный экономический университет" }, logo: "https://tdiu.uz/images/logo.png", grant: 185.5, contract: 169.3 },
+  { name: "O'zMU", fullName: { uz: "O'zbekiston Milliy Universiteti", ru: "Национальный университет Узбекистана" }, logo: "https://nuu.uz/images/logo.png", grant: 181.0, contract: 158.0 },
+  { name: "TUIT", fullName: { uz: "Toshkent Axborot Texnologiyalari Universiteti", ru: "Ташкентский университет информационных технологий" }, logo: "https://tuit.uz/images/logo.png", grant: 176.0, contract: 148.0 },
 ];
 
 export default function LandingPage() {
@@ -148,10 +148,13 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
         <h1
-          className="font-black leading-none select-none text-foreground"
+          className="select-none"
           style={{
-            fontFamily: "var(--font-montserrat), system-ui",
+            fontFamily: "'Georgia', 'Times New Roman', serif",
             fontSize: "clamp(120px, 22vw, 220px)",
+            fontWeight: 900,
+            color: "hsl(var(--foreground))",
+            lineHeight: 1,
           }}
         >
           189
@@ -162,7 +165,8 @@ export default function LandingPage() {
         <p className="text-lg text-muted-foreground italic max-w-md">&ldquo;{displayQuote}&rdquo;</p>
         <Link
           href="/login"
-          className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 hover:scale-105 active:scale-100"
+          className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:scale-105 active:scale-100"
+          style={{ background: "linear-gradient(135deg, #818cf8, #67e8f9)", color: "#1e1b4b" }}
         >
           {t.cta}
         </Link>
@@ -197,7 +201,15 @@ export default function LandingPage() {
                 key={uni.name}
                 className="snap-center shrink-0 w-48 md:w-auto bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col items-center gap-3"
               >
-                <div className="text-4xl">{uni.emoji}</div>
+                <div className="relative w-16 h-16">
+                  <Image
+                    src={uni.logo}
+                    alt={uni.name}
+                    fill
+                    className="object-contain"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                </div>
                 <div className="text-center">
                   <div className="font-bold text-foreground text-sm">{uni.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 leading-tight">{uni.fullName[lang]}</div>

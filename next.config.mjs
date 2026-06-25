@@ -5,10 +5,12 @@ const nextConfig = {
     },
     images: {
         remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "i.ibb.co",
-            },
+            { protocol: "https", hostname: "i.ibb.co" },
+            { protocol: "https", hostname: "jidu.uz" },
+            { protocol: "https", hostname: "tdyu.uz" },
+            { protocol: "https", hostname: "tdiu.uz" },
+            { protocol: "https", hostname: "nuu.uz" },
+            { protocol: "https", hostname: "tuit.uz" },
         ],
     },
 };
