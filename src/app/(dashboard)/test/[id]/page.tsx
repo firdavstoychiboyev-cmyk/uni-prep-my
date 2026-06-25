@@ -581,7 +581,7 @@ export default function TestPage() {
 
             {/* ─── MAIN CONTENT ─── */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-                <div className="max-w-2xl mx-auto w-full px-6 py-6">
+                <div className="max-w-2xl mx-auto w-full px-6 py-4">
 
                     {/* Question header */}
                     <div className="flex items-center justify-between mb-5">
@@ -667,7 +667,7 @@ export default function TestPage() {
                     {/* Question text */}
                     <MathText
                         content={q?.text ?? ""}
-                        className="text-xl font-semibold text-foreground leading-relaxed mb-6 ql-content math-question-text"
+                        className="font-['Montserrat'] text-lg font-normal leading-relaxed text-foreground mb-6 ql-content math-question-text"
                     />
 
                     {/* ─── OPEN ANSWER (plain textarea) ─── */}

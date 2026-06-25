@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Inter } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -20,6 +20,11 @@ const inter = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-inter",
   weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-montserrat",
 });
 
 export const metadata: Metadata = {
@@ -72,7 +77,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} font-[var(--font-inter)] antialiased min-h-screen relative app-bg`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${montserrat.variable} font-[var(--font-inter)] antialiased min-h-screen relative app-bg`}
       >
         <div className="relative z-10 min-h-screen">
           <AuthProvider>{children}</AuthProvider>
