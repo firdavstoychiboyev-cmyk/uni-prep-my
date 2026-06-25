@@ -191,29 +191,38 @@ export default function HomePage() {
 
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
             {nextExam && (
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-950">
-                            <CalendarClock className="w-4 h-4 text-indigo-500" />
-                        </div>
-                        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                            {language === "uz" ? nextExam.name : nextExam.nameRu}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                        {[
-                            { value: timeLeft.days,    label: language === "uz" ? "kun"     : "дней"   },
-                            { value: timeLeft.hours,   label: language === "uz" ? "soat"    : "часов"  },
-                            { value: timeLeft.minutes, label: language === "uz" ? "daqiqa"  : "минут"  },
-                            { value: timeLeft.seconds, label: language === "uz" ? "soniya"  : "секунд" },
-                        ].map((item) => (
-                            <div key={item.label} className="flex flex-col items-center bg-muted/50 rounded-xl p-3">
-                                <span className="text-2xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
-                                    {String(item.value).padStart(2, "0")}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{item.label}</span>
+                <div className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950">
+                                <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
                             </div>
-                        ))}
+                            <span className="text-xs font-semibold text-muted-foreground truncate max-w-[160px]">
+                                {language === "uz" ? nextExam.name : nextExam.nameRu}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {[
+                                { value: timeLeft.days,    label: language === "uz" ? "kun" : "д" },
+                                { value: timeLeft.hours,   label: language === "uz" ? "s"   : "ч" },
+                                { value: timeLeft.minutes, label: language === "uz" ? "d"   : "м" },
+                                { value: timeLeft.seconds, label: language === "uz" ? "sn"  : "с" },
+                            ].map((item, i) => (
+                                <div key={item.label} className="flex items-center gap-1">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-9 h-9 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+                                            <span className="text-sm font-black text-background" style={{ fontFamily: "var(--font-montserrat)" }}>
+                                                {String(item.value).padStart(2, "0")}
+                                            </span>
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground mt-0.5 font-medium">{item.label}</span>
+                                    </div>
+                                    {i < 3 && (
+                                        <span className="text-foreground font-black text-sm mb-3 opacity-60">:</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
