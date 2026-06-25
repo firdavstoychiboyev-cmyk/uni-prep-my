@@ -4,8 +4,36 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchUserBadges } from "@/lib/stats-utils";
 import { ACHIEVEMENTS } from "@/lib/achievements";
-import { Trophy, Lock, Calendar } from "lucide-react";
+import { Trophy, Lock, Calendar, Target, Shield, Crosshair, Zap, Brain } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+
+const seriesConfig = {
+    sniper:  { icon: Target,    color: "text-red-500",    bg: "bg-red-100 dark:bg-red-950",    border: "border-red-200 dark:border-red-800" },
+    veteran: { icon: Shield,    color: "text-blue-500",   bg: "bg-blue-100 dark:bg-blue-950",   border: "border-blue-200 dark:border-blue-800" },
+    focused: { icon: Crosshair, color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-950", border: "border-orange-200 dark:border-orange-800" },
+    sharp:   { icon: Zap,       color: "text-yellow-500", bg: "bg-yellow-100 dark:bg-yellow-950", border: "border-yellow-200 dark:border-yellow-800" },
+    expert:  { icon: Brain,     color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-950", border: "border-purple-200 dark:border-purple-800" },
+};
+
+function AchievementIcon({ series, tier, unlocked }: { series: string; tier: number; unlocked: boolean }) {
+    const config = seriesConfig[series as keyof typeof seriesConfig] ?? seriesConfig.sniper;
+    const Icon = config.icon;
+    const isWar = tier === 7;
+
+    return (
+        <div className={`relative w-16 h-16 rounded-2xl flex items-center justify-center ${unlocked ? config.bg : "bg-muted"} ${isWar && unlocked ? "ring-2 ring-yellow-400" : ""}`}>
+            <Icon className={`w-8 h-8 ${unlocked ? config.color : "text-muted-foreground/40"}`} />
+            {isWar && unlocked && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center text-[10px]">⭐</div>
+            )}
+            {!unlocked && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+                    <Lock className="w-3 h-3 text-muted-foreground/50" />
+                </div>
+            )}
+        </div>
+    );
+}
 
 const SERIES_META: Record<string, { label: string; labelRu: string; color: string }> = {
     sniper:  { label: "Sniper",  labelRu: "Снайпер",          color: "text-rose-500" },
@@ -123,15 +151,8 @@ export default function AchievementsPage() {
                                                     <div className="absolute inset-0 rounded-2xl ring-2 ring-amber-400/60 pointer-events-none" />
                                                 )}
 
-                                                {/* Lock overlay */}
-                                                {!earned && (
-                                                    <div className="absolute top-2 right-2">
-                                                        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                                                    </div>
-                                                )}
-
-                                                <div className={`text-4xl mb-3 ${isWar ? "text-5xl" : ""}`}>
-                                                    {ach.icon}
+                                                <div className="mb-4">
+                                                    <AchievementIcon series={ach.series} tier={ach.tier} unlocked={!!earned} />
                                                 </div>
                                                 <div className={`font-bold text-foreground leading-tight ${isWar ? "text-base" : "text-sm"}`}>
                                                     {isRu ? ach.nameRu : ach.name}
@@ -170,7 +191,9 @@ export default function AchievementsPage() {
                                             key={badge.id}
                                             className="flex flex-col items-center rounded-2xl border border-border bg-card p-5 text-center hover:shadow-sm transition-all"
                                         >
-                                            <div className="text-4xl mb-3">{badge.icon || "🏆"}</div>
+                                            <div className="mb-4 w-16 h-16 rounded-2xl flex items-center justify-center bg-amber-100 dark:bg-amber-950">
+                                                <Trophy className="w-8 h-8 text-amber-500" />
+                                            </div>
                                             <div className="font-bold text-sm text-foreground leading-tight">{badge.name}</div>
                                             {badge.description && (
                                                 <div className="mt-1 text-xs text-muted-foreground leading-snug">{badge.description}</div>
