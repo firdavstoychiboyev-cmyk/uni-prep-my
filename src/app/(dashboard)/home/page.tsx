@@ -85,7 +85,7 @@ export default function HomePage() {
     // ── Dream uni helpers ──────────────────────────────────────────────────────
     const selectedUni = TOP_UNIVERSITIES.find((u) => u.id === dreamUni) ?? null;
     const progressToGrant = selectedUni
-        ? Math.min(100, Math.round((totalCorrect / 500) * 100))
+        ? Math.min(100, Math.round((totalCorrect / 189) * 100))
         : 0;
 
     const handleSelectUni = (id: string) => {
@@ -249,7 +249,7 @@ export default function HomePage() {
                         </button>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                        <span>{totalCorrect} / 500</span>
+                        <span>{totalCorrect} / 189</span>
                         <span>Grant: {selectedUni.grant}</span>
                     </div>
                     <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
