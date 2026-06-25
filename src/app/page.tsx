@@ -17,7 +17,7 @@ function applyTheme(mode: ThemeMode) {
 
 const content = {
   uz: {
-    tagline: "189 — siz o'ylagandan ham oson",
+    tagline: "siz o'ylagandan ham oson",
     quotes: [
       "Har bir savolga javob — bu kelajakka qadam.",
       "Bugun qilgan mehnat, ertangi g'alabadir.",
@@ -44,7 +44,7 @@ const content = {
     login: "Kirish",
   },
   ru: {
-    tagline: "189 — проще, чем вы думаете",
+    tagline: "проще, чем вы думаете",
     quotes: [
       "Каждый ответ — шаг в будущее.",
       "Труд сегодня — победа завтра.",
@@ -150,12 +150,11 @@ export default function LandingPage() {
         <div
           className="select-none leading-none"
           style={{
-            fontFamily: "var(--font-dancing), cursive",
+            fontFamily: "var(--font-cormorant), serif",
             fontSize: "clamp(130px, 24vw, 240px)",
             fontWeight: 700,
             color: "hsl(var(--foreground))",
             lineHeight: 0.9,
-            letterSpacing: "-0.02em",
           }}
         >
           189
@@ -166,8 +165,7 @@ export default function LandingPage() {
         <p className="text-lg text-muted-foreground italic max-w-md">&ldquo;{displayQuote}&rdquo;</p>
         <Link
           href="/login"
-          className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:scale-105 active:scale-100"
-          style={{ background: "linear-gradient(135deg, #818cf8, #67e8f9)", color: "#1e1b4b" }}
+          className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition-all shadow-md hover:scale-105 active:scale-100"
         >
           {t.cta}
         </Link>
