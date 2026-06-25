@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useStatsStore } from "@/store/useStatsStore";
-import { Subject } from "@/lib/firestore-schema";
+import { Topic } from "@/lib/firestore-schema";
 import {
     fetchUserGlobalStats,
     GlobalStats,
@@ -12,7 +12,6 @@ import {
     fetchSubjectProgress,
     fetchUserDailyActivity,
 } from "@/lib/stats-utils";
-import { Topic } from "@/lib/firestore-schema";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import SubjectCard from "@/components/subject-card";
 import {
@@ -33,7 +32,6 @@ export default function StatisticsPage() {
     const {
         stats: cachedStats,
         subjectProgress,
-        loadedForUser,
         setStats,
         setSubjectProgress,
         setRatings,
@@ -56,8 +54,6 @@ export default function StatisticsPage() {
     useEffect(() => {
         if (!user || !subjectsLoaded) return;
 
-        const alreadyLoaded = loadedForUser === user.id;
-
         const load = async () => {
             setIsLoading(false);
 
@@ -69,12 +65,6 @@ export default function StatisticsPage() {
             setGlobalStats(gs);
             setStats(gs);
             setDailyActivity(activity);
-
-            if (alreadyLoaded) {
-                // Progress already in store — just load topic titles for display
-                await loadTopicTitles(subjects);
-                return;
-            }
 
             const ratings = await fetchUserSubjectRatings(user.id);
             setRatings(ratings);
@@ -111,29 +101,7 @@ export default function StatisticsPage() {
         };
 
         load();
-    }, [user, subjectsLoaded, subjects, loadedForUser, setStats, setRatings, setLoadedForUser, setSubjectProgress]);
-
-    const loadTopicTitles = async (subjs: Subject[]) => {
-        await Promise.all(
-            subjs.map(async (subject) => {
-                const textbooks = await fetchTextbooksBySubject(subject.id);
-                const topicsPerTextbook = await Promise.all(
-                    textbooks.map((tb) => fetchTopicsByTextbook(tb.id))
-                );
-                const textbookTopics = topicsPerTextbook.flat();
-
-                const directTopics = await fetchTopicsBySubject(subject.id);
-
-                const allTopicsMap = new Map<string, Topic>();
-                [...textbookTopics, ...directTopics].forEach((t) => allTopicsMap.set(t.id, t));
-                const titles = Array.from(allTopicsMap.values())
-                    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                    .map((t) => t.title);
-
-                setTopicsBySubject((prev) => ({ ...prev, [subject.id]: titles }));
-            })
-        );
-    };
+    }, [user, subjectsLoaded, subjects, setStats, setRatings, setLoadedForUser, setSubjectProgress]);
 
     const totalMedals = (globalStats?.medals.green ?? 0) + (globalStats?.medals.grey ?? 0) + (globalStats?.medals.bronze ?? 0);
 
