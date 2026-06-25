@@ -11,6 +11,7 @@ import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Flame, BarChart2, GraduationCap, CalendarClock } from "lucide-react";
 
 // ── Daily quote ────────────────────────────────────────────────────────────────
 const quotes = [
@@ -142,14 +143,18 @@ export default function HomePage() {
             {/* ── Stats Row ─────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
-                    <span className="text-3xl">🔥</span>
+                    <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950">
+                        <Flame className="w-5 h-5 text-orange-500" />
+                    </div>
                     <div>
                         <div className="text-2xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>{streakDays}</div>
                         <div className="text-xs text-muted-foreground font-medium">{t("home.streak")}</div>
                     </div>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
-                    <span className="text-3xl">📊</span>
+                    <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950">
+                        <BarChart2 className="w-5 h-5 text-blue-500" />
+                    </div>
                     <div>
                         <div className="text-2xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>{totalCorrect}</div>
                         <div className="text-xs text-muted-foreground font-medium">{t("home.totalSolved")}</div>
@@ -168,12 +173,17 @@ export default function HomePage() {
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
             {nextExam && (
                 <div className="rounded-2xl border border-border bg-card p-5 flex items-center justify-between">
-                    <div>
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-950">
+                            <CalendarClock className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div>
                         <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
                             {t("home.nextExam")}
                         </div>
                         <div className="font-bold text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
                             {language === "uz" ? nextExam.name : nextExam.nameRu}
+                        </div>
                         </div>
                     </div>
                     <div className="text-right">
@@ -190,7 +200,12 @@ export default function HomePage() {
                 <div className="rounded-2xl border border-border bg-card p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
-                            <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">🎓 {t("home.chooseDreamUni")}</div>
+                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+                                <div className="p-1.5 rounded-lg bg-green-100 dark:bg-green-950">
+                                    <GraduationCap className="w-3.5 h-3.5 text-green-500" />
+                                </div>
+                                {t("home.chooseDreamUni")}
+                            </div>
                             <div className="text-lg font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>{selectedUni.name}</div>
                             <div className="text-sm text-muted-foreground">{selectedUni.fullName}</div>
                         </div>
@@ -218,7 +233,11 @@ export default function HomePage() {
                     onClick={() => setShowUniPicker(true)}
                     className="rounded-2xl border-2 border-dashed border-border bg-card p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
                 >
-                    <div className="text-3xl mb-2">🎓</div>
+                    <div className="flex justify-center mb-3">
+                        <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-950">
+                            <GraduationCap className="w-5 h-5 text-green-500" />
+                        </div>
+                    </div>
                     <div className="font-bold text-foreground">{t("home.chooseDreamUni")}</div>
                     <div className="text-sm text-muted-foreground mt-1">{t("home.chooseDreamUniHint")}</div>
                 </div>
