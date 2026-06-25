@@ -499,32 +499,30 @@ export default function TestPage() {
                         </span>
                     </div>
 
-                    {/* Center: per-question timer (big) + total session (subtle) */}
-                    <div className="flex flex-col items-center shrink-0">
-                        <div className="flex items-center gap-2">
-                            {timerVisible ? (
-                                <span className="text-lg font-bold tabular-nums text-foreground min-w-[4rem] text-center">{fmt(questionSecs)}</span>
-                            ) : (
-                                <span className="text-sm text-muted-foreground font-medium">••:••</span>
-                            )}
-                            <button type="button" onClick={() => setPaused((v) => !v)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                                title={paused ? t("test.resume") : t("test.pause")}>
-                                {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                            </button>
-                            <button type="button" onClick={() => setTimerVisible((v) => !v)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                                title={timerVisible ? t("test.hideTime") : t("test.showTime")}>
-                                {timerVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                        </div>
-                        {timerVisible && (
-                            <span className="text-[10px] tabular-nums text-muted-foreground/50 leading-none">{fmt(secs)}</span>
+                    {/* Center: per-question timer (big) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        {timerVisible ? (
+                            <span className="text-lg font-bold tabular-nums text-foreground min-w-[4rem] text-center">{fmt(questionSecs)}</span>
+                        ) : (
+                            <span className="text-sm text-muted-foreground font-medium">••:••</span>
                         )}
+                        <button type="button" onClick={() => setPaused((v) => !v)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                            title={paused ? t("test.resume") : t("test.pause")}>
+                            {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                        </button>
+                        <button type="button" onClick={() => setTimerVisible((v) => !v)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                            title={timerVisible ? t("test.hideTime") : t("test.showTime")}>
+                            {timerVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                     </div>
 
-                    {/* Right: counter + Ещё */}
+                    {/* Right: total session timer + counter + Ещё */}
                     <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        {timerVisible && (
+                            <span className="text-sm text-muted-foreground tabular-nums hidden sm:inline">⏱ {fmt(secs)}</span>
+                        )}
                         <span className="px-3 py-1.5 rounded-xl bg-foreground text-background text-sm font-bold tabular-nums">
                             {idx + 1} / {questions.length}
                         </span>
