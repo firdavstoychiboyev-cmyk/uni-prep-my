@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchUserBadges } from "@/lib/stats-utils";
-import { ACHIEVEMENTS, AchievementDef } from "@/lib/achievements";
+import { ACHIEVEMENTS } from "@/lib/achievements";
 import { Trophy, Lock, Calendar } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
