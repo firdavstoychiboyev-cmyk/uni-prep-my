@@ -736,7 +736,8 @@ export default function TestPage() {
                             <div
                                 className={`grid gap-x-2 gap-y-3 ${showCrossOutColumn ? "grid-cols-[1fr_2.75rem]" : "grid-cols-1"}`}
                             >
-                                {Object.entries(q?.options ?? {}).map(([key, val]) => {
+                                {(["a", "b", "c", "d"] as const).filter(key => q?.options?.[key] !== undefined).map((key) => {
+                                    const val = q!.options![key];
                                     const isSelected = answer === key;
                                     const isWrong = triedWrong.includes(key);
                                     const isSolved = key === solvedCorrect;
