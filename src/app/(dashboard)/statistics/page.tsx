@@ -10,6 +10,7 @@ import {
     GlobalStats,
     fetchUserSubjectRatings,
     fetchSubjectProgress,
+    fetchUserDailyActivity,
 } from "@/lib/stats-utils";
 import { Topic } from "@/lib/firestore-schema";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
@@ -41,6 +42,7 @@ export default function StatisticsPage() {
 
     const [globalStats, setGlobalStats] = useState<GlobalStats | null>(cachedStats);
     const [topicsBySubject, setTopicsBySubject] = useState<SubjectTopics>({});
+    const [dailyActivity, setDailyActivity] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(!subjectsLoaded);
 
     // Load subjects if not yet loaded
@@ -60,9 +62,13 @@ export default function StatisticsPage() {
             setIsLoading(false);
 
             // Global stats (always refresh for the stats page, but uses cache internally)
-            const gs = await fetchUserGlobalStats(user.id);
+            const [gs, activity] = await Promise.all([
+                fetchUserGlobalStats(user.id),
+                fetchUserDailyActivity(user.id),
+            ]);
             setGlobalStats(gs);
             setStats(gs);
+            setDailyActivity(activity);
 
             if (alreadyLoaded) {
                 // Progress already in store — just load topic titles for display
@@ -167,54 +173,92 @@ export default function StatisticsPage() {
                 ))}
             </div>
 
-            {/* Activity heatmap */}
-            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                <div className="flex items-center gap-3 mb-5">
-                    <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                        <div className="font-bold text-foreground">{t("stats.activity")}</div>
-                        <div className="text-xs text-muted-foreground">
-                            {t("stats.totalSolvedLabel")} <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span>
+            {/* Activity heatmap — calendar grid, last 6 months */}
+            {(() => {
+                const MONTH_RU = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+                const DAY_RU = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+
+                const months = Array.from({ length: 6 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(1);
+                    d.setMonth(d.getMonth() - 5 + i);
+                    return { year: d.getFullYear(), month: d.getMonth() };
+                });
+
+                const cellColor = (count: number) => {
+                    if (!count) return "bg-muted";
+                    if (count <= 5) return "bg-[hsl(var(--brand-blue))]/35";
+                    if (count <= 15) return "bg-[hsl(var(--brand-blue))]/60";
+                    if (count <= 30) return "bg-[hsl(var(--brand-blue))]/85";
+                    return "bg-[hsl(var(--brand-blue))]";
+                };
+
+                return (
+                    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                        <div className="flex items-center justify-between gap-3 mb-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center">
+                                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-foreground">{t("stats.activity")}</div>
+                                    <div className="text-xs text-muted-foreground">Всего решено: <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
-                    <div className="pt-1 text-[10px] text-muted-foreground leading-6">
-                        <div className="h-4" />
-                        <div className="h-6 flex items-center">{t("stats.mon")}</div>
-                        <div className="h-6" />
-                        <div className="h-6 flex items-center">{t("stats.wed")}</div>
-                        <div className="h-6" />
-                        <div className="h-6 flex items-center">{t("stats.fri")}</div>
-                    </div>
-                    <div className="overflow-x-auto pb-1">
-                        <div className="grid gap-1 w-max" style={{ gridTemplateColumns: "repeat(26, 10px)" }}>
-                            {Array.from({ length: 182 }).map((_, i) => {
-                                const filled = Math.min(182, Math.max(0, globalStats?.totalSolved ?? 0));
-                                const active = i < filled;
-                                const level = active
-                                    ? i % 4 === 0 ? "bg-[hsl(var(--brand-blue))]"
-                                        : i % 3 === 0 ? "bg-[hsl(var(--brand-blue))]/70"
-                                            : "bg-[hsl(var(--brand-blue))]/45"
-                                    : "bg-muted";
-                                return <div key={i} className={`w-[10px] h-[10px] rounded-[3px] ${level}`} />;
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {months.map(({ year, month }) => {
+                                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                                // Monday-based week offset (0=Mon … 6=Sun)
+                                const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+
+                                return (
+                                    <div key={`${year}-${month}`}>
+                                        <div className="text-xs font-semibold text-foreground mb-2">
+                                            {MONTH_RU[month]} {year}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-[3px] mb-1">
+                                            {DAY_RU.map((d) => (
+                                                <div key={d} className="text-[9px] text-muted-foreground text-center">{d}</div>
+                                            ))}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-[3px]">
+                                            {Array.from({ length: firstDow }).map((_, i) => (
+                                                <div key={`empty-${i}`} />
+                                            ))}
+                                            {Array.from({ length: daysInMonth }, (_, d) => {
+                                                const day = d + 1;
+                                                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                                                const count = dailyActivity[dateStr] ?? 0;
+                                                const monthNames = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+                                                const tooltip = count ? `${day} ${monthNames[month]} ${year}: ${count} вопросов` : `${day} ${monthNames[month]} ${year}`;
+                                                return (
+                                                    <div
+                                                        key={dateStr}
+                                                        title={tooltip}
+                                                        className={`w-full aspect-square rounded-sm ${cellColor(count)}`}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
                             })}
                         </div>
-                        <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
-                            <span>{t("stats.less")}</span>
-                            <span className="inline-flex items-center gap-1">
-                                <span className="w-2.5 h-2.5 rounded-[3px] bg-muted border border-border" />
-                                <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]/35" />
-                                <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]/65" />
-                                <span className="w-2.5 h-2.5 rounded-[3px] bg-[hsl(var(--brand-blue))]" />
-                            </span>
-                            <span>{t("stats.more")}</span>
+
+                        <div className="mt-5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span>Меньше</span>
+                            <span className="w-3 h-3 rounded-sm bg-muted border border-border" />
+                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/35" />
+                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/60" />
+                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/85" />
+                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]" />
+                            <span>Больше</span>
                         </div>
                     </div>
-                </div>
-            </div>
+                );
+            })()}
 
             {/* Per-subject detailed cards */}
             <section>

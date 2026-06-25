@@ -113,9 +113,28 @@ export const fetchUserBadges = (userId: string) =>
         }>;
     }, TTL_USER);
 
+/** Daily activity map { "2026-06-25": solvedCount } — derived from userProgress timestamps */
+export const fetchUserDailyActivity = async (userId: string): Promise<Record<string, number>> => {
+    return pageCache.fetch(`daily-activity:${userId}`, async () => {
+        const snap = await getDocs(collection(db, "users", userId, "userProgress"));
+        const daily: Record<string, number> = {};
+        snap.forEach((d) => {
+            const data = d.data();
+            const ts = data.lastSolvedAt ?? data.updatedAt ?? data.completedAt;
+            if (!ts) return;
+            const date = ts?.toDate
+                ? ts.toDate().toISOString().split("T")[0]
+                : typeof ts === "string" ? ts.split("T")[0] : null;
+            if (date) daily[date] = (daily[date] ?? 0) + (data.solvedQuestions ?? 1);
+        });
+        return daily;
+    }, TTL_USER);
+};
+
 /** Invalidate all cached data for a user (call after writing progress) */
 export const invalidateUserCache = (userId: string) => {
     pageCache.invalidate(`ratings:${userId}`);
     pageCache.invalidate(`progress:${userId}`);
     pageCache.invalidate(`badges:${userId}`);
+    pageCache.invalidate(`daily-activity:${userId}`);
 };
