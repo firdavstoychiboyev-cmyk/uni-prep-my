@@ -69,6 +69,7 @@ export default function HomePage() {
 
     const [streakDays, setStreakDays] = useState(0);
     const [totalCorrect, setTotalCorrect] = useState(0);
+    const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
     const [dreamUni, setDreamUni] = useState<string | null>(() =>
         typeof window !== "undefined" ? localStorage.getItem("dreamUni") : null
@@ -80,9 +81,6 @@ export default function HomePage() {
     // ── Filter exams ───────────────────────────────────────────────────────────
     const futureExams = upcomingExams.filter((e) => e.date > new Date());
     const nextExam = futureExams[0] ?? null;
-    const daysLeft = nextExam
-        ? Math.ceil((nextExam.date.getTime() - Date.now()) / 86400000)
-        : null;
 
     // ── Dream uni helpers ──────────────────────────────────────────────────────
     const selectedUni = TOP_UNIVERSITIES.find((u) => u.id === dreamUni) ?? null;
@@ -95,6 +93,27 @@ export default function HomePage() {
         localStorage.setItem("dreamUni", id);
         setShowUniPicker(false);
     };
+
+    // ── Live exam countdown ────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!nextExam) return;
+        const update = () => {
+            const diff = nextExam.date.getTime() - Date.now();
+            if (diff <= 0) {
+                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+                return;
+            }
+            setTimeLeft({
+                days: Math.floor(diff / 86400000),
+                hours: Math.floor((diff % 86400000) / 3600000),
+                minutes: Math.floor((diff % 3600000) / 60000),
+                seconds: Math.floor((diff % 60000) / 1000),
+            });
+        };
+        update();
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+    }, [nextExam]);
 
     // ── Load subjects ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -172,25 +191,29 @@ export default function HomePage() {
 
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
             {nextExam && (
-                <div className="rounded-2xl border border-border bg-card p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-950">
-                            <CalendarClock className="w-5 h-5 text-indigo-500" />
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-950">
+                            <CalendarClock className="w-4 h-4 text-indigo-500" />
                         </div>
-                        <div>
-                        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                            {t("home.nextExam")}
-                        </div>
-                        <div className="font-bold text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
+                        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                             {language === "uz" ? nextExam.name : nextExam.nameRu}
-                        </div>
-                        </div>
+                        </span>
                     </div>
-                    <div className="text-right">
-                        <div className="text-3xl font-black text-indigo-600" style={{ fontFamily: "var(--font-montserrat)" }}>
-                            {daysLeft}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{t("home.daysLeft")}</div>
+                    <div className="grid grid-cols-4 gap-2">
+                        {[
+                            { value: timeLeft.days,    label: language === "uz" ? "kun"     : "дней"   },
+                            { value: timeLeft.hours,   label: language === "uz" ? "soat"    : "часов"  },
+                            { value: timeLeft.minutes, label: language === "uz" ? "daqiqa"  : "минут"  },
+                            { value: timeLeft.seconds, label: language === "uz" ? "soniya"  : "секунд" },
+                        ].map((item) => (
+                            <div key={item.label} className="flex flex-col items-center bg-muted/50 rounded-xl p-3">
+                                <span className="text-2xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
+                                    {String(item.value).padStart(2, "0")}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{item.label}</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
