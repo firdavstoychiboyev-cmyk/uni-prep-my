@@ -150,11 +150,12 @@ export default function LandingPage() {
         <div
           className="select-none leading-none"
           style={{
-            fontFamily: "var(--font-cormorant), serif",
+            fontFamily: "var(--font-montserrat), system-ui, sans-serif",
             fontSize: "clamp(130px, 24vw, 240px)",
-            fontWeight: 700,
+            fontWeight: 900,
             color: "hsl(var(--foreground))",
             lineHeight: 0.9,
+            letterSpacing: "-0.04em",
           }}
         >
           189
