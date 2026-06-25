@@ -33,8 +33,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     setUser(profile);
                     useLanguageStore.getState().setLanguage(profile.language || DEFAULT_LANGUAGE);
                     // Если профиль есть и роль выбрана, но мы на логине или онбординге - в дашборд
-                    if (profile.role && (pathname === "/login" || pathname === "/onboarding")) {
-                        router.push("/");
+                    if (profile.role && (pathname === "/login" || pathname === "/onboarding" || pathname === "/")) {
+                        router.push("/home");
                     } else if (!profile.role && pathname !== "/onboarding") {
                         // Если роль не выбрана - на онбординг
                         router.push("/onboarding");

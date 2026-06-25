@@ -479,7 +479,7 @@ export default function SubjectPage() {
         <div className="flex flex-col gap-6 pb-28 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                <Link href="/" className="hover:text-foreground transition-colors duration-200">
+                <Link href="/home" className="hover:text-foreground transition-colors duration-200">
                     {t("nav.home")}
                 </Link>
                 <ChevronRight size={14} className="text-border" />

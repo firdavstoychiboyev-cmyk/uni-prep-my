@@ -18,7 +18,7 @@ export default function Navbar() {
     const isTeacher = user.role === "teacher";
 
     const navLinks = [
-        { name: "Главная", href: "/" },
+        { name: "Главная", href: "/home" },
         ...(isTeacher ? [{ name: "Классы", href: "/classes" }] : []),
         { name: "Достижения", href: "/achievements" },
         { name: "Профиль", href: "/profile" },
@@ -39,7 +39,7 @@ export default function Navbar() {
                     <div className="flex items-center justify-between h-full px-4 lg:px-8">
                         {/* Logo */}
                         <div className="flex items-center">
-                            <Link href="/" className="flex items-center">
+                            <Link href="/home" className="flex items-center">
                                 <div className="relative w-32 lg:w-48 h-10 lg:h-14">
                                     <Image
                                         src="/лого.png"
@@ -122,7 +122,7 @@ export default function Navbar() {
             >
                 {/* Panel Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
-                    <Link href="/" onClick={closeMenu}>
+                    <Link href="/home" onClick={closeMenu}>
                         <div className="relative w-28 h-8">
                             <Image
                                 src="/лого.png"

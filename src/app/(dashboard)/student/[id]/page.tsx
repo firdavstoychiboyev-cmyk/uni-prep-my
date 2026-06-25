@@ -98,7 +98,7 @@ export default function StudentProfilePage() {
                 <div className="max-w-md rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm">
                     <h2 className="mb-3 text-2xl font-bold text-foreground">{t("sp.notFound")}</h2>
                     <Link
-                        href="/"
+                        href="/home"
                         className="inline-flex items-center justify-center rounded-2xl bg-foreground px-6 py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97]"
                     >
                         {t("sp.toHome")}

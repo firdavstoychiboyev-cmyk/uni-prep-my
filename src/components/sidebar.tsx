@@ -55,7 +55,7 @@ function getSubjectIcon(name: string): LucideIcon {
 }
 
 const mainLinks = (isTeacher: boolean) => [
-    { nameKey: "nav.home", href: "/", icon: LayoutDashboard },
+    { nameKey: "nav.home", href: "/home", icon: LayoutDashboard },
     ...(isTeacher ? [{ nameKey: "nav.classes", href: "/classes", icon: GraduationCap }] : []),
     { nameKey: "nav.statistics", href: "/statistics", icon: BarChart3 },
     { nameKey: "nav.achievements", href: "/achievements", icon: Award },
@@ -99,7 +99,7 @@ function Sidebar() {
                 {/* ── Logo ── */}
                 <div className={`shrink-0 pt-4 pb-3 flex items-center border-b border-border ${isCollapsed ? "md:justify-center md:px-0 px-5 justify-between" : "px-5 justify-between"}`}>
                     {/* Full logo — hidden when collapsed on desktop */}
-                    <Link href="/" className={`flex items-center gap-3 ${isCollapsed ? "md:hidden" : ""}`} onClick={close}>
+                    <Link href="/home" className={`flex items-center gap-3 ${isCollapsed ? "md:hidden" : ""}`} onClick={close}>
                         <div className="relative w-10 h-10 flex-shrink-0">
                             <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
                         </div>
@@ -108,7 +108,7 @@ function Sidebar() {
 
                     {/* Collapsed: just the logo icon */}
                     {isCollapsed && (
-                        <Link href="/" className="hidden md:flex items-center justify-center" onClick={close} title="UniPrep">
+                        <Link href="/home" className="hidden md:flex items-center justify-center" onClick={close} title="UniPrep">
                             <div className="relative w-8 h-8 flex-shrink-0">
                                 <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
                             </div>

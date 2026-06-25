@@ -74,7 +74,7 @@ export default function TextbookPage() {
             {/* Breadcrumbs */}
             <nav className="flex items-center justify-between gap-4 text-xs sm:text-sm font-medium">
                 <div className="flex items-center gap-2 text-gray-400">
-                    <Link href="/" className="hover:text-gray-700 transition-colors">
+                    <Link href="/home" className="hover:text-gray-700 transition-colors">
                         {t("nav.home")}
                     </Link>
                     {subject && (

@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         if (!isLoading && (!user || user.role !== "admin")) {
-            router.push("/");
+            router.push("/home");
         }
     }, [user, isLoading, router]);
 
@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 <div className="border-t border-border p-4">
                     <Link
-                        href="/"
+                        href="/home"
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                     >
                         <ArrowLeft size={18} />
@@ -102,7 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             );
                         })}
                         <Link
-                            href="/"
+                            href="/home"
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground transition-all shrink-0 ml-auto"
                         >
                             <ArrowLeft size={14} />
