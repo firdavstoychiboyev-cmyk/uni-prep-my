@@ -147,18 +147,19 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
-        <h1
-          className="select-none"
+        <div
+          className="select-none leading-none"
           style={{
-            fontFamily: "'Georgia', 'Times New Roman', serif",
-            fontSize: "clamp(120px, 22vw, 220px)",
-            fontWeight: 900,
+            fontFamily: "var(--font-dancing), cursive",
+            fontSize: "clamp(130px, 24vw, 240px)",
+            fontWeight: 700,
             color: "hsl(var(--foreground))",
-            lineHeight: 1,
+            lineHeight: 0.9,
+            letterSpacing: "-0.02em",
           }}
         >
           189
-        </h1>
+        </div>
         <p className="text-2xl md:text-3xl font-semibold text-foreground max-w-xl">
           {t.tagline}
         </p>

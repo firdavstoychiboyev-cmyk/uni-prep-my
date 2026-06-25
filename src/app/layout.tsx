@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Montserrat, DM_Sans } from "next/font/google";
+import { Montserrat, DM_Sans, Dancing_Script } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -26,6 +26,12 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
   weight: ["400", "500", "600"],
+});
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  variable: "--font-dancing",
+  weight: ["700"],
 });
 
 export const metadata: Metadata = {
@@ -78,7 +84,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} antialiased min-h-screen relative app-bg`}
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} ${dancingScript.variable} antialiased min-h-screen relative app-bg`}
       >
         <div className="relative z-10 min-h-screen">
           <AuthProvider>{children}</AuthProvider>
