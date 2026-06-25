@@ -17,12 +17,13 @@ import {
     CheckCircle2, XCircle, Check,
     Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Pause, Play, Eye, EyeOff,
     LayoutGrid, X, ArrowLeft, Info, Strikethrough, ChevronUp,
-    MoreVertical, Maximize2, Minimize2,
+    MoreVertical, Maximize2, Minimize2, Trophy,
 } from "lucide-react";
 import { getMedalByErrors } from "@/lib/constants";
 import MathInput from "@/components/MathInput";
 import MathText from "@/components/MathText";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { checkAndAwardAchievements, AchievementDef } from "@/lib/achievements";
 
 /* ─── types ─────────────────────────────────────────── */
 type QStatus = "unanswered" | "correct-first" | "correct-retry" | "incorrect";
@@ -111,6 +112,10 @@ export default function TestPage() {
 
     const progressRestoredRef = useRef(false);
     const wasAlreadyCompletedRef = useRef<Set<string>>(new Set());
+
+    // Achievement popup
+    const [newlyAwarded, setNewlyAwarded] = useState<AchievementDef[]>([]);
+    const pendingNavRef = useRef<string | null>(null);
 
     // Fullscreen + «Ещё» menu
     const testShellRef = useRef<HTMLDivElement>(null);
@@ -329,7 +334,7 @@ export default function TestPage() {
     /* ─ finish — сохраняет результат и редиректит в темы ─ */
     const handleFinish = useCallback(async (statesSnapshot?: QState[]) => {
         if (timerRef.current) clearInterval(timerRef.current);
-        if (!user || allTopics.length === 0) { router.push("/"); return; }
+        if (!user || allTopics.length === 0) { router.push("/home"); return; }
         setIsSaving(true);
         setSaveError(null);
 
@@ -346,6 +351,7 @@ export default function TestPage() {
         resetStats();
 
         let navSubjectId: string | null = null;
+        let awarded: AchievementDef[] = [];
         try {
             // Save progress per topic
             await Promise.all(Array.from(payloads.values()).map((p) => {
@@ -377,7 +383,6 @@ export default function TestPage() {
                 navSubjectId = subjectId as string;
                 const rRef = doc(db, "users", user.id, "ratings", subjectId);
                 const rSnap = await getDoc(rRef);
-                // stars: sum of correct answers for topics in this textbook
                 const tbCorr = allTopics
                     .filter((t) => t.textbookId === tbId)
                     .reduce((sum, t) => sum + (payloads.get(t.id)?.corr ?? 0), 0);
@@ -403,14 +408,58 @@ export default function TestPage() {
                     }
                 }
             }
+
+            // Streak update
+            const today = new Date().toISOString().split("T")[0];
+            const userDocRef = doc(db, "users", user.id);
+            const userDocSnap = await getDoc(userDocRef);
+            const userData = userDocSnap.exists() ? userDocSnap.data() : {};
+            const lastActiveDate = userData.lastActiveDate as string | undefined;
+            let streakDays = (userData.streakDays as number | undefined) ?? 1;
+            if (lastActiveDate && lastActiveDate !== today) {
+                const diffDays = Math.round(
+                    (new Date(today).getTime() - new Date(lastActiveDate).getTime()) / 86400000
+                );
+                streakDays = diffDays <= 2 ? streakDays + 1 : 1;
+            }
+            await setDoc(userDocRef, { streakDays, lastActiveDate: today }, { merge: true });
+
+            // Highest consecutive correct streak in this session
+            let cur = 0, maxStreak = 0;
+            for (const s of states) {
+                if (s.status === "correct-first" || s.status === "correct-retry") { cur++; maxStreak = Math.max(maxStreak, cur); }
+                else if (s.status === "incorrect") cur = 0;
+            }
+
+            // Total correct from all userProgress
+            const allProgSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
+            let totalCorrect = 0;
+            allProgSnap.forEach((d) => {
+                totalCorrect += ((d.data() as { solvedQuestions?: number }).solvedQuestions ?? 0);
+            });
+
+            awarded = await checkAndAwardAchievements(user.id, {
+                subjectAccuracies: [],
+                streakDays,
+                totalCorrect,
+                correctStreak: maxStreak,
+                hardQuestionsCompletedBySubject: [],
+            });
         } catch {
             setSaveError(t("test.saveError"));
             setIsSaving(false);
             return;
         }
+
         setIsSaving(false);
-        router.push(navSubjectId ? `/subject/${navSubjectId}` : "/");
-    }, [user, allTopics, questions, secs, resetStats, router, buildTopicPayloads]);
+        const dest = navSubjectId ? `/subject/${navSubjectId}` : "/home";
+        if (awarded.length > 0) {
+            pendingNavRef.current = dest;
+            setNewlyAwarded(awarded);
+            return;
+        }
+        router.push(dest);
+    }, [user, allTopics, questions, secs, resetStats, router, buildTopicPayloads, t]);
 
     /* ─ save partial — сохраняет прогресс без завершения ─ */
     const handleSavePartial = useCallback(async () => {
@@ -1074,6 +1123,44 @@ export default function TestPage() {
                     </div>
                 </div>
             </div>
+
+            {/* ─── ACHIEVEMENT POPUP ─── */}
+            {newlyAwarded.length > 0 && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                    <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 shadow-2xl text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40">
+                                <Trophy className="h-8 w-8 text-amber-500" />
+                            </div>
+                        </div>
+                        <h2 className="text-xl font-bold text-foreground mb-1">
+                            {newlyAwarded.length === 1 ? "Новое достижение!" : `${newlyAwarded.length} новых достижения!`}
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-6">Вы разблокировали:</p>
+                        <div className="flex flex-col gap-3 mb-8">
+                            {newlyAwarded.map((ach) => (
+                                <div key={ach.id} className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-left">
+                                    <span className="text-3xl">{ach.icon}</span>
+                                    <div>
+                                        <div className="font-semibold text-sm text-foreground">{ach.nameRu}</div>
+                                        <div className="text-xs text-muted-foreground">{ach.descriptionRu}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNewlyAwarded([]);
+                                router.push(pendingNavRef.current ?? "/home");
+                            }}
+                            className="w-full rounded-2xl bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-700 transition-colors"
+                        >
+                            Продолжить
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
