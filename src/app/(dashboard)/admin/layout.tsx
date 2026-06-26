@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: t("subject.textbooks"), href: "/admin/textbooks", icon: Library },
         { name: t("stats.topics"), href: "/admin/topics", icon: ListTree },
         { name: t("admin.questions"), href: "/admin/questions", icon: HelpCircle },
+        { name: "Import Excel", href: "/admin/import", icon: FileUp },
     ];
 
     return (
