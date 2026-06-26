@@ -114,7 +114,7 @@ function Particles() {
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(99, 102, 241, ${p.opacity})`;
+        ctx.fillStyle = `rgba(99, 102, 241, ${p.opacity * 0.4})`;
         ctx.fill();
       });
       animId = requestAnimationFrame(animate);
@@ -126,7 +126,7 @@ function Particles() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none hidden dark:block"
+      className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 0 }}
     />
   );
@@ -165,21 +165,11 @@ export default function LandingPage() {
       {/* Particles (dark mode only) */}
       <Particles />
 
-      {/* Dot grid overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(99,102,241,0.08) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          zIndex: 0,
-        }}
-      />
-
       {/* All content above bg layers */}
       <div className="relative" style={{ zIndex: 1 }}>
 
         {/* Navbar */}
-        <nav className="sticky top-0 z-50 bg-white/90 dark:bg-black/40 backdrop-blur-xl border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between">
+        <nav className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-black/40 border-b border-gray-100/80 dark:border-white/5 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="relative w-9 h-9">
               <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
@@ -211,9 +201,14 @@ export default function LandingPage() {
         </nav>
 
         {/* Hero */}
-        <section className="flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
+        <section className="relative flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
+          {/* Soft glow blob behind 189 */}
           <div
-            className="select-none leading-none dark:drop-shadow-[0_0_80px_rgba(99,102,241,0.4)]"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)" }}
+          />
+          <div
+            className="relative z-10 select-none leading-none drop-shadow-[0_4px_40px_rgba(99,102,241,0.2)] dark:drop-shadow-[0_0_80px_rgba(99,102,241,0.5)]"
             style={{
               fontFamily: "var(--font-montserrat), system-ui, sans-serif",
               fontSize: "clamp(130px, 24vw, 240px)",
@@ -225,20 +220,20 @@ export default function LandingPage() {
           >
             189
           </div>
-          <p className="text-2xl md:text-3xl font-semibold text-foreground max-w-xl">
+          <p className="relative z-10 text-2xl md:text-3xl font-semibold text-foreground max-w-xl">
             {t.tagline}
           </p>
-          <p className="text-lg text-muted-foreground italic max-w-md">&ldquo;{displayQuote}&rdquo;</p>
+          <p className="relative z-10 text-lg text-muted-foreground italic max-w-md">&ldquo;{displayQuote}&rdquo;</p>
           <Link
             href="/login"
-            className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition-all shadow-md hover:scale-105 active:scale-100"
+            className="relative z-10 mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition-all shadow-md hover:scale-105 active:scale-100"
           >
             {t.cta}
           </Link>
         </section>
 
         {/* Stats bar */}
-        <section className="py-12 border-y border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.03]">
+        <section className="py-12" style={{ background: "rgba(99,102,241,0.03)", borderTop: "1px solid rgba(99,102,241,0.08)", borderBottom: "1px solid rgba(99,102,241,0.08)" }}>
           <div className="max-w-3xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-0">
             {t.stats.map((stat, i) => (
               <div key={stat.label} className="flex flex-col items-center sm:flex-1">
