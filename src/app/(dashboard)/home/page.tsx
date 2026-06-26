@@ -140,98 +140,128 @@ export default function HomePage() {
 
             {/* ── Daily Quote ───────────────────────────────────────────────── */}
 
-            {/* ── Cinematic film strip quote card ───────────────────────── */}
+            {/* Light mode — vintage newspaper clipping */}
             <div
-                className="relative overflow-hidden rounded-2xl"
+                className="relative overflow-hidden rounded-2xl block dark:hidden"
                 style={{
-                    background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
-                    minHeight: "160px",
-                    boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+                    background: "#f2e8d5",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15), inset 0 0 60px rgba(0,0,0,0.05)",
+                    border: "1px solid #d4b896",
                 }}
             >
-                {/* Starfield */}
-                <div className="absolute inset-0 overflow-hidden">
-                    {Array.from({ length: 40 }).map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute rounded-full"
-                            style={{
-                                width: (i % 3 === 0 ? 2 : 1) + "px",
-                                height: (i % 3 === 0 ? 2 : 1) + "px",
-                                top: ((i * 37 + 11) % 100) + "%",
-                                left: ((i * 61 + 7) % 100) + "%",
-                                background: "white",
-                                opacity: (i % 5 === 0 ? 0.55 : 0.2),
-                            }}
-                        />
-                    ))}
-                </div>
-                {/* Left perforations */}
-                <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-around items-center py-3" style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}/>
-                    ))}
-                </div>
-                {/* Right perforations */}
-                <div className="absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-around items-center py-3" style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}/>
-                    ))}
-                </div>
-                {/* Content */}
-                <div className="relative z-10 px-14 py-8 flex flex-col items-center justify-center text-center gap-4">
-                    <div className="flex items-center gap-3 w-full">
-                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2))" }}/>
-                        <div className="flex gap-1">
-                            {[0,1,2].map((i) => (
-                                <div key={i} className="w-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }}/>
-                            ))}
-                        </div>
-                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, rgba(255,255,255,0.2))" }}/>
-                    </div>
-                    <p
-                        className="text-lg leading-relaxed"
-                        style={{
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            fontStyle: "italic",
-                            color: "rgba(255,255,255,0.92)",
-                            textShadow: "0 0 30px rgba(139,92,246,0.4)",
-                            letterSpacing: "0.01em",
-                        }}
-                    >
-                        &ldquo;{dailyQuote.text}&rdquo;
-                    </p>
-                    <div className="flex items-center gap-3">
-                        <div className="w-6 h-px" style={{ background: "rgba(139,92,246,0.6)" }}/>
-                        <p
-                            style={{
-                                fontFamily: "var(--font-montserrat), system-ui",
-                                fontSize: "11px",
-                                fontWeight: 700,
-                                color: "rgba(139,92,246,0.9)",
-                                letterSpacing: "0.2em",
-                                textTransform: "uppercase",
-                            }}
-                        >
-                            {dailyQuote.author}
-                        </p>
-                        <div className="w-6 h-px" style={{ background: "rgba(139,92,246,0.6)" }}/>
-                    </div>
-                    <div className="flex items-center gap-3 w-full">
-                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2))" }}/>
-                        <div className="flex gap-1">
-                            {[0,1,2].map((i) => (
-                                <div key={i} className="w-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }}/>
-                            ))}
-                        </div>
-                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, rgba(255,255,255,0.2))" }}/>
-                    </div>
-                </div>
-                {/* Bottom glow */}
+                {/* Paper texture — ruled lines */}
                 <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-16 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.3) 0%, transparent 70%)" }}
+                    className="absolute inset-0 pointer-events-none opacity-30"
+                    style={{
+                        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(0,0,0,0.03) 24px, rgba(0,0,0,0.03) 25px)",
+                    }}
                 />
+                {/* Coffee stain */}
+                <div
+                    className="absolute top-4 right-8 w-16 h-16 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, rgba(139,90,43,0.12) 0%, rgba(139,90,43,0.06) 50%, transparent 70%)" }}
+                />
+                <div className="relative z-10 p-6">
+                    {/* Masthead */}
+                    <div className="flex items-center justify-between mb-2 pb-2" style={{ borderBottom: "2px solid #1a1a1a" }}>
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.3em", color: "#1a1a1a", textTransform: "uppercase" }}>
+                            The Daily Wisdom
+                        </div>
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "9px", color: "#555", letterSpacing: "0.1em" }}>
+                            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        </div>
+                    </div>
+                    <div className="mb-4" style={{ borderBottom: "1px solid #1a1a1a" }}/>
+                    {/* Body */}
+                    <div className="flex gap-4">
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "80px", lineHeight: 1, color: "#1a1a1a", opacity: 0.15, marginTop: "-10px", flexShrink: 0, userSelect: "none" }}>
+                            &ldquo;
+                        </div>
+                        <div className="flex-1">
+                            <p style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "17px", lineHeight: 1.6, color: "#1a1a1a", fontStyle: "italic", letterSpacing: "0.01em" }}>
+                                {dailyQuote.text}
+                            </p>
+                            <div className="mt-3 flex items-center gap-2">
+                                <div style={{ width: "24px", height: "1px", background: "#1a1a1a" }}/>
+                                <p style={{ fontFamily: "Georgia, serif", fontSize: "11px", color: "#333", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+                                    By {dailyQuote.author}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Dummy column lines */}
+                    <div className="mt-4 pt-3 grid grid-cols-3 gap-3" style={{ borderTop: "1px solid #aaa" }}>
+                        {([[90,75,85],[70,95,80],[85,70,90]] as number[][]).map((widths, i) => (
+                            <div key={i} className="flex flex-col gap-1">
+                                {widths.map((w, j) => (
+                                    <div key={j} className="rounded-sm" style={{ height: "6px", background: "#1a1a1a", opacity: 0.09, width: w + "%" }}/>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Dark mode — dark newspaper */}
+            <div
+                className="relative overflow-hidden rounded-2xl hidden dark:block"
+                style={{
+                    background: "#1a1a1a",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.4), inset 0 0 60px rgba(255,255,255,0.02)",
+                    border: "1px solid #333",
+                }}
+            >
+                {/* Paper texture — ruled lines */}
+                <div
+                    className="absolute inset-0 pointer-events-none opacity-20"
+                    style={{
+                        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(255,255,255,0.04) 24px, rgba(255,255,255,0.04) 25px)",
+                    }}
+                />
+                {/* Coffee stain */}
+                <div
+                    className="absolute top-4 right-8 w-16 h-16 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, rgba(180,130,80,0.08) 0%, rgba(180,130,80,0.03) 50%, transparent 70%)" }}
+                />
+                <div className="relative z-10 p-6">
+                    {/* Masthead */}
+                    <div className="flex items-center justify-between mb-2 pb-2" style={{ borderBottom: "2px solid #444" }}>
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.3em", color: "rgba(255,255,255,0.75)", textTransform: "uppercase" }}>
+                            The Daily Wisdom
+                        </div>
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "9px", color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>
+                            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        </div>
+                    </div>
+                    <div className="mb-4" style={{ borderBottom: "1px solid #444" }}/>
+                    {/* Body */}
+                    <div className="flex gap-4">
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: "80px", lineHeight: 1, color: "rgba(255,255,255,0.1)", marginTop: "-10px", flexShrink: 0, userSelect: "none" }}>
+                            &ldquo;
+                        </div>
+                        <div className="flex-1">
+                            <p style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "17px", lineHeight: 1.6, color: "rgba(255,255,255,0.85)", fontStyle: "italic", letterSpacing: "0.01em" }}>
+                                {dailyQuote.text}
+                            </p>
+                            <div className="mt-3 flex items-center gap-2">
+                                <div style={{ width: "24px", height: "1px", background: "#444" }}/>
+                                <p style={{ fontFamily: "Georgia, serif", fontSize: "11px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+                                    By {dailyQuote.author}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Dummy column lines */}
+                    <div className="mt-4 pt-3 grid grid-cols-3 gap-3" style={{ borderTop: "1px solid #333" }}>
+                        {([[90,75,85],[70,95,80],[85,70,90]] as number[][]).map((widths, i) => (
+                            <div key={i} className="flex flex-col gap-1">
+                                {widths.map((w, j) => (
+                                    <div key={j} className="rounded-sm" style={{ height: "6px", background: "rgba(255,255,255,0.12)", width: w + "%" }}/>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
