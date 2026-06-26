@@ -239,10 +239,14 @@ export default function SubjectPage() {
                     fetchTopicsBySubject(id as string),
                 ]);
                 setSubject(subData);
-                
+
                 const topicGroups: TopicGroup[] = [];
-                if (directTopics.length > 0) {
-                    topicGroups.push({ textbookId: null, textbookTitle: "Общие темы", topics: directTopics });
+                // Only show topics without a textbookId in the direct/standalone column.
+                // Topics that have a textbookId also come back from fetchTopicsBySubject
+                // (because they share subjectId), which would cause them to appear in both columns.
+                const standaloneTopics = directTopics.filter(tp => !tp.textbookId);
+                if (standaloneTopics.length > 0) {
+                    topicGroups.push({ textbookId: null, textbookTitle: "Общие темы", topics: standaloneTopics });
                 }
 
                 // Fetch topics for all textbooks in parallel
