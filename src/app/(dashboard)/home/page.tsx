@@ -69,10 +69,6 @@ export default function HomePage() {
     const futureExams = upcomingExams.filter((e) => e.date > new Date());
     const nextExam = futureExams[0] ?? null;
 
-    // ── Short quote for SVG (SVG text doesn't wrap) ────────────────────────────
-    const shortQuote = dailyQuote.text.length > 60
-        ? dailyQuote.text.substring(0, 57) + "..."
-        : dailyQuote.text;
 
     // ── Dream uni helpers ──────────────────────────────────────────────────────
     const selectedUni = TOP_UNIVERSITIES.find((u) => u.id === dreamUni) ?? null;
@@ -144,157 +140,98 @@ export default function HomePage() {
 
             {/* ── Daily Quote ───────────────────────────────────────────────── */}
 
-            {/* Light mode — ink sketch rock SVG */}
-            <div className="relative w-full block dark:hidden" style={{ minHeight: "220px" }}>
-                <svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" style={{ minHeight: "220px" }}>
-                    <defs>
-                        <pattern id="hatch1" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
-                            <line x1="0" y1="0" x2="0" y2="4" stroke="#1e293b" strokeWidth="0.6" opacity="0.4"/>
-                        </pattern>
-                        <pattern id="hatch2" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(-45)">
-                            <line x1="0" y1="0" x2="0" y2="4" stroke="#1e293b" strokeWidth="0.6" opacity="0.3"/>
-                        </pattern>
-                        <pattern id="hatch3" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(20)">
-                            <line x1="0" y1="0" x2="0" y2="3" stroke="#1e293b" strokeWidth="0.5" opacity="0.5"/>
-                        </pattern>
-                        <pattern id="crosshatch" patternUnits="userSpaceOnUse" width="5" height="5">
-                            <line x1="0" y1="0" x2="5" y2="5" stroke="#1e293b" strokeWidth="0.5" opacity="0.35"/>
-                            <line x1="5" y1="0" x2="0" y2="5" stroke="#1e293b" strokeWidth="0.5" opacity="0.35"/>
-                        </pattern>
-                    </defs>
-                    {/* Main rock face */}
-                    <polygon points="40,200 100,30 720,20 780,200" fill="#f8f7f4" stroke="#1e293b" strokeWidth="1.5"/>
-                    <polygon points="40,200 100,30 720,20 780,200" fill="url(#hatch1)" opacity="0.3"/>
-                    {/* Top left angular face */}
-                    <polygon points="100,30 140,15 170,35 120,50" fill="#e8e4dc" stroke="#1e293b" strokeWidth="1.2"/>
-                    <polygon points="100,30 140,15 170,35 120,50" fill="url(#hatch3)" opacity="0.6"/>
-                    {/* Top right angular face */}
-                    <polygon points="680,18 720,20 750,10 700,8" fill="#e8e4dc" stroke="#1e293b" strokeWidth="1.2"/>
-                    <polygon points="680,18 720,20 750,10 700,8" fill="url(#hatch2)" opacity="0.5"/>
-                    {/* Left shadow face */}
-                    <polygon points="10,210 40,200 100,30 60,40" fill="#c8c4bc" stroke="#1e293b" strokeWidth="1.2"/>
-                    <polygon points="10,210 40,200 100,30 60,40" fill="url(#crosshatch)" opacity="0.7"/>
-                    {/* Right shadow face */}
-                    <polygon points="780,200 820,210 760,40 720,20" fill="#c8c4bc" stroke="#1e293b" strokeWidth="1.2"/>
-                    <polygon points="780,200 820,210 760,40 720,20" fill="url(#crosshatch)" opacity="0.7"/>
-                    {/* Cracks */}
-                    <path d="M200,40 L210,90 L195,140 L205,190" stroke="#1e293b" strokeWidth="1" fill="none" opacity="0.5"/>
-                    <path d="M580,25 L570,70 L585,120" stroke="#1e293b" strokeWidth="0.8" fill="none" opacity="0.4"/>
-                    <path d="M350,20 L360,60 L345,80" stroke="#1e293b" strokeWidth="0.7" fill="none" opacity="0.3"/>
-                    {/* Bottom chunks */}
-                    <polygon points="40,200 120,210 100,220 30,215" fill="#d4d0c8" stroke="#1e293b" strokeWidth="1"/>
-                    <polygon points="650,205 750,210 780,200 720,198" fill="#d4d0c8" stroke="#1e293b" strokeWidth="1"/>
-                    {/* Bottom shadow hatch */}
-                    <polygon points="40,200 780,200 750,215 70,215" fill="url(#hatch3)" opacity="0.4"/>
-                    {/* Fine hatching right area */}
-                    {[0,1,2,3,4,5].map(i => (
-                        <line key={i} x1={620+i*8} y1={30+i*4} x2={650+i*8} y2={190-i*2} stroke="#1e293b" strokeWidth="0.4" opacity="0.2"/>
-                    ))}
-                    {/* Engraving lines */}
-                    <line x1="180" y1="75" x2="620" y2="73" stroke="#1e293b" strokeWidth="0.8" opacity="0.3"/>
-                    <line x1="200" y1="168" x2="600" y2="166" stroke="#1e293b" strokeWidth="0.8" opacity="0.3"/>
-                    {/* Decorative diamond */}
-                    <polygon points="400,70 404,74 400,78 396,74" fill="#1e293b" opacity="0.4"/>
-                    {/* Quote text */}
-                    <text
-                        x="400" y="108"
-                        textAnchor="middle"
-                        style={{
-                            fontFamily: "Georgia, serif",
-                            fontSize: "17px",
-                            fontStyle: "italic",
-                            fill: "#2d3748",
-                            filter: "drop-shadow(1px 1px 0px rgba(255,255,255,0.8))",
-                        }}
-                    >
-                        &quot;{shortQuote}&quot;
-                    </text>
-                    {/* Author */}
-                    <text
-                        x="400" y="148"
-                        textAnchor="middle"
-                        style={{
-                            fontFamily: "var(--font-montserrat), system-ui",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            fill: "#4a5568",
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            filter: "drop-shadow(1px 1px 0px rgba(255,255,255,0.8))",
-                        }}
-                    >
-                        — {dailyQuote.author}
-                    </text>
-                    {/* Ground shadow */}
-                    <ellipse cx="410" cy="218" rx="370" ry="8" fill="rgba(0,0,0,0.08)"/>
-                </svg>
-            </div>
-
-            {/* Dark mode — stone carved card */}
+            {/* ── Cinematic film strip quote card ───────────────────────── */}
             <div
-                className="relative overflow-hidden rounded-2xl hidden dark:block"
+                className="relative overflow-hidden rounded-2xl"
                 style={{
-                    background: "linear-gradient(135deg, #8B7355 0%, #6B5B45 30%, #7A6448 60%, #5C4A35 100%)",
-                    boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.3)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
+                    minHeight: "160px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
                 }}
             >
-                <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E")`,
-                        opacity: 0.6,
-                        mixBlendMode: "overlay",
-                    }}
-                />
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20,0 L25,40 L18,80 L28,130" stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none"/>
-                    <path d="M280,20 L275,60 L285,100" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" fill="none"/>
-                    <path d="M150,180 L160,200 L155,220" stroke="rgba(0,0,0,0.1)" strokeWidth="0.6" fill="none"/>
-                </svg>
-                <div className="relative z-10 p-7">
-                    <div
-                        className="text-6xl leading-none mb-2 select-none"
-                        style={{
-                            color: "transparent",
-                            WebkitTextStroke: "1px rgba(255,255,255,0.15)",
-                            textShadow: "1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.1)",
-                            fontFamily: "Georgia, serif",
-                            lineHeight: 0.8,
-                        }}
-                    >
-                        &ldquo;
+                {/* Starfield */}
+                <div className="absolute inset-0 overflow-hidden">
+                    {Array.from({ length: 40 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute rounded-full"
+                            style={{
+                                width: (i % 3 === 0 ? 2 : 1) + "px",
+                                height: (i % 3 === 0 ? 2 : 1) + "px",
+                                top: ((i * 37 + 11) % 100) + "%",
+                                left: ((i * 61 + 7) % 100) + "%",
+                                background: "white",
+                                opacity: (i % 5 === 0 ? 0.55 : 0.2),
+                            }}
+                        />
+                    ))}
+                </div>
+                {/* Left perforations */}
+                <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-around items-center py-3" style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}/>
+                    ))}
+                </div>
+                {/* Right perforations */}
+                <div className="absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-around items-center py-3" style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}/>
+                    ))}
+                </div>
+                {/* Content */}
+                <div className="relative z-10 px-14 py-8 flex flex-col items-center justify-center text-center gap-4">
+                    <div className="flex items-center gap-3 w-full">
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2))" }}/>
+                        <div className="flex gap-1">
+                            {[0,1,2].map((i) => (
+                                <div key={i} className="w-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }}/>
+                            ))}
+                        </div>
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, rgba(255,255,255,0.2))" }}/>
                     </div>
                     <p
                         className="text-lg leading-relaxed"
                         style={{
-                            fontFamily: "var(--font-montserrat), system-ui, sans-serif",
-                            color: "transparent",
-                            WebkitTextStroke: "0.5px rgba(255,255,255,0.6)",
-                            textShadow: "1px 1px 3px rgba(0,0,0,0.8), -0.5px -0.5px 1px rgba(255,255,255,0.15)",
-                            letterSpacing: "0.02em",
+                            fontFamily: "Georgia, 'Times New Roman', serif",
+                            fontStyle: "italic",
+                            color: "rgba(255,255,255,0.92)",
+                            textShadow: "0 0 30px rgba(139,92,246,0.4)",
+                            letterSpacing: "0.01em",
                         }}
                     >
-                        {dailyQuote.text}
+                        &ldquo;{dailyQuote.text}&rdquo;
                     </p>
-                    <div className="mt-4 flex items-center gap-2">
-                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.1)" }}/>
+                    <div className="flex items-center gap-3">
+                        <div className="w-6 h-px" style={{ background: "rgba(139,92,246,0.6)" }}/>
                         <p
-                            className="text-sm font-semibold"
                             style={{
-                                color: "transparent",
-                                WebkitTextStroke: "0.5px rgba(255,255,255,0.4)",
-                                textShadow: "1px 1px 2px rgba(0,0,0,0.8), -0.5px -0.5px 1px rgba(255,255,255,0.1)",
-                                letterSpacing: "0.1em",
-                                textTransform: "uppercase",
                                 fontFamily: "var(--font-montserrat), system-ui",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                color: "rgba(139,92,246,0.9)",
+                                letterSpacing: "0.2em",
+                                textTransform: "uppercase",
                             }}
                         >
                             {dailyQuote.author}
                         </p>
-                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.1)" }}/>
+                        <div className="w-6 h-px" style={{ background: "rgba(139,92,246,0.6)" }}/>
+                    </div>
+                    <div className="flex items-center gap-3 w-full">
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2))" }}/>
+                        <div className="flex gap-1">
+                            {[0,1,2].map((i) => (
+                                <div key={i} className="w-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }}/>
+                            ))}
+                        </div>
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, rgba(255,255,255,0.2))" }}/>
                     </div>
                 </div>
+                {/* Bottom glow */}
+                <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-16 pointer-events-none"
+                    style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.3) 0%, transparent 70%)" }}
+                />
             </div>
 
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
