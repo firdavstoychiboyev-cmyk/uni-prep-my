@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { adminFetchCollection, adminAddItem, adminDeleteItem } from "@/lib/admin-utils";
+import { Fragment, useEffect, useState } from "react";
+import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } from "@/lib/admin-utils";
 import { Textbook, Subject, Language } from "@/lib/firestore-schema";
-import { Plus, Trash2, Library } from "lucide-react";
+import { Plus, Trash2, Library, Edit2, X, CheckCircle2 } from "lucide-react";
 import { pageCache } from "@/lib/page-cache";
 import { useStatsStore } from "@/store/useStatsStore";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
@@ -12,20 +12,25 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 export default function AdminTextbooksPage() {
     const { t } = useTranslation();
     const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [subjects, setSubjects]   = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
+    const [isAdding, setIsAdding]   = useState(false);
 
-    // Content language filter — mirrors the subjects page pattern
     const [contentLang, setContentLang] = useState<Language>("ru");
 
     // Create form
-    const [title, setTitle] = useState("");
-    const [grade, setGrade] = useState("");
+    const [title, setTitle]       = useState("");
+    const [grade, setGrade]       = useState("");
     const [subjectId, setSubjectId] = useState("");
 
-    // Sort by "title" so documents without a "createdAt" field (imported via script) are included.
-    // Firestore's orderBy silently excludes documents that don't have the sorted field.
+    // Edit form
+    const [editingId, setEditingId]         = useState<string | null>(null);
+    const [editTitle, setEditTitle]         = useState("");
+    const [editGrade, setEditGrade]         = useState("");
+    const [editSubjectId, setEditSubjectId] = useState("");
+    const [saveSuccess, setSaveSuccess]     = useState(false);
+
+    // Sort by "title" so imported docs (no "createdAt") are included.
     useEffect(() => {
         Promise.all([
             adminFetchCollection("textbooks", "title"),
@@ -37,8 +42,6 @@ export default function AdminTextbooksPage() {
         });
     }, []);
 
-    // Filter both textbooks and the subject dropdown to the selected language.
-    // Documents with no language field are treated as "ru" for backwards compatibility.
     const langOf = (item: { language?: Language }) => item.language ?? "ru";
     const visibleTextbooks = textbooks.filter(tb => langOf(tb) === contentLang);
     const visibleSubjects  = subjects.filter(s  => langOf(s)  === contentLang);
@@ -47,20 +50,13 @@ export default function AdminTextbooksPage() {
         e.preventDefault();
         if (!subjectId) return;
         try {
-            const newTextbook = {
-                title,
-                grade,
-                subjectId,
-                coverImage: "",
-                language: contentLang,   // ← was missing before
-            };
-            const created = await adminAddItem("textbooks", newTextbook);
+            const created = await adminAddItem("textbooks", {
+                title, grade, subjectId, coverImage: "", language: contentLang,
+            });
             pageCache.invalidatePrefix("textbooks");
             useStatsStore.getState().reset();
             setTextbooks(prev => [created as Textbook, ...prev]);
-            setTitle("");
-            setGrade("");
-            setSubjectId("");
+            setTitle(""); setGrade(""); setSubjectId("");
             setIsAdding(false);
         } catch {
             alert(t("admin.errorAddTextbook"));
@@ -74,8 +70,38 @@ export default function AdminTextbooksPage() {
             pageCache.invalidatePrefix("textbooks");
             useStatsStore.getState().reset();
             setTextbooks(prev => prev.filter(tb => tb.id !== id));
+            if (editingId === id) setEditingId(null);
         } catch {
             alert(t("admin.errorDelete"));
+        }
+    };
+
+    const startEdit = (tb: Textbook) => {
+        setIsAdding(false);
+        setEditingId(tb.id);
+        setEditTitle(tb.title);
+        setEditGrade(String(tb.grade));
+        setEditSubjectId(String(tb.subjectId));
+        setSaveSuccess(false);
+    };
+
+    const cancelEdit = () => { setEditingId(null); setSaveSuccess(false); };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingId) return;
+        try {
+            const payload = { title: editTitle.trim(), grade: editGrade.trim(), subjectId: editSubjectId };
+            await adminUpdateItem("textbooks", editingId, payload);
+            pageCache.invalidatePrefix("textbooks");
+            useStatsStore.getState().reset();
+            setTextbooks(prev =>
+                prev.map(tb => tb.id === editingId ? { ...tb, ...payload } : tb)
+            );
+            setSaveSuccess(true);
+            setTimeout(() => { setEditingId(null); setSaveSuccess(false); }, 1200);
+        } catch {
+            alert(t("admin.errorSave"));
         }
     };
 
@@ -87,7 +113,7 @@ export default function AdminTextbooksPage() {
                     <p className="text-muted-foreground mt-2">{t("admin.textbooksSubtitle")}</p>
                 </section>
                 <button
-                    onClick={() => { setIsAdding(!isAdding); setSubjectId(""); }}
+                    onClick={() => { setIsAdding(v => !v); setSubjectId(""); setEditingId(null); }}
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 transition-all shadow-sm"
                 >
                     <Plus size={20} />
@@ -100,10 +126,11 @@ export default function AdminTextbooksPage() {
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.contentLang")}</label>
                 <AdminLanguageToggle
                     value={contentLang}
-                    onChange={(l) => { setContentLang(l); setIsAdding(false); setSubjectId(""); }}
+                    onChange={(l) => { setContentLang(l); setIsAdding(false); setSubjectId(""); setEditingId(null); }}
                 />
             </div>
 
+            {/* Create form */}
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 flex flex-col md:flex-row gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex-[2] space-y-2">
@@ -155,32 +182,116 @@ export default function AdminTextbooksPage() {
                             visibleTextbooks.map(textbook => {
                                 const subject = subjects.find(s => s.id === String(textbook.subjectId).trim());
                                 return (
-                                    <tr key={textbook.id} className="hover:bg-muted/40 transition-colors group text-sm">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-3">
-                                                <Library size={18} className="text-muted-foreground" />
-                                                <span className="font-semibold text-foreground tracking-tight">{textbook.title}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-muted-foreground font-medium">{subject?.name || t("admin.unknown")}</td>
-                                        <td className="px-8 py-6 text-muted-foreground">{textbook.grade}</td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <a
-                                                    href={`/admin/topics?textbookId=${textbook.id}`}
-                                                    className="text-xs font-bold uppercase tracking-widest text-blue-600 hover:underline"
-                                                >
-                                                    {t("stats.topics")}
-                                                </a>
-                                                <button
-                                                    onClick={() => handleDelete(textbook.id)}
-                                                    className="p-2 text-muted-foreground hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <Fragment key={textbook.id}>
+                                        <tr className="hover:bg-muted/40 transition-colors group text-sm">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <Library size={18} className="text-muted-foreground" />
+                                                    <span className="font-semibold text-foreground tracking-tight">{textbook.title}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-muted-foreground font-medium">{subject?.name || t("admin.unknown")}</td>
+                                            <td className="px-8 py-6 text-muted-foreground">{textbook.grade}</td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <a
+                                                        href={`/admin/topics?textbookId=${textbook.id}`}
+                                                        className="text-xs font-bold uppercase tracking-widest text-blue-600 hover:underline px-2 py-1"
+                                                    >
+                                                        {t("stats.topics")}
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => editingId === textbook.id ? cancelEdit() : startEdit(textbook)}
+                                                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                        title={editingId === textbook.id ? t("common.close") : t("common.edit")}
+                                                    >
+                                                        {editingId === textbook.id ? <X size={18} /> : <Edit2 size={18} />}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(textbook.id)}
+                                                        className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                                                        title={t("common.delete")}
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        {/* Inline edit row */}
+                                        {editingId === textbook.id && (
+                                            <tr className="border-b border-border bg-muted/25">
+                                                <td colSpan={4} className="px-8 py-6">
+                                                    <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
+                                                        <p className="text-sm font-semibold text-foreground">{t("admin.editTextbook")}</p>
+                                                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                            {/* Title */}
+                                                            <div className="space-y-2 sm:col-span-2">
+                                                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</label>
+                                                                <input
+                                                                    value={editTitle}
+                                                                    onChange={e => setEditTitle(e.target.value)}
+                                                                    required
+                                                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                                                                />
+                                                            </div>
+                                                            {/* Grade */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.grade")}</label>
+                                                                <input
+                                                                    value={editGrade}
+                                                                    onChange={e => setEditGrade(e.target.value)}
+                                                                    required
+                                                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                                                                />
+                                                            </div>
+                                                            {/* Subject */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("common.subject")}</label>
+                                                                <select
+                                                                    value={editSubjectId}
+                                                                    onChange={e => setEditSubjectId(e.target.value)}
+                                                                    required
+                                                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 appearance-none"
+                                                                >
+                                                                    <option value="">{t("admin.selectSubject")}</option>
+                                                                    {visibleSubjects.map(s => (
+                                                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            {saveSuccess ? (
+                                                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-semibold">
+                                                                    <CheckCircle2 size={16} />
+                                                                    {t("common.saved")}
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        type="submit"
+                                                                        className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
+                                                                    >
+                                                                        {t("common.save")}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={cancelEdit}
+                                                                        className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                                                                    >
+                                                                        {t("common.cancel")}
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </Fragment>
                                 );
                             })
                         ) : (
