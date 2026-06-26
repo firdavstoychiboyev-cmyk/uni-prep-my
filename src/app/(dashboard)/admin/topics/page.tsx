@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { adminFetchCollection, adminAddItem, adminDeleteItem, adminUpdateItem } from "@/lib/admin-utils";
 import { Topic, Textbook, Subject, Language } from "@/lib/firestore-schema";
-import { Plus, Trash2, ListTree, Edit2, X, BookOpen, Layers } from "lucide-react";
+import { Plus, Trash2, ListTree, Edit2, X, BookOpen, Layers, CheckCircle2 } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { pageCache } from "@/lib/page-cache";
 import { useStatsStore } from "@/store/useStatsStore";
@@ -14,26 +14,30 @@ type Mode = "textbook" | "direct";
 
 export default function AdminTopicsPage() {
     const { t } = useTranslation();
-    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [subjects, setSubjects]   = useState<Subject[]>([]);
     const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-    const [topics, setTopics] = useState<Topic[]>([]);
+    const [topics, setTopics]       = useState<Topic[]>([]);
 
-    const [mode, setMode] = useState<Mode>("textbook");
-    const [contentLang, setContentLang] = useState<Language>("ru");
-    const [selectedSubject, setSelectedSubject] = useState("");
+    const [mode, setMode]                     = useState<Mode>("textbook");
+    const [contentLang, setContentLang]       = useState<Language>("ru");
+    const [selectedSubject, setSelectedSubject]   = useState("");
     const [selectedTextbook, setSelectedTextbook] = useState("");
 
     const [isLoading, setIsLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
+    const [isAdding, setIsAdding]   = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
-    // Форма создания
+    // Create form
     const [title, setTitle] = useState("");
     const [order, setOrder] = useState("");
 
-    // Форма редактирования
-    const [editTitle, setEditTitle] = useState("");
-    const [editOrder, setEditOrder] = useState("");
+    // Edit form
+    const [editTitle, setEditTitle]           = useState("");
+    const [editOrder, setEditOrder]           = useState("");
+    const [editSubjectId, setEditSubjectId]   = useState("");
+    const [editTextbookId, setEditTextbookId] = useState("");
+    const [editTextbooks, setEditTextbooks]   = useState<Textbook[]>([]);
 
     useEffect(() => {
         adminFetchCollection("subjects", "name").then(data => {
@@ -42,7 +46,15 @@ export default function AdminTopicsPage() {
         });
     }, []);
 
-    // При смене режима — сброс
+    // When the edit form's subject changes, load its textbooks
+    useEffect(() => {
+        if (editSubjectId && mode === "textbook") {
+            fetchTextbooksBySubject(editSubjectId).then(setEditTextbooks);
+        } else {
+            setEditTextbooks([]);
+        }
+    }, [editSubjectId, mode]);
+
     const switchMode = (m: Mode) => {
         setMode(m);
         setSelectedSubject("");
@@ -52,8 +64,7 @@ export default function AdminTopicsPage() {
         setEditingId(null);
     };
 
-    // Предметы выбранного языка (отсутствие языка трактуется как 'ru')
-    const visibleSubjects = subjects.filter((s) => (s.language ?? "ru") === contentLang);
+    const visibleSubjects = subjects.filter(s => (s.language ?? "ru") === contentLang);
 
     useEffect(() => {
         if (selectedSubject && mode === "textbook") {
@@ -112,48 +123,64 @@ export default function AdminTopicsPage() {
             await adminDeleteItem("topics", id);
             pageCache.invalidatePrefix("topics");
             useStatsStore.getState().reset();
-            setTopics((prev) => prev.filter((tp) => tp.id !== id));
+            setTopics(prev => prev.filter(tp => tp.id !== id));
             if (editingId === id) setEditingId(null);
         } catch {
             alert(t("admin.errorDelete"));
         }
     };
 
-    const startEdit = (t: Topic) => {
+    const startEdit = (tp: Topic) => {
         setIsAdding(false);
-        setEditingId(t.id);
-        setEditTitle(t.title);
-        setEditOrder(String(t.order ?? 0));
+        setEditingId(tp.id);
+        setEditTitle(tp.title);
+        setEditOrder(String(tp.order ?? 0));
+        setSaveSuccess(false);
+        // Resolve the subject: direct topics have subjectId; textbook topics → look it up from loaded textbooks
+        const subjId = tp.subjectId
+            ?? String(textbooks.find(tb => tb.id === tp.textbookId)?.subjectId ?? "");
+        setEditSubjectId(subjId);
+        setEditTextbookId(tp.textbookId ?? "");
     };
 
-    const cancelEdit = () => setEditingId(null);
+    const cancelEdit = () => { setEditingId(null); setSaveSuccess(false); };
 
     const handleSaveEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingId) return;
         const orderNum = Number.parseInt(editOrder, 10);
-        if (Number.isNaN(orderNum)) {
-            alert(t("admin.orderInt"));
-            return;
-        }
-        const current = topics.find((tp) => tp.id === editingId);
+        if (Number.isNaN(orderNum)) { alert(t("admin.orderInt")); return; }
+
+        const current = topics.find(tp => tp.id === editingId);
         if (!current) return;
+
         try {
             const payload: Record<string, unknown> = {
                 title: editTitle.trim(),
                 order: orderNum,
             };
-            if (current.textbookId) payload.textbookId = current.textbookId;
-            if (current.subjectId) payload.subjectId = current.subjectId;
+
+            if (mode === "textbook" && editTextbookId) {
+                payload.textbookId = editTextbookId;
+                // Keep subjectId in sync if we can resolve it
+                const tb = editTextbooks.find(tb => tb.id === editTextbookId)
+                        ?? textbooks.find(tb => tb.id === editTextbookId);
+                if (tb?.subjectId) payload.subjectId = String(tb.subjectId);
+            } else if (mode === "direct" && editSubjectId) {
+                payload.subjectId = editSubjectId;
+            }
+
             await adminUpdateItem("topics", editingId, payload);
             pageCache.invalidatePrefix("topics");
             useStatsStore.getState().reset();
-            setTopics((prev) =>
+            setTopics(prev =>
                 prev
-                    .map((tp) => (tp.id === editingId ? { ...tp, ...payload } : tp))
+                    .map(tp => tp.id === editingId ? { ...tp, ...payload } as Topic : tp)
                     .sort((a, b) => a.order - b.order)
             );
-            setEditingId(null);
+            setSaveSuccess(true);
+            // Auto-close after brief success flash
+            setTimeout(() => { setEditingId(null); setSaveSuccess(false); }, 1200);
         } catch {
             alert(t("admin.errorSave"));
         }
@@ -161,7 +188,7 @@ export default function AdminTopicsPage() {
 
     const emptyMessage = mode === "textbook"
         ? (!selectedTextbook ? t("admin.selectTextbookToSeeTopics") : t("admin.noTopics"))
-        : (!selectedSubject ? t("admin.selectSubjectToSeeTopics") : t("admin.noTopics"));
+        : (!selectedSubject  ? t("admin.selectSubjectToSeeTopics")  : t("admin.noTopics"));
 
     return (
         <div className="flex flex-col gap-12">
@@ -171,10 +198,7 @@ export default function AdminTopicsPage() {
                     <p className="text-muted-foreground mt-2">{t("admin.topicsSubtitle")}</p>
                 </section>
                 <button
-                    onClick={() => {
-                        setIsAdding((v) => !v);
-                        if (!isAdding) setEditingId(null);
-                    }}
+                    onClick={() => { setIsAdding(v => !v); if (!isAdding) setEditingId(null); }}
                     disabled={!canAdd}
                     className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
                 >
@@ -256,6 +280,7 @@ export default function AdminTopicsPage() {
                 )}
             </section>
 
+            {/* Create form */}
             {isAdding && (
                 <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-8 flex flex-col md:flex-row gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex-[2] space-y-2">
@@ -281,6 +306,7 @@ export default function AdminTopicsPage() {
                 </form>
             )}
 
+            {/* Topics table */}
             <section className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                     <thead className="bg-muted/50 border-b border-border">
@@ -305,16 +331,12 @@ export default function AdminTopicsPage() {
                                                 <span className="font-semibold text-foreground tracking-tight">{topic.title}</span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-muted-foreground font-medium tabular-nums">
-                                            {topic.totalQuestions}
-                                        </td>
+                                        <td className="px-8 py-6 text-muted-foreground font-medium tabular-nums">{topic.totalQuestions}</td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
                                                     type="button"
-                                                    onClick={() =>
-                                                        editingId === topic.id ? cancelEdit() : startEdit(topic)
-                                                    }
+                                                    onClick={() => editingId === topic.id ? cancelEdit() : startEdit(topic)}
                                                     className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                                     title={editingId === topic.id ? t("common.close") : t("common.edit")}
                                                 >
@@ -324,55 +346,103 @@ export default function AdminTopicsPage() {
                                                     type="button"
                                                     onClick={() => handleDelete(topic.id)}
                                                     className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                                                    title={t("common.delete")}
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
+
+                                    {/* Inline edit row */}
                                     {editingId === topic.id && (
                                         <tr className="border-b border-border bg-muted/25">
                                             <td colSpan={4} className="px-8 py-6">
                                                 <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
                                                     <p className="text-sm font-semibold text-foreground">{t("admin.editTopic")}</p>
+
                                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                        {/* Title */}
                                                         <div className="space-y-2 sm:col-span-2">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                                                {t("admin.name")}
-                                                            </label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</label>
                                                             <input
                                                                 value={editTitle}
-                                                                onChange={(e) => setEditTitle(e.target.value)}
+                                                                onChange={e => setEditTitle(e.target.value)}
                                                                 required
                                                                 className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                                                             />
                                                         </div>
+
+                                                        {/* Order */}
                                                         <div className="space-y-2">
-                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                                                {t("admin.order")}
-                                                            </label>
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.order")}</label>
                                                             <input
                                                                 type="number"
                                                                 value={editOrder}
-                                                                onChange={(e) => setEditOrder(e.target.value)}
+                                                                onChange={e => setEditOrder(e.target.value)}
                                                                 className="w-full rounded-lg border border-border bg-background p-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/30"
                                                             />
                                                         </div>
+
+                                                        {/* Subject */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("common.subject")}</label>
+                                                            <select
+                                                                value={editSubjectId}
+                                                                onChange={e => { setEditSubjectId(e.target.value); setEditTextbookId(""); }}
+                                                                className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 appearance-none"
+                                                            >
+                                                                <option value="">{t("admin.selectSubject")}</option>
+                                                                {visibleSubjects.map(s => (
+                                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Textbook — only in textbook mode */}
+                                                        {mode === "textbook" && (
+                                                            <div className="space-y-2 sm:col-span-2">
+                                                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("subject.textbooks")}</label>
+                                                                <select
+                                                                    value={editTextbookId}
+                                                                    onChange={e => setEditTextbookId(e.target.value)}
+                                                                    disabled={!editSubjectId}
+                                                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 appearance-none disabled:opacity-50"
+                                                                >
+                                                                    <option value="">{t("admin.selectTextbook")}</option>
+                                                                    {(editTextbooks.length > 0 ? editTextbooks : textbooks).map(tb => (
+                                                                        <option key={tb.id} value={tb.id}>
+                                                                            {tb.title} ({t("admin.gradeShort", { grade: String(tb.grade) })})
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <button
-                                                            type="submit"
-                                                            className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
-                                                        >
-                                                            {t("common.save")}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={cancelEdit}
-                                                            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
-                                                        >
-                                                            {t("common.cancel")}
-                                                        </button>
+
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {saveSuccess ? (
+                                                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-semibold">
+                                                                <CheckCircle2 size={16} />
+                                                                {t("common.saved")}
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    type="submit"
+                                                                    className="rounded-lg bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
+                                                                >
+                                                                    {t("common.save")}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={cancelEdit}
+                                                                    className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                                                                >
+                                                                    {t("common.cancel")}
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </form>
                                             </td>

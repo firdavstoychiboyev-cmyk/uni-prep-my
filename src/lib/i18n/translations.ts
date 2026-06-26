@@ -9,6 +9,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ru: {
         // ── Common ───────────────────────────────────────────────
         "common.save": "Сохранить",
+        "common.saved": "Сохранено",
         "common.saving": "Сохранение…",
         "common.cancel": "Отмена",
         "common.delete": "Удалить",
@@ -415,6 +416,7 @@ export const translations: Record<Language, Record<string, string>> = {
     uz: {
         // ── Common ───────────────────────────────────────────────
         "common.save": "Saqlash",
+        "common.saved": "Saqlandi",
         "common.saving": "Saqlanmoqda…",
         "common.cancel": "Bekor qilish",
         "common.delete": "O‘chirish",
