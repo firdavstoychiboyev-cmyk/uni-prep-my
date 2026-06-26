@@ -138,11 +138,73 @@ export default function HomePage() {
             </div>
 
             {/* ── Daily Quote ───────────────────────────────────────────────── */}
-            <div className="rounded-2xl border border-border bg-card p-6">
-                <p className="text-lg italic text-foreground leading-relaxed" style={{ fontFamily: "var(--font-montserrat)" }}>
-                    &ldquo;{dailyQuote.text}&rdquo;
-                </p>
-                <p className="mt-3 text-sm font-semibold text-muted-foreground">— {dailyQuote.author}</p>
+            <div
+                className="relative overflow-hidden rounded-2xl"
+                style={{
+                    background: "linear-gradient(135deg, #8B7355 0%, #6B5B45 30%, #7A6448 60%, #5C4A35 100%)",
+                    boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.3)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                }}
+            >
+                {/* Rock texture overlay */}
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E")`,
+                        opacity: 0.6,
+                        mixBlendMode: "overlay",
+                    }}
+                />
+                {/* Crack lines */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20,0 L25,40 L18,80 L28,130" stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none"/>
+                    <path d="M280,20 L275,60 L285,100" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" fill="none"/>
+                    <path d="M150,180 L160,200 L155,220" stroke="rgba(0,0,0,0.1)" strokeWidth="0.6" fill="none"/>
+                </svg>
+                {/* Content */}
+                <div className="relative z-10 p-7">
+                    <div
+                        className="text-6xl leading-none mb-2 select-none"
+                        style={{
+                            color: "transparent",
+                            WebkitTextStroke: "1px rgba(255,255,255,0.15)",
+                            textShadow: "1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.1)",
+                            fontFamily: "Georgia, serif",
+                            lineHeight: 0.8,
+                        }}
+                    >
+                        &ldquo;
+                    </div>
+                    <p
+                        className="text-lg leading-relaxed"
+                        style={{
+                            fontFamily: "var(--font-montserrat), system-ui, sans-serif",
+                            color: "transparent",
+                            WebkitTextStroke: "0.5px rgba(255,255,255,0.6)",
+                            textShadow: "1px 1px 3px rgba(0,0,0,0.8), -0.5px -0.5px 1px rgba(255,255,255,0.15)",
+                            letterSpacing: "0.02em",
+                        }}
+                    >
+                        {dailyQuote.text}
+                    </p>
+                    <div className="mt-4 flex items-center gap-2">
+                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.1)" }}/>
+                        <p
+                            className="text-sm font-semibold"
+                            style={{
+                                color: "transparent",
+                                WebkitTextStroke: "0.5px rgba(255,255,255,0.4)",
+                                textShadow: "1px 1px 2px rgba(0,0,0,0.8), -0.5px -0.5px 1px rgba(255,255,255,0.1)",
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                fontFamily: "var(--font-montserrat), system-ui",
+                            }}
+                        >
+                            {dailyQuote.author}
+                        </p>
+                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.1)" }}/>
+                    </div>
+                </div>
             </div>
 
             {/* ── Exam Countdown ────────────────────────────────────────────── */}
