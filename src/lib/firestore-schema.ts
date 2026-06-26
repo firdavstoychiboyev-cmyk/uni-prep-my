@@ -49,6 +49,7 @@ export interface Textbook {
   grade: string | number;
   coverImage: string;
   createdAt: string;
+  language?: Language;
 }
 
 export interface Topic {
