@@ -36,6 +36,7 @@ export interface Subject {
    * false → языковой предмет (Русский, родной язык) — ведётся вручную отдельно для каждого языка.
    */
   translatable?: boolean;
+  hasTextbooks?: boolean;
   backgroundImage: string;
   topicCount?: number; // Количество тем
   questionCount?: number; // Количество вопросов

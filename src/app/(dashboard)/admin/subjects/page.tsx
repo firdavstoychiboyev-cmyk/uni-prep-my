@@ -34,12 +34,14 @@ export default function AdminSubjectsPage() {
     const [name, setName] = useState("");
     const [color, setColor] = useState("#6366f1");
     const [translatable, setTranslatable] = useState(true);
+    const [hasTextbooks, setHasTextbooks] = useState(false);
 
     // Форма редактирования
     const [editName, setEditName] = useState("");
     const [editColor, setEditColor] = useState("#6366f1");
     const [editOrder, setEditOrder] = useState("0");
     const [editBackgroundImage, setEditBackgroundImage] = useState("");
+    const [editHasTextbooks, setEditHasTextbooks] = useState(false);
 
     useEffect(() => {
         adminFetchCollection("subjects", "order").then(data => {
@@ -90,6 +92,7 @@ export default function AdminSubjectsPage() {
                 order: visibleSubjects.length,
                 language: contentLang,
                 translatable,
+                hasTextbooks,
                 backgroundImage,
             };
             const created = await adminAddItem("subjects", newSubject);
@@ -99,6 +102,7 @@ export default function AdminSubjectsPage() {
             setName("");
             setColor("#6366f1");
             setTranslatable(true);
+            setHasTextbooks(false);
             setIsAdding(false);
         } catch {
             alert(t("admin.errorAdd"));
@@ -125,6 +129,7 @@ export default function AdminSubjectsPage() {
         setEditColor(hexForColorInput(s.color));
         setEditOrder(String(s.order ?? 0));
         setEditBackgroundImage(s.backgroundImage ?? "");
+        setEditHasTextbooks(s.hasTextbooks ?? false);
     };
 
     const cancelEdit = () => setEditingId(null);
@@ -143,6 +148,7 @@ export default function AdminSubjectsPage() {
                 emoji: "",
                 color: editColor,
                 order: orderNum,
+                hasTextbooks: editHasTextbooks,
                 backgroundImage: editBackgroundImage.trim() || getSubjectImage(editingId, editName.trim()),
             };
             await adminUpdateItem("subjects", editingId, payload);
@@ -209,6 +215,33 @@ export default function AdminSubjectsPage() {
                         />
                         <span className="text-sm font-medium text-foreground whitespace-nowrap">{t("admin.translatable")}</span>
                     </label>
+                    <div className="flex flex-col gap-2 lg:pb-0">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Tuzilish turi</label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setHasTextbooks(false)}
+                                className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                                    !hasTextbooks
+                                        ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                        : "border-border text-muted-foreground hover:border-muted-foreground"
+                                }`}
+                            >
+                                📚 Darsliklarsiz
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setHasTextbooks(true)}
+                                className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                                    hasTextbooks
+                                        ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                        : "border-border text-muted-foreground hover:border-muted-foreground"
+                                }`}
+                            >
+                                📖 Darsliklar bilan
+                            </button>
+                        </div>
+                    </div>
                     <button type="submit" className="bg-foreground text-background px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all">
                         {t("common.add")}
                     </button>
@@ -243,7 +276,13 @@ export default function AdminSubjectsPage() {
                                                     <BookOpen className="h-5 w-5 opacity-90" strokeWidth={2} />
                                                 </span>
                                                 <div className="min-w-0">
-                                                    <span className="font-semibold text-foreground tracking-tight block">{subject.name}</span>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-semibold text-foreground tracking-tight">{subject.name}</span>
+                                                        {subject.hasTextbooks
+                                                            ? <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-950 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-300">📖 Darslikli</span>
+                                                            : <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-950 px-2 py-0.5 text-[11px] font-semibold text-green-700 dark:text-green-300">📚 To&apos;g&apos;ridan-to&apos;g&apos;ri</span>
+                                                        }
+                                                    </div>
                                                     <span className="text-xs text-muted-foreground tabular-nums">{t("admin.orderN", { n: subject.order ?? 0 })}</span>
                                                 </div>
                                             </div>
@@ -309,6 +348,33 @@ export default function AdminSubjectsPage() {
                                                                 placeholder="/subjects/math.png"
                                                                 className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                                                             />
+                                                        </div>
+                                                        <div className="space-y-2 sm:col-span-2 lg:col-span-4">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Tuzilish turi</label>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setEditHasTextbooks(false)}
+                                                                    className={`flex-1 py-2 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                                                                        !editHasTextbooks
+                                                                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                                                            : "border-border text-muted-foreground hover:border-muted-foreground"
+                                                                    }`}
+                                                                >
+                                                                    📚 Darsliklarsiz
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setEditHasTextbooks(true)}
+                                                                    className={`flex-1 py-2 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                                                                        editHasTextbooks
+                                                                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                                                            : "border-border text-muted-foreground hover:border-muted-foreground"
+                                                                    }`}
+                                                                >
+                                                                    📖 Darsliklar bilan
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
