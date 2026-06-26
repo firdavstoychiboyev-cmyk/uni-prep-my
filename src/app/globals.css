@@ -130,3 +130,10 @@ nav a {
 .ql-content u { text-decoration: underline; }
 .ql-content sub { vertical-align: sub; font-size: 0.8em; }
 .ql-content sup { vertical-align: super; font-size: 0.8em; }
+
+.landing-bg {
+  background: white;
+}
+.dark .landing-bg {
+  background: linear-gradient(135deg, #0a0a0f 0%, #0d0f1a 50%, #0f0a1a 100%);
+}
