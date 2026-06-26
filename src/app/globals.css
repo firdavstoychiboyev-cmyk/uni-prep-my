@@ -132,8 +132,8 @@ nav a {
 .ql-content sup { vertical-align: super; font-size: 0.8em; }
 
 .landing-bg {
-  background: #1a1a2e;
-  background-image: radial-gradient(circle, rgba(14,165,233,0.05) 1px, transparent 1px);
+  background: #ffffff;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 .dark .landing-bg {

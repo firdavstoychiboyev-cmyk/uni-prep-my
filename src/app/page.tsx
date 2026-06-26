@@ -80,7 +80,7 @@ const universities = [
   { name: "TUIT", fullName: { uz: "Toshkent Axborot Texnologiyalari Universiteti", ru: "Ташкентский университет информационных технологий" }, logo: "https://tuit.uz/images/logo.png", grant: 176.0, contract: 148.0 },
 ];
 
-// ── Animated particles ────────────────────────────────────────────────────────
+// ── Animated particles (dark mode only) ──────────────────────────────────────
 function Particles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -126,7 +126,7 @@ function Particles() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
+      className="fixed inset-0 pointer-events-none hidden dark:block"
       style={{ zIndex: 0 }}
     />
   );
@@ -167,21 +167,17 @@ export default function LandingPage() {
       <div className="relative" style={{ zIndex: 1 }}>
 
         {/* Navbar */}
-        <nav
-          className="sticky top-0 z-50 backdrop-blur-xl border-b px-6 py-4 flex items-center justify-between"
-          style={{ background: "rgba(10,10,20,0.8)", borderColor: "rgba(255,255,255,0.05)" }}
-        >
+        <nav className="sticky top-0 z-50 backdrop-blur-xl border-b bg-white/80 dark:bg-black/40 border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="relative w-9 h-9">
               <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
             </div>
-            <span className="text-xl font-bold tracking-tight" style={{ color: "#ffffff" }}>UniPrep</span>
+            <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">UniPrep</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLang(lang === "uz" ? "ru" : "uz")}
-              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
-              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", background: "transparent" }}
+              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors border border-gray-200 dark:border-white/15 text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10"
             >
               {lang === "uz" ? "RU" : "UZ"}
             </button>
@@ -189,15 +185,13 @@ export default function LandingPage() {
               type="button"
               onClick={toggleTheme}
               aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="h-9 w-9 rounded-full transition-colors flex items-center justify-center"
-              style={{ border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.8)" }}
+              className="h-9 w-9 rounded-full transition-colors flex items-center justify-center border border-gray-200 dark:border-white/15 bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10"
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <Link
               href="/login"
-              className="px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm"
-              style={{ background: "#0ea5e9", color: "#ffffff" }}
+              className="px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400 text-white"
             >
               {t.login}
             </Link>
@@ -206,13 +200,36 @@ export default function LandingPage() {
 
         {/* Hero */}
         <section className="relative flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
-          {/* Cyan glow blob behind 189 */}
+          {/* Glow blob — dark mode only */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none hidden dark:block"
             style={{ background: "radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)" }}
           />
+
+          {/* Light mode 189 — Roman classic style */}
           <div
-            className="relative z-10 select-none leading-none"
+            className="relative z-10 select-none leading-none dark:hidden"
+            style={{
+              fontFamily: "var(--font-montserrat), system-ui, sans-serif",
+              fontSize: "clamp(130px, 24vw, 240px)",
+              fontWeight: 900,
+              lineHeight: 0.9,
+              letterSpacing: "-0.04em",
+              color: "transparent",
+              WebkitTextStroke: "3px #0f172a",
+              textShadow: `
+                4px 4px 0px #0f172a,
+                6px 6px 0px rgba(0,0,0,0.15),
+                8px 8px 0px rgba(0,0,0,0.08)
+              `,
+            }}
+          >
+            189
+          </div>
+
+          {/* Dark mode 189 — neon glow */}
+          <div
+            className="relative z-10 select-none leading-none hidden dark:block"
             style={{
               fontFamily: "var(--font-montserrat), system-ui, sans-serif",
               fontSize: "clamp(130px, 24vw, 240px)",
@@ -235,39 +252,32 @@ export default function LandingPage() {
           >
             189
           </div>
-          <p className="relative z-10 text-2xl md:text-3xl font-semibold max-w-xl" style={{ color: "rgba(255,255,255,0.9)" }}>
+
+          <p className="relative z-10 text-2xl md:text-3xl font-semibold max-w-xl text-gray-800 dark:text-white/90">
             {t.tagline}
           </p>
-          <p className="relative z-10 text-lg italic max-w-md" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="relative z-10 text-lg italic max-w-md text-gray-400 dark:text-white/50">
             &ldquo;{displayQuote}&rdquo;
           </p>
           <Link
             href="/login"
-            className="relative z-10 mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100"
-            style={{ background: "#0ea5e9", color: "#ffffff" }}
+            className="relative z-10 mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400"
           >
             {t.cta}
           </Link>
         </section>
 
         {/* Stats bar */}
-        <section
-          className="py-12"
-          style={{
-            background: "rgba(14,165,233,0.04)",
-            borderTop: "1px solid rgba(255,255,255,0.05)",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
+        <section className="py-12 border-y border-gray-100 dark:border-white/5 bg-gray-50/80 dark:bg-sky-900/10">
           <div className="max-w-3xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-0">
             {t.stats.map((stat, i) => (
               <div key={stat.label} className="flex flex-col items-center sm:flex-1">
-                <span className="text-4xl font-black" style={{ color: "#ffffff" }}>
+                <span className="text-4xl font-black text-gray-900 dark:text-white">
                   {stat.value}
                 </span>
-                <span className="text-sm mt-1 text-center" style={{ color: "rgba(255,255,255,0.5)" }}>{stat.label}</span>
+                <span className="text-sm mt-1 text-center text-gray-500 dark:text-white/50">{stat.label}</span>
                 {i < t.stats.length - 1 && (
-                  <div className="hidden sm:block absolute h-12 w-px" style={{ background: "rgba(255,255,255,0.08)", transform: "translateX(100px)" }} />
+                  <div className="hidden sm:block absolute h-12 w-px bg-gray-200 dark:bg-white/10" style={{ transform: "translateX(100px)" }} />
                 )}
               </div>
             ))}
@@ -277,15 +287,14 @@ export default function LandingPage() {
         {/* Universities */}
         <section className="py-16 px-6">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-10" style={{ color: "#ffffff" }}>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
               {t.uniHeading}
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-5 md:overflow-visible">
               {universities.map((uni) => (
                 <div
                   key={uni.name}
-                  className="snap-center shrink-0 w-48 md:w-auto rounded-2xl shadow-sm hover:shadow-lg transition-shadow p-5 flex flex-col items-center gap-3"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  className="snap-center shrink-0 w-48 md:w-auto rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col items-center gap-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8"
                 >
                   <div className="relative w-16 h-16">
                     <Image
@@ -297,35 +306,26 @@ export default function LandingPage() {
                     />
                   </div>
                   <div className="text-center">
-                    <div className="font-bold text-sm" style={{ color: "#ffffff" }}>{uni.name}</div>
-                    <div className="text-xs mt-0.5 leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>{uni.fullName[lang]}</div>
+                    <div className="font-bold text-sm text-gray-900 dark:text-white">{uni.name}</div>
+                    <div className="text-xs mt-0.5 leading-tight text-gray-400 dark:text-white/45">{uni.fullName[lang]}</div>
                   </div>
                   <div className="flex flex-col gap-1.5 w-full">
-                    <span
-                      className="text-xs font-semibold text-center px-2 py-1 rounded-lg"
-                      style={{ background: "rgba(14,165,233,0.15)", color: "#38bdf8", border: "1px solid rgba(14,165,233,0.25)" }}
-                    >
+                    <span className="text-xs font-semibold text-center px-2 py-1 rounded-lg bg-green-50 text-green-700 border border-green-100 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/25">
                       {t.grant}: {uni.grant}
                     </span>
-                    <span
-                      className="text-xs font-semibold text-center px-2 py-1 rounded-lg"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
-                    >
+                    <span className="text-xs font-semibold text-center px-2 py-1 rounded-lg bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/6 dark:text-white/50 dark:border-white/8">
                       {t.contract}: {uni.contract}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.35)" }}>{t.uniNote}</p>
+            <p className="text-center text-xs mt-6 text-gray-400 dark:text-white/35">{t.uniNote}</p>
           </div>
         </section>
 
         {/* Footer */}
-        <footer
-          className="py-8 text-center text-sm"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.35)" }}
-        >
+        <footer className="py-8 border-t border-gray-100 dark:border-white/5 text-center text-sm text-gray-400 dark:text-white/35">
           {t.footer}
         </footer>
 
