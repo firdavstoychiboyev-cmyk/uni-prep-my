@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Reads the caller's role from the users collection.
+    // Cached per-request by Firestore so multiple calls don't cost extra reads.
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userRole() == "admin";
+    }
+
+    function isTeacherOrAdmin() {
+      return isSignedIn() && userRole() in ["teacher", "admin"];
+    }
+
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{uid} {
+      // Any signed-in user can read profiles (needed for class management)
+      allow read: if isSignedIn();
+      // Users can only write their own profile; admins can write any
+      allow write: if isOwner(uid) || isAdmin();
+
+      // ── Sub-collections ───────────────────────────────────────────────────
+
+      match /userProgress/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+
+      match /testResults/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+
+      match /badges/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+
+      match /ratings/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+    }
+
+
+    // ── Content collections (admin writes, all authenticated users read) ───────
+
+    match /subjects/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /textbooks/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /topics/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /questions/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /mocks/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+
+    // ── Classes (teachers and admins manage, students read their own) ─────────
+
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update, delete: if isTeacherOrAdmin();
+    }
+
+  }
+}
