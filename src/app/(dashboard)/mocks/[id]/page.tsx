@@ -21,6 +21,7 @@ interface QuestionData {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
     correctAnswer: string;
+    imageUrl?: string;
 }
 
 type QState = {
@@ -254,6 +255,15 @@ export default function MockTestPage() {
                     <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-black text-sm mb-4" style={{ fontFamily: "var(--font-montserrat)" }}>
                         {idx + 1}
                     </div>
+                    {q.imageUrl && (
+                        <div className="w-full flex justify-center mb-4">
+                            <img
+                                src={q.imageUrl}
+                                alt="Question image"
+                                className="max-h-72 max-w-full rounded-xl object-contain border border-border"
+                            />
+                        </div>
+                    )}
                     <div className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content">
                         <MathText content={q.text ?? ""} />
                     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Question, Topic, Medal } from "@/lib/firestore-schema";
 import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook } from "@/lib/data-fetching";
@@ -702,13 +701,11 @@ export default function TestPage() {
 
                     {/* Question image */}
                     {q?.imageUrl && (
-                        <div className="relative mb-5 max-h-64 w-full rounded-xl overflow-hidden border border-border bg-muted/30">
-                            <Image
+                        <div className="w-full flex justify-center mb-4">
+                            <img
                                 src={q.imageUrl}
-                                alt=""
-                                width={800}
-                                height={256}
-                                className="w-full max-h-64 object-contain"
+                                alt="Question image"
+                                className="max-h-72 max-w-full rounded-xl object-contain border border-border"
                             />
                         </div>
                     )}
