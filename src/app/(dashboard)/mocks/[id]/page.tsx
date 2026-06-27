@@ -178,7 +178,7 @@ export default function MockTestPage() {
     if (finished) {
         const correct = qStates.filter((s, i) => s.solvedCorrect === questions[i]?.correctAnswer).length;
         const total = questions.length;
-        const score = total > 0 ? Math.round((correct / total) * mock.maxScore * 10) / 10 : 0;
+        const score = total > 0 ? Math.round((correct / total) * (mock.maxScore ?? 100) * 10) / 10 : 0;
 
         return (
             <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
