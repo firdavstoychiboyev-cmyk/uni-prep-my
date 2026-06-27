@@ -702,6 +702,7 @@ export default function TestPage() {
                     {/* Question image */}
                     {q?.imageUrl && (
                         <div className="w-full flex justify-center mb-4">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={q.imageUrl}
                                 alt="Question image"

@@ -12,7 +12,8 @@ interface MockData {
     title: string;
     description?: string;
     category?: string;
-    questions?: QuestionData[];
+    questions?: QuestionData[];   // legacy inline format
+    questionIds?: string[];       // new batch-write format
     language?: string;
     active?: boolean;
 }
@@ -54,7 +55,19 @@ export default function MockTestPage() {
             if (!mockDoc.exists()) { setLoadError(true); return; }
             const mockData = { id: mockDoc.id, ...mockDoc.data() } as MockData;
             setMock(mockData);
-            const qs: QuestionData[] = mockData.questions ?? [];
+
+            let qs: QuestionData[] = [];
+            if (mockData.questionIds?.length) {
+                // New format: questions stored as separate Firestore documents
+                const qDocs = await Promise.all(
+                    mockData.questionIds.map(qid => getDoc(doc(db, "questions", qid)))
+                );
+                qs = qDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as unknown as QuestionData));
+            } else if (mockData.questions?.length) {
+                // Legacy format: questions stored inline in the mock document
+                qs = mockData.questions;
+            }
+
             setQuestions(qs);
             setQStates(qs.map(() => ({ answer: "", checked: false, triedWrong: [], solvedCorrect: null })));
         };
@@ -257,6 +270,7 @@ export default function MockTestPage() {
                     </div>
                     {q.imageUrl && (
                         <div className="w-full flex justify-center mb-4">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={q.imageUrl}
                                 alt="Question image"
