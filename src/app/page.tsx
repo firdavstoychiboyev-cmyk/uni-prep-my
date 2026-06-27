@@ -199,19 +199,29 @@ export default function LandingPage() {
         </nav>
 
         {/* Hero */}
-        <section className="relative flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 gap-6">
+        {/* px-6 is removed from section so the illustration can be truly full-bleed.
+            Text elements below get their own px-6 wrapper. */}
+        <section className="relative flex flex-col items-center justify-center text-center pt-20 pb-16 gap-6 overflow-hidden">
           {/* Glow blob — dark mode only */}
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none hidden dark:block"
             style={{ background: "radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)" }}
           />
 
-          {/* 189 hero — single fixed-height container keeps layout stable across modes */}
+          {/* 189 hero — full-bleed fixed-height container, layout-stable across modes */}
           <div className="relative z-10 w-full flex items-center justify-center" style={{ height: "420px" }}>
 
-            {/* Light mode: hand-drawn marker style SVG — absolutely fills the container */}
-            <div className="dark:hidden absolute inset-0 flex items-center justify-center">
-              <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-3xl">
+            {/* Light mode: full-bleed hand-drawn SVG.
+                viewBox is 1600×400 so decorations spread to screen edges.
+                preserveAspectRatio="xMidYMid slice" fills the container at any viewport width
+                while keeping 189 horizontally centered. */}
+            <div className="dark:hidden absolute inset-0">
+              <svg
+                viewBox="0 0 1600 400"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full"
+                preserveAspectRatio="xMidYMid slice"
+              >
                 <defs>
                   <filter id="wobbly">
                     <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="2" result="noise" seed="2"/>
@@ -223,8 +233,8 @@ export default function LandingPage() {
                   </filter>
                 </defs>
 
-                {/* Sun */}
-                <g filter="url(#wobbly)" transform="translate(640, 60)">
+                {/* Sun — far right */}
+                <g filter="url(#wobbly)" transform="translate(1490, 58)">
                   <circle cx="0" cy="0" r="45" fill="#FFD93D" stroke="#F4A623" strokeWidth="3"/>
                   <circle cx="-12" cy="-5" r="4" fill="#F4A623"/>
                   <circle cx="12" cy="-5" r="4" fill="#F4A623"/>
@@ -243,52 +253,61 @@ export default function LandingPage() {
                   ))}
                 </g>
 
-                {/* Cloud 1 */}
-                <g filter="url(#wobbly2)" transform="translate(100, 55)">
+                {/* Cloud 1 — far left */}
+                <g filter="url(#wobbly2)" transform="translate(90, 52)">
                   <ellipse cx="0" cy="0" rx="50" ry="30" fill="white" stroke="#93C5FD" strokeWidth="3"/>
                   <ellipse cx="-30" cy="5" rx="30" ry="22" fill="white" stroke="#93C5FD" strokeWidth="3"/>
                   <ellipse cx="35" cy="5" rx="35" ry="20" fill="white" stroke="#93C5FD" strokeWidth="3"/>
                 </g>
 
-                {/* Cloud 2 */}
-                <g filter="url(#wobbly)" transform="translate(150, 150)">
+                {/* Cloud 2 — left-center */}
+                <g filter="url(#wobbly)" transform="translate(370, 148)">
                   <ellipse cx="0" cy="0" rx="35" ry="20" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                   <ellipse cx="-22" cy="4" rx="22" ry="15" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                   <ellipse cx="25" cy="4" rx="25" ry="14" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                 </g>
 
-                {/* Cloud 3 */}
-                <g filter="url(#wobbly2)" transform="translate(580, 180)">
+                {/* Cloud 3 — right-center */}
+                <g filter="url(#wobbly2)" transform="translate(1200, 78)">
                   <ellipse cx="0" cy="0" rx="40" ry="24" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                   <ellipse cx="-26" cy="5" rx="26" ry="18" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                   <ellipse cx="28" cy="5" rx="30" ry="16" fill="white" stroke="#93C5FD" strokeWidth="2.5"/>
                 </g>
 
-                {/* Stars */}
+                {/* Cloud 4 — far right edge */}
+                <g filter="url(#wobbly)" transform="translate(1530, 175)">
+                  <ellipse cx="0" cy="0" rx="32" ry="18" fill="white" stroke="#93C5FD" strokeWidth="2"/>
+                  <ellipse cx="-20" cy="4" rx="20" ry="13" fill="white" stroke="#93C5FD" strokeWidth="2"/>
+                  <ellipse cx="22" cy="4" rx="24" ry="12" fill="white" stroke="#93C5FD" strokeWidth="2"/>
+                </g>
+
+                {/* Stars — spread across full 1600-wide canvas */}
                 {([
-                  [50, 300, "#FF6B9D"],
-                  [720, 280, "#6EE7B7"],
-                  [200, 330, "#FCD34D"],
-                  [680, 130, "#A78BFA"],
-                  [350, 60, "#F87171"],
+                  [45,  300, "#FF6B9D"],
+                  [1545, 285, "#6EE7B7"],
+                  [270, 332, "#FCD34D"],
+                  [1420, 132, "#A78BFA"],
+                  [800,  55, "#F87171"],
+                  [620, 318, "#60A5FA"],
+                  [980, 300, "#34D399"],
                 ] as [number, number, string][]).map(([x, y, color], i) => (
                   <g key={i} transform={`translate(${x}, ${y})`}>
                     <path d="M0,-8 L2,-2 L8,-2 L3,2 L5,8 L0,4 L-5,8 L-3,2 L-8,-2 L-2,-2 Z" fill={color} filter="url(#wobbly)"/>
                   </g>
                 ))}
 
-                {/* Grass */}
-                <path d="M0,370 Q50,355 100,370 Q150,385 200,370 Q250,355 300,370 Q350,385 400,370 Q450,355 500,370 Q550,385 600,370 Q650,355 700,370 Q750,385 800,370"
+                {/* Grass — full width 0 → 1600 */}
+                <path d="M0,370 Q100,355 200,370 Q300,385 400,370 Q500,355 600,370 Q700,385 800,370 Q900,355 1000,370 Q1100,385 1200,370 Q1300,355 1400,370 Q1500,385 1600,370"
                   stroke="#86EFAC" strokeWidth="4" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
-                <path d="M0,380 Q60,365 120,380 Q180,395 240,380 Q300,365 360,380 Q420,395 480,380 Q540,365 600,380 Q660,395 720,380 Q780,365 800,375"
+                <path d="M0,380 Q120,365 240,380 Q360,395 480,380 Q600,365 720,380 Q840,395 960,380 Q1080,365 1200,380 Q1320,395 1440,380 Q1560,365 1600,375"
                   stroke="#4ADE80" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#wobbly2)"/>
 
-                {/* Yellow highlighter behind 189 */}
-                <rect x="150" y="180" width="500" height="60" fill="#FEF08A" opacity="0.5" rx="4" filter="url(#wobbly)"/>
+                {/* Yellow highlighter behind 189 — centered on x=800 */}
+                <rect x="550" y="180" width="500" height="60" fill="#FEF08A" opacity="0.5" rx="4" filter="url(#wobbly)"/>
 
                 {/* 189 — outline stroke */}
                 <text
-                  x="400" y="290"
+                  x="800" y="290"
                   textAnchor="middle"
                   style={{
                     fontFamily: "var(--font-montserrat), system-ui, sans-serif",
@@ -306,7 +325,7 @@ export default function LandingPage() {
 
                 {/* 189 — color fill */}
                 <text
-                  x="400" y="290"
+                  x="800" y="290"
                   textAnchor="middle"
                   style={{
                     fontFamily: "var(--font-montserrat), system-ui, sans-serif",
@@ -320,7 +339,7 @@ export default function LandingPage() {
 
                 {/* 189 — highlight */}
                 <text
-                  x="398" y="287"
+                  x="798" y="287"
                   textAnchor="middle"
                   style={{
                     fontFamily: "var(--font-montserrat), system-ui, sans-serif",
@@ -332,23 +351,23 @@ export default function LandingPage() {
                   filter="url(#wobbly2)"
                 >189</text>
 
-                {/* Squiggly underline */}
-                <path d="M160,310 Q220,325 280,310 Q340,295 400,310 Q460,325 520,310 Q580,295 640,310"
+                {/* Squiggly underline — centered on x=800 */}
+                <path d="M560,310 Q620,325 680,310 Q740,295 800,310 Q860,325 920,310 Q980,295 1040,310"
                   stroke="#F87171" strokeWidth="5" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
 
                 {/* Hearts */}
                 <path d="M80,200 C80,190 90,185 95,190 C100,185 110,190 110,200 C110,210 95,220 95,220 C95,220 80,210 80,200Z"
                   fill="#FF6B9D" filter="url(#wobbly)"/>
-                <path d="M680,320 C680,313 687,309 691,313 C695,309 702,313 702,320 C702,327 691,334 691,334 C691,334 680,327 680,320Z"
+                <path d="M1480,318 C1480,311 1487,307 1491,311 C1495,307 1502,311 1502,318 C1502,325 1491,332 1491,332 C1491,332 1480,325 1480,318Z"
                   fill="#FF6B9D" filter="url(#wobbly2)" opacity="0.8"/>
 
                 {/* Exclamation marks */}
-                <text x="120" y="270" style={{ fontSize: "32px", fill: "#F59E0B" }} filter="url(#wobbly)">!</text>
-                <text x="660" y="250" style={{ fontSize: "28px", fill: "#10B981" }} filter="url(#wobbly2)">!</text>
+                <text x="50"   y="270" style={{ fontSize: "32px", fill: "#F59E0B" }} filter="url(#wobbly)">!</text>
+                <text x="1530" y="250" style={{ fontSize: "28px", fill: "#10B981" }} filter="url(#wobbly2)">!</text>
 
-                {/* Arrow */}
-                <path d="M100,180 Q130,220 160,240" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
-                <path d="M155,232 L160,240 L168,234" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                {/* Arrow — near 189 */}
+                <path d="M595,182 Q625,222 655,242" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
+                <path d="M650,234 L655,242 L663,236" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
 
@@ -380,18 +399,21 @@ export default function LandingPage() {
 
           </div>
 
-          <p className="relative z-10 text-2xl md:text-3xl font-semibold max-w-xl text-gray-800 dark:text-white/90">
-            {t.tagline}
-          </p>
-          <p className="relative z-10 text-lg italic max-w-md text-gray-400 dark:text-white/50">
-            &ldquo;{displayQuote}&rdquo;
-          </p>
-          <Link
-            href="/login"
-            className="relative z-10 mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400"
-          >
-            {t.cta}
-          </Link>
+          {/* Text content — own px-6 so it doesn't touch screen edges on mobile */}
+          <div className="relative z-10 flex flex-col items-center gap-6 w-full px-6">
+            <p className="text-2xl md:text-3xl font-semibold max-w-xl text-gray-800 dark:text-white/90">
+              {t.tagline}
+            </p>
+            <p className="text-lg italic max-w-md text-gray-400 dark:text-white/50">
+              &ldquo;{displayQuote}&rdquo;
+            </p>
+            <Link
+              href="/login"
+              className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400"
+            >
+              {t.cta}
+            </Link>
+          </div>
         </section>
 
         {/* Stats bar */}
