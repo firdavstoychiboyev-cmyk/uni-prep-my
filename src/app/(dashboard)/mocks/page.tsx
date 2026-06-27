@@ -6,11 +6,23 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { Clock, BookOpen, ChevronRight, Trophy, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
+interface Mock {
+    id: string;
+    title: string;
+    description?: string;
+    category?: string;
+    timeLimit?: number;
+    maxScore?: number;
+    questionIds?: string[];
+    questionCount?: number;
+    active?: boolean;
+}
+
 type MockCategory = "milliy_sertifikat" | "dtm" | "all";
 
 export default function MocksPage() {
     const { language } = useTranslation();
-    const [mocks, setMocks] = useState<Record<string, unknown>[]>([]);
+    const [mocks, setMocks] = useState<Mock[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState<MockCategory>("all");
 
@@ -22,7 +34,7 @@ export default function MocksPage() {
                 where("language", "==", language),
                 where("active", "==", true)
             ));
-            setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Mock)));
             setLoading(false);
         };
         load();
