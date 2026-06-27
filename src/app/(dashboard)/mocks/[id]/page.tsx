@@ -7,6 +7,19 @@ import { Clock, Play, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clipboar
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 
+interface MockData {
+    id: string;
+    title: string;
+    description?: string;
+    category?: string;
+    timeLimit?: number;
+    maxScore?: number;
+    questionCount?: number;
+    questionIds?: string[];
+    language?: string;
+    active?: boolean;
+}
+
 type QState = {
     answer: string;
     checked: boolean;
@@ -20,7 +33,7 @@ export default function MockTestPage() {
     const { id } = useParams();
     const router = useRouter();
     const { language } = useTranslation();
-    const [mock, setMock] = useState<Record<string, unknown> | null>(null);
+    const [mock, setMock] = useState<MockData | null>(null);
     const [questions, setQuestions] = useState<Record<string, unknown>[]>([]);
     const [loadError, setLoadError] = useState(false);
     const [started, setStarted] = useState(false);
@@ -34,7 +47,7 @@ export default function MockTestPage() {
         const load = async () => {
             const mockDoc = await getDoc(doc(db, "mocks", id as string));
             if (!mockDoc.exists()) { setLoadError(true); return; }
-            const mockData = { id: mockDoc.id, ...mockDoc.data() } as Record<string, unknown>;
+            const mockData = { id: mockDoc.id, ...mockDoc.data() } as MockData;
             setMock(mockData);
             setTimeLeft((mockData.timeLimit ?? 30) * 60);
 
