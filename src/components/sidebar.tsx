@@ -33,6 +33,7 @@ import {
     X,
     PanelLeftClose,
     PanelLeft,
+    ClipboardList,
     type LucideIcon,
 } from "lucide-react";
 
@@ -59,6 +60,7 @@ const mainLinks = (isTeacher: boolean) => [
     ...(isTeacher ? [{ nameKey: "nav.classes", href: "/classes", icon: GraduationCap }] : []),
     { nameKey: "nav.statistics", href: "/statistics", icon: BarChart3 },
     { nameKey: "nav.achievements", href: "/achievements", icon: Award },
+    { nameKey: "nav.mocks", href: "/mocks", icon: ClipboardList },
     { nameKey: "nav.subjects", href: "/subjects", icon: BookOpen },
     { nameKey: "nav.profile", href: "/profile", icon: CircleUserRound },
 ];
