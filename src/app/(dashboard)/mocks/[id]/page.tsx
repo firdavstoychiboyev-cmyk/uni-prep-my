@@ -20,6 +20,13 @@ interface MockData {
     active?: boolean;
 }
 
+interface QuestionData {
+    id: string;
+    text: string;
+    options?: { a: string; b: string; c: string; d: string };
+    correctAnswer: string;
+}
+
 type QState = {
     answer: string;
     checked: boolean;
@@ -34,7 +41,7 @@ export default function MockTestPage() {
     const router = useRouter();
     const { language } = useTranslation();
     const [mock, setMock] = useState<MockData | null>(null);
-    const [questions, setQuestions] = useState<Record<string, unknown>[]>([]);
+    const [questions, setQuestions] = useState<QuestionData[]>([]);
     const [loadError, setLoadError] = useState(false);
     const [started, setStarted] = useState(false);
     const [finished, setFinished] = useState(false);
@@ -55,7 +62,7 @@ export default function MockTestPage() {
             const qDocs = await Promise.all(
                 questionIds.map((qid: string) => getDoc(doc(db, "questions", qid)))
             );
-            const qs = qDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
+            const qs = qDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as QuestionData));
             setQuestions(qs);
             setQStates(qs.map(() => ({ answer: "", checked: false, triedWrong: [], solvedCorrect: null })));
         };
