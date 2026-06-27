@@ -380,12 +380,12 @@ export default function AdminImportPage() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`group flex flex-col items-center justify-center gap-5 rounded-2xl border-2 border-dashed p-20 cursor-pointer transition-all ${
                         isDragOver
-                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20 scale-[1.01]"
-                            : "border-border hover:border-indigo-400 hover:bg-muted/40"
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 scale-[1.01]"
+                            : "border-border hover:border-blue-400 hover:bg-muted/40"
                     }`}
                 >
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${isDragOver ? "bg-indigo-100 dark:bg-indigo-900" : "bg-muted group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950"}`}>
-                        <Upload className={`w-7 h-7 transition-colors ${isDragOver ? "text-indigo-500" : "text-muted-foreground group-hover:text-indigo-500"}`} />
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${isDragOver ? "bg-blue-100 dark:bg-indigo-900" : "bg-muted group-hover:bg-blue-50 dark:group-hover:bg-blue-950"}`}>
+                        <Upload className={`w-7 h-7 transition-colors ${isDragOver ? "text-blue-500" : "text-muted-foreground group-hover:text-blue-500"}`} />
                     </div>
                     <div className="text-center">
                         <p className="font-semibold text-foreground">Drop your Excel file here</p>

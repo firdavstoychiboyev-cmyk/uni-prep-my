@@ -110,8 +110,8 @@ export default function StatisticsPage() {
 
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/30 shadow-sm">
-                    <BarChart3 className="h-6 w-6 text-[hsl(var(--brand-blue))] dark:text-sky-300" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/30 shadow-sm">
+                    <BarChart3 className="h-6 w-6 text-[hsl(var(--brand-blue))] dark:text-blue-300" />
                 </div>
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("nav.statistics")}</h1>
@@ -122,7 +122,7 @@ export default function StatisticsPage() {
             {/* Global metric cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
-                    { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks, bg: "bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/25" },
+                    { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks, bg: "bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/25" },
                     { title: t("stats.accuracy"), value: `${globalStats?.accuracy ?? 0}%`, icon: Target, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
                     { title: t("stats.medals"), value: String(totalMedals), icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/30" },
                     { title: t("stats.streak"), value: "—", icon: Flame, bg: "bg-rose-50 dark:bg-rose-950/30" },
@@ -256,8 +256,8 @@ export default function StatisticsPage() {
                                     {/* Header */}
                                     <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/30">
-                                                <BookOpen className="h-4 w-4 text-[hsl(var(--brand-blue))] dark:text-sky-300" />
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/30">
+                                                <BookOpen className="h-4 w-4 text-[hsl(var(--brand-blue))] dark:text-blue-300" />
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="font-bold text-foreground truncate">{subject.name}</div>

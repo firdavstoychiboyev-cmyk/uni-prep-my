@@ -114,7 +114,7 @@ function Particles() {
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(14, 165, 233, ${p.opacity})`;
+        ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
         ctx.fill();
       });
       animId = requestAnimationFrame(animate);
@@ -191,7 +191,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/login"
-              className="px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400 text-white"
+              className="px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm bg-blue-700 dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-500 text-white"
             >
               {t.login}
             </Link>
@@ -205,7 +205,7 @@ export default function LandingPage() {
           {/* Glow blob — dark mode only */}
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none hidden dark:block"
-            style={{ background: "radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)" }}
           />
 
           {/* 189 hero — full-bleed fixed-height container, layout-stable across modes */}
@@ -366,8 +366,8 @@ export default function LandingPage() {
                 <text x="1530" y="250" style={{ fontSize: "28px", fill: "#10B981" }} filter="url(#wobbly2)">!</text>
 
                 {/* Arrow — near 189 */}
-                <path d="M595,182 Q625,222 655,242" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
-                <path d="M650,234 L655,242 L663,236" stroke="#6366F1" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M595,182 Q625,222 655,242" stroke="#1d4ed8" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#wobbly)"/>
+                <path d="M650,234 L655,242 L663,236" stroke="#1d4ed8" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
 
@@ -385,13 +385,13 @@ export default function LandingPage() {
                   0 0 7px #fff,
                   0 0 10px #fff,
                   0 0 21px #fff,
-                  0 0 42px #0ea5e9,
-                  0 0 82px #0ea5e9,
-                  0 0 92px #0ea5e9,
-                  0 0 102px #0ea5e9,
-                  0 0 151px #0ea5e9
+                  0 0 42px #3b82f6,
+                  0 0 82px #3b82f6,
+                  0 0 92px #3b82f6,
+                  0 0 102px #1d4ed8,
+                  0 0 151px #1d4ed8
                 `,
-                WebkitTextStroke: "2px rgba(14, 165, 233, 0.3)",
+                WebkitTextStroke: "2px rgba(59, 130, 246, 0.3)",
               }}
             >
               189
@@ -409,7 +409,7 @@ export default function LandingPage() {
             </p>
             <Link
               href="/login"
-              className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-indigo-600 dark:bg-sky-500 hover:bg-indigo-700 dark:hover:bg-sky-400"
+              className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-blue-700 dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-500"
             >
               {t.cta}
             </Link>
@@ -417,7 +417,7 @@ export default function LandingPage() {
         </section>
 
         {/* Stats bar */}
-        <section className="py-12 border-y border-gray-100 dark:border-white/5 bg-gray-50/80 dark:bg-sky-900/10">
+        <section className="py-12 border-y border-gray-100 dark:border-white/5 bg-gray-50/80 dark:bg-blue-900/10">
           <div className="max-w-3xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-0">
             {t.stats.map((stat, i) => (
               <div key={stat.label} className="flex flex-col items-center sm:flex-1">
@@ -459,7 +459,7 @@ export default function LandingPage() {
                     <div className="text-xs mt-0.5 leading-tight text-gray-400 dark:text-white/45">{uni.fullName[lang]}</div>
                   </div>
                   <div className="flex flex-col gap-1.5 w-full">
-                    <span className="text-xs font-semibold text-center px-2 py-1 rounded-lg bg-green-50 text-green-700 border border-green-100 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/25">
+                    <span className="text-xs font-semibold text-center px-2 py-1 rounded-lg bg-green-50 text-green-700 border border-green-100 dark:bg-blue-600/15 dark:text-blue-300 dark:border-blue-500/25">
                       {t.grant}: {uni.grant}
                     </span>
                     <span className="text-xs font-semibold text-center px-2 py-1 rounded-lg bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/6 dark:text-white/50 dark:border-white/8">

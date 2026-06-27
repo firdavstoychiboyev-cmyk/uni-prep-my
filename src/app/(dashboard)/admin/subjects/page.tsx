@@ -223,7 +223,7 @@ export default function AdminSubjectsPage() {
                                 onClick={() => setHasTextbooks(false)}
                                 className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-semibold transition-colors whitespace-nowrap ${
                                     !hasTextbooks
-                                        ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                        ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                         : "border-border text-muted-foreground hover:border-muted-foreground"
                                 }`}
                             >
@@ -234,7 +234,7 @@ export default function AdminSubjectsPage() {
                                 onClick={() => setHasTextbooks(true)}
                                 className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-semibold transition-colors whitespace-nowrap ${
                                     hasTextbooks
-                                        ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                        ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                         : "border-border text-muted-foreground hover:border-muted-foreground"
                                 }`}
                             >
@@ -357,7 +357,7 @@ export default function AdminSubjectsPage() {
                                                                     onClick={() => setEditHasTextbooks(false)}
                                                                     className={`flex-1 py-2 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
                                                                         !editHasTextbooks
-                                                                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                                                            ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                                                             : "border-border text-muted-foreground hover:border-muted-foreground"
                                                                     }`}
                                                                 >
@@ -368,7 +368,7 @@ export default function AdminSubjectsPage() {
                                                                     onClick={() => setEditHasTextbooks(true)}
                                                                     className={`flex-1 py-2 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
                                                                         editHasTextbooks
-                                                                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                                                                            ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                                                             : "border-border text-muted-foreground hover:border-muted-foreground"
                                                                     }`}
                                                                 >

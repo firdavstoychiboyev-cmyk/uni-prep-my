@@ -27,10 +27,10 @@ const ACCENTS: Record<AccentKey, { iconBg: string; iconColor: string; bar: strin
         badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
     },
     sky: {
-        iconBg: "bg-sky-100 dark:bg-sky-950/50",
-        iconColor: "text-sky-600 dark:text-sky-300",
-        bar: "bg-sky-500",
-        badge: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
+        iconBg: "bg-blue-100 dark:bg-blue-950/50",
+        iconColor: "text-sky-600 dark:text-blue-300",
+        bar: "bg-blue-500",
+        badge: "bg-blue-50 text-sky-700 border-sky-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-sky-800",
     },
     emerald: {
         iconBg: "bg-emerald-100 dark:bg-emerald-950/50",
@@ -45,10 +45,10 @@ const ACCENTS: Record<AccentKey, { iconBg: string; iconColor: string; bar: strin
         badge: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800",
     },
     indigo: {
-        iconBg: "bg-indigo-100 dark:bg-indigo-950/50",
-        iconColor: "text-indigo-600 dark:text-indigo-300",
-        bar: "bg-indigo-500",
-        badge: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+        iconBg: "bg-blue-100 dark:bg-blue-950/50",
+        iconColor: "text-blue-700 dark:text-blue-300",
+        bar: "bg-blue-500",
+        badge: "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900",
     },
     amber: {
         iconBg: "bg-amber-100 dark:bg-amber-950/50",

@@ -34,13 +34,13 @@
     --ring: 221 83% 53%;
     --radius: 1.25rem;
 
-    /* Brand — vivid indigo + electric cyan */
-    --brand-purple: 245 75% 58%;
-    --brand-purple-soft: 245 75% 95%;
-    --brand-purple-ink: 245 75% 38%;
-    --brand-blue: 199 89% 48%;
-    --brand-blue-soft: 199 89% 93%;
-    --brand-blue-ink: 199 89% 30%;
+    /* Brand — deep blue / navy */
+    --brand-purple: 221 73% 28%;
+    --brand-purple-soft: 214 100% 95%;
+    --brand-purple-ink: 224 76% 18%;
+    --brand-blue: 221 83% 53%;
+    --brand-blue-soft: 214 100% 93%;
+    --brand-blue-ink: 224 76% 32%;
   }
   * {
     -webkit-font-smoothing: antialiased;
@@ -66,15 +66,15 @@
     --destructive-foreground: 0 0% 98%;
     --border: 217 33% 20%;
     --input: 217 33% 20%;
-    --ring: 224 76% 65%;
+    --ring: 217 91% 65%;
 
-    /* Brand — brighter in dark mode */
-    --brand-purple: 252 83% 70%;
-    --brand-purple-soft: 252 83% 18%;
-    --brand-purple-ink: 252 83% 85%;
-    --brand-blue: 199 89% 60%;
-    --brand-blue-soft: 199 89% 15%;
-    --brand-blue-ink: 199 89% 80%;
+    /* Brand — deep blue brighter in dark mode */
+    --brand-purple: 221 73% 70%;
+    --brand-purple-soft: 224 64% 14%;
+    --brand-purple-ink: 221 83% 88%;
+    --brand-blue: 213 94% 68%;
+    --brand-blue-soft: 224 64% 14%;
+    --brand-blue-ink: 213 94% 82%;
   }
 }
 
@@ -137,7 +137,7 @@ nav a {
   background-size: 28px 28px;
 }
 .dark .landing-bg {
-  background: linear-gradient(135deg, #0a0a0f 0%, #0d0f1a 50%, #0f0a1a 100%);
-  background-image: radial-gradient(circle, rgba(14,165,233,0.07) 1px, transparent 1px);
+  background: linear-gradient(135deg, #07090f 0%, #0c1020 50%, #080f1e 100%);
+  background-image: radial-gradient(circle, rgba(59,130,246,0.07) 1px, transparent 1px);
   background-size: 28px 28px;
 }

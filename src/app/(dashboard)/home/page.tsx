@@ -269,8 +269,8 @@ export default function HomePage() {
                 <div className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950">
-                                <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
+                            <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-950">
+                                <CalendarClock className="w-3.5 h-3.5 text-blue-500" />
                             </div>
                             <span className="text-xs font-semibold text-muted-foreground truncate max-w-[160px]">
                                 {language === "uz" ? nextExam.name : nextExam.nameRu}
@@ -318,7 +318,7 @@ export default function HomePage() {
                         </div>
                         <button
                             onClick={() => setShowUniPicker(true)}
-                            className="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
+                            className="shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-500 transition-colors"
                         >
                             {t("common.edit")}
                         </button>
@@ -329,7 +329,7 @@ export default function HomePage() {
                     </div>
                     <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
                         <div
-                            className="h-full rounded-full bg-indigo-600 transition-all duration-700"
+                            className="h-full rounded-full bg-blue-700 transition-all duration-700"
                             style={{ width: `${progressToGrant}%` }}
                         />
                     </div>
@@ -338,7 +338,7 @@ export default function HomePage() {
             ) : (
                 <div
                     onClick={() => setShowUniPicker(true)}
-                    className="rounded-2xl border-2 border-dashed border-border bg-card p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+                    className="rounded-2xl border-2 border-dashed border-border bg-card p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
                 >
                     <div className="flex justify-center mb-3">
                         <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-950">
@@ -368,9 +368,9 @@ export default function HomePage() {
                                 <button
                                     key={uni.id}
                                     onClick={() => handleSelectUni(uni.id)}
-                                    className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors hover:border-indigo-400 ${
+                                    className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors hover:border-blue-400 ${
                                         dreamUni === uni.id
-                                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40"
+                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40"
                                             : "border-border bg-muted/30"
                                     }`}
                                 >
@@ -378,7 +378,7 @@ export default function HomePage() {
                                         <div className="font-bold text-foreground text-sm">{uni.name}</div>
                                         <div className="text-xs text-muted-foreground">{uni.fullName}</div>
                                     </div>
-                                    <div className="text-xs font-semibold text-indigo-600 ml-3 shrink-0">{uni.grant}</div>
+                                    <div className="text-xs font-semibold text-blue-700 ml-3 shrink-0">{uni.grant}</div>
                                 </button>
                             ))}
                         </div>

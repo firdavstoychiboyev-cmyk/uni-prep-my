@@ -1154,7 +1154,7 @@ export default function TestPage() {
                                 setNewlyAwarded([]);
                                 router.push(pendingNavRef.current ?? "/home");
                             }}
-                            className="w-full rounded-2xl bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-700 transition-colors"
+                            className="w-full rounded-2xl bg-blue-700 py-3 text-sm font-bold text-white hover:bg-blue-800 transition-colors"
                         >
                             Продолжить
                         </button>

@@ -46,7 +46,7 @@ function MetricCard({
 }) {
     const toneBg =
         tone === "blue"
-            ? "bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/25"
+            ? "bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/25"
             : tone === "purple"
               ? "bg-[hsl(var(--brand-purple-soft))] dark:bg-purple-950/25"
               : tone === "green"
@@ -155,8 +155,8 @@ function TopicList({
         <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
             <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-sky-950/30">
-                        <BookOpen className="h-4 w-4 text-[hsl(var(--brand-blue))] dark:text-sky-300" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/30">
+                        <BookOpen className="h-4 w-4 text-[hsl(var(--brand-blue))] dark:text-blue-300" />
                     </div>
                     <div className="min-w-0">
                         <div className="text-lg font-bold tracking-tight text-foreground truncate">{subject.name}</div>
@@ -287,8 +287,8 @@ export default function ChartsMetrics({
     return (
         <section className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] shadow-sm dark:bg-sky-950/30">
-                    <BarChart3 className="h-5 w-5 text-[hsl(var(--brand-blue))] dark:text-sky-300" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-[hsl(var(--brand-blue-soft))] shadow-sm dark:bg-blue-950/30">
+                    <BarChart3 className="h-5 w-5 text-[hsl(var(--brand-blue))] dark:text-blue-300" />
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Графики и метрики</h2>
             </div>
