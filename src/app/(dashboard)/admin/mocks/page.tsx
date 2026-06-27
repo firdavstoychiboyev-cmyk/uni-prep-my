@@ -9,6 +9,20 @@ import { Plus, Trash2, ClipboardList, Loader2 } from "lucide-react";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
+interface Mock {
+    id: string;
+    title: string;
+    description?: string;
+    category: string;
+    subject?: string;
+    timeLimit?: number;
+    maxScore?: number;
+    questionCount?: number;
+    questionIds?: string[];
+    language?: string;
+    active?: boolean;
+}
+
 const EMPTY_FORM = {
     title: "",
     description: "",
@@ -22,7 +36,7 @@ const EMPTY_FORM = {
 export default function AdminMocksPage() {
     const { t } = useTranslation();
     const [contentLang, setContentLang] = useState<Language>("ru");
-    const [mocks, setMocks] = useState<{ id: string; title: string; category: string; questionIds?: string[]; timeLimit?: number; active?: boolean }[]>([]);
+    const [mocks, setMocks] = useState<Mock[]>([]);
     const [loading, setLoading] = useState(true);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedSubject, setSelectedSubject] = useState("");
@@ -47,7 +61,7 @@ export default function AdminMocksPage() {
     const loadMocks = async () => {
         setLoading(true);
         const snap = await getDocs(query(collection(db, "mocks"), where("language", "==", contentLang)));
-        setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Mock)));
         setLoading(false);
     };
 
