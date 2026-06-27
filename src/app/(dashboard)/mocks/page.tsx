@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { Clock, BookOpen, ChevronRight, Trophy, ClipboardList } from "lucide-react";
+import { Clock, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
 interface Mock {
@@ -11,10 +11,7 @@ interface Mock {
     title: string;
     description?: string;
     category?: string;
-    timeLimit?: number;
-    maxScore?: number;
-    questionIds?: string[];
-    questionCount?: number;
+    questions?: unknown[];
     active?: boolean;
 }
 
@@ -118,20 +115,14 @@ export default function MocksPage() {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
                                     <BookOpen className="w-4 h-4" />
-                                    <span>{mock.questionIds?.length ?? mock.questionCount ?? 0} {language === "uz" ? "savol" : "вопросов"}</span>
+                                    <span>55 {language === "uz" ? "savol" : "вопросов"}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <Clock className="w-4 h-4" />
-                                    <span>{mock.timeLimit} {language === "uz" ? "daqiqa" : "минут"}</span>
+                                    <span>{language === "uz" ? "2 soat" : "2 часа"}</span>
                                 </div>
                             </div>
-                            <div className="mt-4 flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                    <Trophy className="w-4 h-4 text-yellow-500" />
-                                    <span className="text-sm font-semibold text-foreground">
-                                        {language === "uz" ? "Maks. ball:" : "Макс. балл:"} {mock.maxScore}
-                                    </span>
-                                </div>
+                            <div className="mt-4 flex items-center justify-end">
                                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
                             </div>
                         </Link>

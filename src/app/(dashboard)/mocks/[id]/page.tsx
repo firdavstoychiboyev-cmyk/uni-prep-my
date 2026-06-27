@@ -12,16 +12,12 @@ interface MockData {
     title: string;
     description?: string;
     category?: string;
-    timeLimit?: number;
-    maxScore?: number;
-    questionCount?: number;
-    questionIds?: string[];
+    questions?: QuestionData[];
     language?: string;
     active?: boolean;
 }
 
 interface QuestionData {
-    id: string;
     text: string;
     options?: { a: string; b: string; c: string; d: string };
     correctAnswer: string;
@@ -35,6 +31,7 @@ type QState = {
 };
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
+const TOTAL_TIME = 120 * 60; // 2 hours, always
 
 export default function MockTestPage() {
     const { id } = useParams();
@@ -47,7 +44,7 @@ export default function MockTestPage() {
     const [finished, setFinished] = useState(false);
     const [idx, setIdx] = useState(0);
     const [qStates, setQStates] = useState<QState[]>([]);
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
@@ -56,13 +53,7 @@ export default function MockTestPage() {
             if (!mockDoc.exists()) { setLoadError(true); return; }
             const mockData = { id: mockDoc.id, ...mockDoc.data() } as MockData;
             setMock(mockData);
-            setTimeLeft((mockData.timeLimit ?? 30) * 60);
-
-            const questionIds: string[] = mockData.questionIds ?? [];
-            const qDocs = await Promise.all(
-                questionIds.map((qid: string) => getDoc(doc(db, "questions", qid)))
-            );
-            const qs = qDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as QuestionData));
+            const qs: QuestionData[] = mockData.questions ?? [];
             setQuestions(qs);
             setQStates(qs.map(() => ({ answer: "", checked: false, triedWrong: [], solvedCorrect: null })));
         };
@@ -87,9 +78,7 @@ export default function MockTestPage() {
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
-        return h > 0
-            ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
-            : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+        return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     };
 
     const handleCheck = useCallback(() => {
@@ -151,19 +140,23 @@ export default function MockTestPage() {
             {mock.description && (
                 <p className="text-muted-foreground">{mock.description}</p>
             )}
-            <div className="grid grid-cols-3 gap-4 w-full">
-                {[
-                    { label: language === "uz" ? "Savollar" : "Вопросов", value: questions.length },
-                    { label: language === "uz" ? "Vaqt" : "Время", value: `${mock.timeLimit} ${language === "uz" ? "daq" : "мин"}` },
-                    { label: language === "uz" ? "Maks. ball" : "Макс. балл", value: mock.maxScore },
-                ].map(item => (
-                    <div key={item.label} className="rounded-xl border border-border bg-card p-4">
-                        <div className="text-2xl font-black text-blue-600 dark:text-blue-400" style={{ fontFamily: "var(--font-montserrat)" }}>
-                            {item.value}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">{item.label}</div>
+            <div className="grid grid-cols-2 gap-4 w-full">
+                <div className="rounded-xl border border-border bg-card p-4 text-center">
+                    <div className="text-2xl font-black text-blue-600 dark:text-blue-400" style={{ fontFamily: "var(--font-montserrat)" }}>
+                        55
                     </div>
-                ))}
+                    <div className="text-xs text-muted-foreground mt-1">
+                        {language === "uz" ? "Savollar" : "Вопросов"}
+                    </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 text-center">
+                    <div className="text-2xl font-black text-blue-600 dark:text-blue-400" style={{ fontFamily: "var(--font-montserrat)" }}>
+                        2:00:00
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                        {language === "uz" ? "Vaqt" : "Время"}
+                    </div>
+                </div>
             </div>
             {questions.length === 0 && (
                 <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
@@ -185,7 +178,7 @@ export default function MockTestPage() {
     if (finished) {
         const correct = qStates.filter((s, i) => s.solvedCorrect === questions[i]?.correctAnswer).length;
         const total = questions.length;
-        const score = total > 0 ? Math.round((correct / total) * (mock.maxScore ?? 100) * 10) / 10 : 0;
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         return (
             <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
@@ -193,25 +186,35 @@ export default function MockTestPage() {
                 <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
                     {language === "uz" ? "Mock tugadi!" : "Мок завершён!"}
                 </h1>
-                <div className="grid grid-cols-3 gap-4 w-full">
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="text-3xl font-black text-green-600">{correct}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{language === "uz" ? "To'g'ri" : "Правильно"}</div>
+                <div className="text-6xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
+                    {correct} / {total}
+                </div>
+                <p className="text-muted-foreground text-lg -mt-4">
+                    {language === "uz" ? "ta to'g'ri javob" : "правильных ответов"}
+                </p>
+                <div className="w-full">
+                    <div className="w-full bg-muted rounded-full h-3">
+                        <div
+                            className="h-3 rounded-full bg-blue-600 transition-all"
+                            style={{ width: `${pct}%` }}
+                        />
                     </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-sm text-muted-foreground mt-2">{pct}%</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 w-full">
+                    <div className="rounded-xl border border-border bg-card p-4 text-center">
+                        <div className="text-3xl font-black text-green-500">{correct}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            {language === "uz" ? "To'g'ri" : "Правильно"}
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-4 text-center">
                         <div className="text-3xl font-black text-red-500">{total - correct}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{language === "uz" ? "Noto'g'ri" : "Неверно"}</div>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="text-3xl font-black text-blue-600">{score}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{language === "uz" ? "Ball" : "Балл"}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            {language === "uz" ? "Noto'g'ri" : "Неправильно"}
+                        </div>
                     </div>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                    {total > 0
-                        ? `${Math.round((correct / total) * 100)}% ${language === "uz" ? "to'g'ri javoblar" : "правильных ответов"}`
-                        : ""}
-                </p>
                 <button
                     onClick={() => router.push("/mocks")}
                     className="px-8 py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors"
@@ -238,7 +241,7 @@ export default function MockTestPage() {
                 </button>
                 <div
                     className="text-xl font-black"
-                    style={{ fontFamily: "var(--font-montserrat)", color: timeLeft < 300 ? "#ef4444" : undefined }}
+                    style={{ fontFamily: "var(--font-montserrat)", color: timeLeft < 600 ? "#ef4444" : undefined }}
                 >
                     {formatTime(timeLeft)}
                 </div>
