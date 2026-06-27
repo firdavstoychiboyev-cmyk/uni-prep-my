@@ -22,7 +22,7 @@ const EMPTY_FORM = {
 export default function AdminMocksPage() {
     const { t } = useTranslation();
     const [contentLang, setContentLang] = useState<Language>("ru");
-    const [mocks, setMocks] = useState<Record<string, unknown>[]>([]);
+    const [mocks, setMocks] = useState<{ id: string; title: string; category: string; questionIds?: string[]; timeLimit?: number; active?: boolean }[]>([]);
     const [loading, setLoading] = useState(true);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedSubject, setSelectedSubject] = useState("");

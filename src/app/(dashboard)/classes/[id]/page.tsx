@@ -43,6 +43,7 @@ export default function ClassDetailPage() {
             }
         };
         fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const handleSearch = async (e: React.FormEvent) => {
