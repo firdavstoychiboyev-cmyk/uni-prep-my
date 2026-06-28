@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ClipboardList } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 
@@ -12,8 +12,8 @@ interface MockData {
     title: string;
     description?: string;
     category?: string;
-    questions?: QuestionData[];   // legacy inline format
-    questionIds?: string[];       // new batch-write format
+    questions?: QuestionData[];
+    questionIds?: string[];
     language?: string;
     active?: boolean;
 }
@@ -25,29 +25,31 @@ interface QuestionData {
     imageUrl?: string;
 }
 
-type QState = {
-    answer: string;
-    checked: boolean;
-    triedWrong: string[];
-    solvedCorrect: string | null;
-};
-
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
-const TOTAL_TIME = 120 * 60; // 2 hours, always
+const TOTAL_TIME = 120 * 60;
 
 export default function MockTestPage() {
     const { id } = useParams();
     const router = useRouter();
     const { language } = useTranslation();
+
     const [mock, setMock] = useState<MockData | null>(null);
     const [questions, setQuestions] = useState<QuestionData[]>([]);
     const [loadError, setLoadError] = useState(false);
+
     const [started, setStarted] = useState(false);
     const [finished, setFinished] = useState(false);
     const [idx, setIdx] = useState(0);
-    const [qStates, setQStates] = useState<QState[]>([]);
     const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Simple answer state — null means unanswered
+    const [answers, setAnswers] = useState<(string | null)[]>([]);
+    // Eliminated options per question
+    const [eliminated, setEliminated] = useState<string[][]>([]);
+
+    const [showGrid, setShowGrid] = useState(false);
+    const [showFinishDialog, setShowFinishDialog] = useState(false);
 
     useEffect(() => {
         const load = async () => {
@@ -58,18 +60,17 @@ export default function MockTestPage() {
 
             let qs: QuestionData[] = [];
             if (mockData.questionIds?.length) {
-                // New format: questions stored as separate Firestore documents
                 const qDocs = await Promise.all(
                     mockData.questionIds.map(qid => getDoc(doc(db, "questions", qid)))
                 );
                 qs = qDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as unknown as QuestionData));
             } else if (mockData.questions?.length) {
-                // Legacy format: questions stored inline in the mock document
                 qs = mockData.questions;
             }
 
             setQuestions(qs);
-            setQStates(qs.map(() => ({ answer: "", checked: false, triedWrong: [], solvedCorrect: null })));
+            setAnswers(qs.map(() => null));
+            setEliminated(qs.map(() => []));
         };
         load();
     }, [id]);
@@ -95,34 +96,27 @@ export default function MockTestPage() {
         return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     };
 
-    const handleCheck = useCallback(() => {
-        const q = questions[idx];
-        const state = qStates[idx];
-        if (!state.answer || state.solvedCorrect) return;
-
-        if (state.answer === q.correctAnswer) {
-            setQStates(prev => {
-                const next = [...prev];
-                next[idx] = { ...next[idx], solvedCorrect: state.answer, checked: true };
-                return next;
-            });
-        } else {
-            setQStates(prev => {
-                const next = [...prev];
-                next[idx] = { ...next[idx], triedWrong: [...next[idx].triedWrong, state.answer], checked: true };
-                return next;
-            });
-        }
-    }, [questions, qStates, idx]);
-
-    const selectAnswer = useCallback((key: string) => {
-        setQStates(prev => {
+    const selectAnswer = (key: string) => {
+        setAnswers(prev => {
             const next = [...prev];
-            if (next[idx].solvedCorrect) return next;
-            next[idx] = { ...next[idx], answer: key, checked: false };
+            next[idx] = key;
             return next;
         });
-    }, [idx]);
+    };
+
+    const toggleEliminate = (key: string) => {
+        setEliminated(prev => {
+            const next = [...prev];
+            if (next[idx].includes(key)) {
+                next[idx] = next[idx].filter(k => k !== key);
+            } else {
+                next[idx] = [...next[idx], key];
+            }
+            return next;
+        });
+    };
+
+    // ── Load / error states ───────────────────────────────────────────────────
 
     if (loadError) return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center gap-4">
@@ -143,6 +137,7 @@ export default function MockTestPage() {
     );
 
     // ── Intro screen ──────────────────────────────────────────────────────────
+
     if (!started) return (
         <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
             <div className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-950">
@@ -157,7 +152,7 @@ export default function MockTestPage() {
             <div className="grid grid-cols-2 gap-4 w-full">
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                     <div className="text-2xl font-black text-blue-600 dark:text-blue-400" style={{ fontFamily: "var(--font-montserrat)" }}>
-                        55
+                        {questions.length || 55}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                         {language === "uz" ? "Savollar" : "Вопросов"}
@@ -171,6 +166,12 @@ export default function MockTestPage() {
                         {language === "uz" ? "Vaqt" : "Время"}
                     </div>
                 </div>
+            </div>
+            <div className="rounded-xl border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 p-4 w-full text-sm text-yellow-800 dark:text-yellow-300 text-left flex flex-col gap-1">
+                <p className="font-bold">{language === "uz" ? "Qoidalar:" : "Правила:"}</p>
+                <p>• {language === "uz" ? "55 ta savol, 2 soat vaqt" : "55 вопросов, 2 часа"}</p>
+                <p>• {language === "uz" ? "Har bir savol uchun 1 ta javob tanlang" : "Выберите 1 ответ на каждый вопрос"}</p>
+                <p>• {language === "uz" ? "Natijalar oxirida ko'rsatiladi" : "Результаты показываются в конце"}</p>
             </div>
             {questions.length === 0 && (
                 <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
@@ -189,8 +190,9 @@ export default function MockTestPage() {
     );
 
     // ── Results screen ────────────────────────────────────────────────────────
+
     if (finished) {
-        const correct = qStates.filter((s, i) => s.solvedCorrect === questions[i]?.correctAnswer).length;
+        const correct = answers.filter((a, i) => a === questions[i]?.correctAnswer).length;
         const total = questions.length;
         const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
@@ -239,119 +241,210 @@ export default function MockTestPage() {
         );
     }
 
-    // ── Test screen ───────────────────────────────────────────────────────────
+    // ── Test screen (full-screen) ─────────────────────────────────────────────
+
     const q = questions[idx];
-    const state = qStates[idx];
+    const answeredCount = answers.filter(a => a !== null).length;
 
     return (
-        <div className="flex flex-col h-screen">
-            {/* Top bar */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-background shrink-0">
-                <button
-                    onClick={() => setFinished(true)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    {language === "uz" ? "Tugatish" : "Завершить"}
-                </button>
-                <div
-                    className="text-xl font-black"
-                    style={{ fontFamily: "var(--font-montserrat)", color: timeLeft < 600 ? "#ef4444" : undefined }}
-                >
-                    {formatTime(timeLeft)}
-                </div>
-                <div className="text-sm font-semibold text-muted-foreground">{idx + 1} / {questions.length}</div>
-            </div>
+        <>
+            <div className="fixed inset-0 z-50 bg-background flex flex-col">
 
-            {/* Question area */}
-            <div className="flex-1 overflow-y-auto">
-                <div className="max-w-2xl mx-auto px-6 py-8">
-                    <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-black text-sm mb-4" style={{ fontFamily: "var(--font-montserrat)" }}>
-                        {idx + 1}
+                {/* Top bar */}
+                <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-background shrink-0">
+                    <button
+                        onClick={() => setShowFinishDialog(true)}
+                        className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted"
+                    >
+                        {language === "uz" ? "Tugatish" : "Завершить"}
+                    </button>
+                    <div
+                        className="text-xl font-black tabular-nums"
+                        style={{
+                            fontFamily: "var(--font-montserrat)",
+                            color: timeLeft < 600 ? "#ef4444" : undefined,
+                        }}
+                    >
+                        {formatTime(timeLeft)}
                     </div>
-                    {q.imageUrl && (
-                        <div className="w-full flex justify-center mb-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={q.imageUrl}
-                                alt="Question image"
-                                className="max-h-72 max-w-full rounded-xl object-contain border border-border"
-                            />
+                    <div className="text-sm font-semibold text-muted-foreground">
+                        {idx + 1} / {questions.length}
+                    </div>
+                </div>
+
+                {/* Question area */}
+                <div className="flex-1 overflow-y-auto">
+                    <div className="max-w-2xl mx-auto px-6 py-8">
+                        <div
+                            className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-black text-sm mb-4"
+                            style={{ fontFamily: "var(--font-montserrat)" }}
+                        >
+                            {idx + 1}
+                        </div>
+
+                        {q?.imageUrl && (
+                            <div className="w-full flex justify-center mb-4">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={q.imageUrl}
+                                    alt="Question image"
+                                    className="max-h-72 max-w-full rounded-xl object-contain border border-border"
+                                />
+                            </div>
+                        )}
+
+                        <div className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content">
+                            <MathText content={q?.text ?? ""} />
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            {OPTION_KEYS.map(key => {
+                                const val = q?.options?.[key];
+                                if (!val) return null;
+                                const isEliminated = eliminated[idx]?.includes(key);
+                                const isSelected = answers[idx] === key;
+
+                                return (
+                                    <div key={key} className="flex items-center gap-2">
+                                        {/* Cross-out toggle */}
+                                        <button
+                                            onClick={() => toggleEliminate(key)}
+                                            className="w-6 h-6 rounded-full border-2 border-border flex items-center justify-center hover:border-red-400 hover:text-red-400 transition-colors shrink-0"
+                                            title={language === "uz" ? "Bu javobni chiqarib tashlash" : "Исключить этот вариант"}
+                                        >
+                                            {isEliminated && <X className="w-3 h-3 text-red-400" />}
+                                        </button>
+
+                                        {/* Answer option */}
+                                        <button
+                                            onClick={() => selectAnswer(key)}
+                                            className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
+                                                isEliminated
+                                                    ? "border-border bg-muted/30 opacity-50"
+                                                    : isSelected
+                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                                                    : "border-border bg-card hover:border-muted-foreground/50"
+                                            }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border-2 ${
+                                                isEliminated
+                                                    ? "border-border text-muted-foreground"
+                                                    : isSelected
+                                                    ? "bg-blue-500 border-blue-500 text-white"
+                                                    : "border-border text-muted-foreground"
+                                            }`}>
+                                                {key.toUpperCase()}
+                                            </div>
+                                            <span className={`font-medium ql-content ${
+                                                isEliminated ? "line-through text-muted-foreground" : "text-foreground"
+                                            }`}>
+                                                <MathText content={val} as="span" />
+                                            </span>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom bar */}
+                <div className="relative shrink-0">
+                    {/* Question grid panel */}
+                    {showGrid && (
+                        <div className="absolute bottom-full left-0 right-0 bg-background border-t border-border p-4 shadow-lg max-h-64 overflow-y-auto">
+                            <div className="grid grid-cols-8 gap-2">
+                                {questions.map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => { setIdx(i); setShowGrid(false); }}
+                                        className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${
+                                            answers[i] !== null
+                                                ? "bg-indigo-600 text-white"
+                                                : "bg-muted text-muted-foreground"
+                                        } ${i === idx ? "ring-2 ring-offset-1 ring-indigo-400" : ""}`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
-                    <div className="text-lg font-medium text-foreground leading-relaxed mb-6 ql-content">
-                        <MathText content={q.text ?? ""} />
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        {OPTION_KEYS.map(key => {
-                            const val = q.options?.[key];
-                            if (!val) return null;
-                            const isWrong = state.triedWrong.includes(key);
-                            const isCorrect = state.solvedCorrect === key;
-                            const isSelected = state.answer === key && !state.checked;
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => selectAnswer(key)}
-                                    disabled={!!state.solvedCorrect || isWrong}
-                                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
-                                        isWrong
-                                            ? "border-red-500 bg-red-50 dark:bg-red-950/30 cursor-not-allowed"
-                                            : isCorrect
-                                            ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-                                            : isSelected
-                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                                            : "border-border bg-card hover:border-muted-foreground/50"
-                                    }`}
-                                >
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${
-                                        isWrong
-                                            ? "bg-red-500 text-white"
-                                            : isCorrect
-                                            ? "bg-green-500 text-white"
-                                            : isSelected
-                                            ? "bg-blue-500 text-white"
-                                            : "border-2 border-border text-muted-foreground"
-                                    }`}>
-                                        {isWrong ? <XCircle className="w-4 h-4" /> :
-                                         isCorrect ? <CheckCircle2 className="w-4 h-4" /> :
-                                         key.toUpperCase()}
-                                    </div>
-                                    <span className="text-foreground font-medium ql-content">
-                                        <MathText content={val} as="span" />
-                                    </span>
-                                </button>
-                            );
-                        })}
+
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-background">
+                        <button
+                            onClick={() => { setIdx(i => Math.max(0, i - 1)); setShowGrid(false); }}
+                            disabled={idx === 0}
+                            className="p-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-30"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
+
+                        <button
+                            onClick={() => setShowGrid(s => !s)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
+                        >
+                            <span className="font-bold text-foreground">{answeredCount} / {questions.length}</span>
+                            <span className="text-xs text-muted-foreground">
+                                {language === "uz" ? "javob berildi" : "отвечено"}
+                            </span>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setShowGrid(false);
+                                if (idx === questions.length - 1) {
+                                    setShowFinishDialog(true);
+                                } else {
+                                    setIdx(i => i + 1);
+                                }
+                            }}
+                            className="p-2 rounded-xl hover:bg-muted transition-colors"
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-background shrink-0">
-                <button
-                    onClick={() => setIdx(i => Math.max(0, i - 1))}
-                    disabled={idx === 0}
-                    className="p-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-30"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={handleCheck}
-                    disabled={!state.answer || !!state.solvedCorrect || state.triedWrong.includes(state.answer)}
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40"
-                >
-                    {language === "uz" ? "Tekshirish" : "Проверить"}
-                </button>
-                <button
-                    onClick={() => {
-                        if (idx === questions.length - 1) setFinished(true);
-                        else setIdx(i => i + 1);
-                    }}
-                    className="p-2 rounded-xl hover:bg-muted transition-colors"
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
+            {/* Finish confirmation dialog */}
+            {showFinishDialog && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+                    <div className="bg-background rounded-2xl p-8 max-w-sm w-full mx-4 shadow-xl">
+                        <h2
+                            className="text-xl font-black mb-2"
+                            style={{ fontFamily: "var(--font-montserrat)" }}
+                        >
+                            {language === "uz" ? "Mockni tugatmoqchimisiz?" : "Завершить мок?"}
+                        </h2>
+                        <p className="text-muted-foreground text-sm mb-2">
+                            {language === "uz"
+                                ? `Javob berilgan: ${answeredCount} / ${questions.length}`
+                                : `Отвечено: ${answeredCount} / ${questions.length}`}
+                        </p>
+                        {answeredCount < questions.length && (
+                            <p className="text-red-500 text-sm mb-6">
+                                ⚠️ {questions.length - answeredCount}{" "}
+                                {language === "uz" ? "ta savol javobsiz qolmoqda!" : "вопросов остались без ответа!"}
+                            </p>
+                        )}
+                        <div className={`flex gap-3 ${answeredCount < questions.length ? "" : "mt-6"}`}>
+                            <button
+                                onClick={() => setShowFinishDialog(false)}
+                                className="flex-1 py-3 rounded-xl border border-border font-semibold hover:bg-muted transition-colors text-foreground"
+                            >
+                                {language === "uz" ? "Davom etish" : "Продолжить"}
+                            </button>
+                            <button
+                                onClick={() => { setShowFinishDialog(false); setFinished(true); }}
+                                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"
+                            >
+                                {language === "uz" ? "Tugatish" : "Завершить"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
