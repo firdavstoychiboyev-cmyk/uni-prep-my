@@ -629,7 +629,7 @@ export default function TestPage() {
 
             {/* ─── MAIN CONTENT ─── */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-                <div className="max-w-2xl mx-auto w-full px-6 py-4">
+                <div className="max-w-3xl mx-auto w-full px-6 py-4">
 
                     {/* Question header */}
                     <div className="flex items-center justify-between mb-5">
@@ -714,7 +714,13 @@ export default function TestPage() {
                     {/* Question text */}
                     <MathText
                         content={q?.text ?? ""}
-                        className="font-['Montserrat'] text-lg font-normal leading-relaxed text-foreground mb-6 ql-content math-question-text"
+                        className="text-foreground mb-6 ql-content math-question-text"
+                        style={{
+                            fontFamily: "var(--font-source-serif), Georgia, serif",
+                            fontSize: "1.2rem",
+                            lineHeight: "1.8",
+                            letterSpacing: "0.01em",
+                        }}
                     />
 
                     {/* ─── OPEN ANSWER (plain textarea) ─── */}
@@ -818,7 +824,7 @@ export default function TestPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => { setAnswer(key); }}
-                                                className={`relative flex min-w-0 items-center gap-4 rounded-2xl p-4 text-left transition-all duration-200 ${cls}`}
+                                                className={`relative flex min-w-0 items-center gap-4 rounded-2xl px-5 py-4 text-left transition-all duration-200 ${cls}`}
                                             >
                                                 {isCrossed && (
                                                     <span
@@ -830,7 +836,7 @@ export default function TestPage() {
                                                 )}
                                                 {!showCrossOutColumn && (
                                                     <span
-                                                        className={`relative z-[2] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${letterCls}`}
+                                                        className={`relative z-[2] flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${letterCls}`}
                                                     >
                                                         {isWrong
                                                             ? <XCircle className="w-4 h-4" />
@@ -840,7 +846,14 @@ export default function TestPage() {
                                                         }
                                                     </span>
                                                 )}
-                                                <span className="relative z-[2] min-w-0 flex-1 text-base font-medium text-foreground">
+                                                <span
+                                                    className="relative z-[2] min-w-0 flex-1 font-medium text-foreground"
+                                                    style={{
+                                                        fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
+                                                        fontSize: "1rem",
+                                                        lineHeight: "1.6",
+                                                    }}
+                                                >
                                                     <MathText content={val} as="span" />
                                                 </span>
                                             </button>

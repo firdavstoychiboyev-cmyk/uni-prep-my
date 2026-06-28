@@ -8,6 +8,7 @@ interface MathTextProps {
     content: string;
     as?: "div" | "span";
     className?: string;
+    style?: React.CSSProperties;
 }
 
 declare global {
@@ -17,7 +18,7 @@ declare global {
     }
 }
 
-export default function MathText({ content, as = "div", className }: MathTextProps) {
+export default function MathText({ content, as = "div", className, style }: MathTextProps) {
     const rootRef = useRef<HTMLDivElement>(null);
     const [libLoaded, setLibLoaded] = useState(false);
 
@@ -63,9 +64,10 @@ export default function MathText({ content, as = "div", className }: MathTextPro
 
     const Component = as;
     return (
-        <Component 
-            ref={rootRef} 
-            className={`math-content ${className || ""}`} 
+        <Component
+            ref={rootRef}
+            className={`math-content ${className || ""}`}
+            style={style}
         />
     );
 }
