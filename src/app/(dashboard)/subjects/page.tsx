@@ -68,7 +68,7 @@ export default function SubjectsPage() {
                 {isLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <div key={n} className="h-[116px] animate-pulse rounded-2xl border border-border bg-muted" />
+                            <div key={n} className="h-[168px] animate-pulse rounded-2xl bg-muted" />
                         ))}
                     </div>
                 ) : (

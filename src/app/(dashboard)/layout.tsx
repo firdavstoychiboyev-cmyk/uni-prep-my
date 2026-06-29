@@ -30,16 +30,16 @@ export default function DashboardLayout({
         return (
             <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-black">
                 {/* Skeleton sidebar — hidden on mobile */}
-                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex-col z-50 px-3 py-6 gap-2">
-                    <div className="h-10 w-40 bg-gray-100 rounded-xl animate-pulse mx-3 mb-4" />
+                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-[#0f1117] border-r border-white/[0.07] flex-col z-50 px-3 py-6 gap-2">
+                    <div className="h-10 w-40 bg-white/[0.08] rounded-xl animate-pulse mx-3 mb-4" />
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                        <div key={i} className="h-10 bg-white/[0.08] rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
                     ))}
                     <div className="mt-4 mx-3">
-                        <div className="h-3 w-20 bg-gray-100 rounded animate-pulse mb-3" />
+                        <div className="h-3 w-20 bg-white/[0.06] rounded animate-pulse mb-3" />
                     </div>
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
+                        <div key={i} className="h-9 bg-white/[0.06] rounded-xl animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
                     ))}
                 </aside>
                 {/* Skeleton content */}
