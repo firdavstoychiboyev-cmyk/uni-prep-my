@@ -104,16 +104,16 @@ function Sidebar() {
                     {/* Full logo — hidden when collapsed on desktop */}
                     <Link href="/home" className={`flex items-center gap-3 ${isCollapsed ? "md:hidden" : ""}`} onClick={close}>
                         <div className="relative w-10 h-10 flex-shrink-0">
-                            <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
+                            <Image src="/gogg.png" alt="Kulcha" fill className="object-contain" priority />
                         </div>
-                        <span className="text-lg font-extrabold tracking-tight text-foreground">UniPrep</span>
+                        <span className="text-lg font-extrabold tracking-tight text-foreground">Kulcha</span>
                     </Link>
 
                     {/* Collapsed: just the logo icon */}
                     {isCollapsed && (
-                        <Link href="/home" className="hidden md:flex items-center justify-center" onClick={close} title="UniPrep">
+                        <Link href="/home" className="hidden md:flex items-center justify-center" onClick={close} title="Kulcha">
                             <div className="relative w-8 h-8 flex-shrink-0">
-                                <Image src="/gogg.png" alt="UniPrep" fill className="object-contain" priority />
+                                <Image src="/gogg.png" alt="Kulcha" fill className="object-contain" priority />
                             </div>
                         </Link>
                     )}

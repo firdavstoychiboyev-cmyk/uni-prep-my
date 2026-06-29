@@ -43,7 +43,7 @@ export default function Navbar() {
                                 <div className="relative w-32 lg:w-48 h-10 lg:h-14">
                                     <Image
                                         src="/лого.png"
-                                        alt="Uni-Prep Logo"
+                                        alt="Kulcha Logo"
                                         fill
                                         className="object-contain object-left"
                                         priority
@@ -126,7 +126,7 @@ export default function Navbar() {
                         <div className="relative w-28 h-8">
                             <Image
                                 src="/лого.png"
-                                alt="Uni-Prep Logo"
+                                alt="Kulcha Logo"
                                 fill
                                 className="object-contain object-left"
                                 priority

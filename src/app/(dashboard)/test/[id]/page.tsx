@@ -373,7 +373,21 @@ export default function TestPage() {
                 timeSpentSeconds: secs, completedAt: serverTimestamp(),
             });
 
-            // Stars + badges per unique textbook
+            // Fetch all userProgress once — reused for medal check and achievement input.
+            type ProgData = { medal?: string; solvedQuestions?: number; errors?: number };
+            const allProgSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
+            const progByTopicId = new Map<string, ProgData>();
+            let totalCorrect = 0;
+            allProgSnap.forEach((d) => {
+                const data = d.data() as ProgData;
+                progByTopicId.set(d.id, data);
+                totalCorrect += data.solvedQuestions ?? 0;
+            });
+
+            // Stars + badges per unique textbook.
+            // Also accumulate subject-level stats for Sniper achievement checking.
+            type SubjAgg = { solved: number; errors: number; totalTopics: number; completedTopics: number };
+            const subjectProgAgg = new Map<string, SubjAgg>();
             const textbookIds = Array.from(new Set(allTopics.map((t) => t.textbookId).filter((id): id is string => Boolean(id))));
             for (const tbId of textbookIds) {
                 const tbSnap = await getDoc(doc(db, "textbooks", tbId));
@@ -389,12 +403,9 @@ export default function TestPage() {
                 else await setDoc(rRef, { userId: user.id, subjectId, stars: tbCorr, lastUpdated: serverTimestamp() });
 
                 const tbTopics = await fetchTopicsByTextbook(tbId);
-                const pSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
-                const pMap: Record<string, string> = {};
-                pSnap.forEach((d) => { pMap[d.id] = (d.data() as { medal: string }).medal; });
                 const allGreen = tbTopics.every((t) => {
                     const p = payloads.get(t.id);
-                    return (p ? p.medal : pMap[t.id]) === "green";
+                    return (p ? p.medal : (progByTopicId.get(t.id)?.medal ?? "none")) === "green";
                 });
                 if (allGreen && tbTopics.length > 0) {
                     const bRef = doc(db, "users", user.id, "badges", tbId);
@@ -406,7 +417,33 @@ export default function TestPage() {
                         });
                     }
                 }
+
+                // Accumulate subject progress for Sniper achievement
+                const sid = subjectId as string;
+                const sp = subjectProgAgg.get(sid) ?? { solved: 0, errors: 0, totalTopics: 0, completedTopics: 0 };
+                sp.totalTopics += tbTopics.length;
+                for (const topic of tbTopics) {
+                    const prog = progByTopicId.get(topic.id);
+                    if (prog) {
+                        sp.solved += prog.solvedQuestions ?? 0;
+                        sp.errors += prog.errors ?? 0;
+                        sp.completedTopics += 1;
+                    }
+                }
+                subjectProgAgg.set(sid, sp);
             }
+
+            // Subject accuracies for Sniper achievements
+            const subjectAccuracies = Array.from(subjectProgAgg.entries()).map(
+                ([subjectId, { solved, errors, totalTopics, completedTopics }]) => {
+                    const total = solved + errors;
+                    return {
+                        subjectId,
+                        accuracy: total > 0 ? Math.round((solved / total) * 100) : 0,
+                        completionPct: totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0,
+                    };
+                }
+            );
 
             // Streak update
             const today = new Date().toISOString().split("T")[0];
@@ -430,15 +467,8 @@ export default function TestPage() {
                 else if (s.status === "incorrect") cur = 0;
             }
 
-            // Total correct from all userProgress
-            const allProgSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
-            let totalCorrect = 0;
-            allProgSnap.forEach((d) => {
-                totalCorrect += ((d.data() as { solvedQuestions?: number }).solvedQuestions ?? 0);
-            });
-
             awarded = await checkAndAwardAchievements(user.id, {
-                subjectAccuracies: [],
+                subjectAccuracies,
                 streakDays,
                 totalCorrect,
                 correctStreak: maxStreak,
@@ -1145,9 +1175,11 @@ export default function TestPage() {
                             </div>
                         </div>
                         <h2 className="text-xl font-bold text-foreground mb-1">
-                            {newlyAwarded.length === 1 ? "Новое достижение!" : `${newlyAwarded.length} новых достижения!`}
+                            {newlyAwarded.length === 1
+                                ? t("ach.newTitle")
+                                : t("ach.newTitlePlural", { count: newlyAwarded.length })}
                         </h2>
-                        <p className="text-sm text-muted-foreground mb-6">Вы разблокировали:</p>
+                        <p className="text-sm text-muted-foreground mb-6">{t("ach.unlocked")}</p>
                         <div className="flex flex-col gap-3 mb-8">
                             {newlyAwarded.map((ach) => (
                                 <div key={ach.id} className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-left">
@@ -1167,7 +1199,7 @@ export default function TestPage() {
                             }}
                             className="w-full rounded-2xl bg-blue-700 py-3 text-sm font-bold text-white hover:bg-blue-800 transition-colors"
                         >
-                            Продолжить
+                            {t("ach.continue")}
                         </button>
                     </div>
                 </div>

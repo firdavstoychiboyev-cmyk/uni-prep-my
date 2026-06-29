@@ -201,6 +201,10 @@ export const translations: Record<Language, Record<string, string>> = {
         "ach.recently": "Недавно",
         "ach.empty": "Пока достижений нет",
         "ach.emptyHint": "Пройдите все темы любого учебника на 🟢 зелёную медаль!",
+        "ach.newTitle": "Новое достижение!",
+        "ach.newTitlePlural": "{count} новых достижения!",
+        "ach.unlocked": "Вы разблокировали:",
+        "ach.continue": "Продолжить",
 
         // ── Profile ──────────────────────────────────────────────
         "profile.copyId": "Копировать ID",
@@ -257,6 +261,7 @@ export const translations: Record<Language, Record<string, string>> = {
         // ── Textbook page ────────────────────────────────────────
         "tb.textbook": "Учебник",
         "tb.notFound": "Учебник не найден",
+        "tb.loadError": "Не удалось загрузить учебник. Проверьте соединение.",
         "tb.topicN": "Тема {n}",
         "tb.questionsShort": "{count} вопр.",
         "tb.startTest": "Начать тест",
@@ -606,10 +611,14 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.openAnswerPlaceholder": "Javobingizni kiriting…",
 
         // ── Achievements ─────────────────────────────────────────
-        "ach.subtitle": "Darsliklarni mukammal o‘tganingiz va boshqa muvaffaqiyatlaringiz uchun mukofotlaringiz.",
+        "ach.subtitle": "Darsliklarni mukammal o’tganingiz va boshqa muvaffaqiyatlaringiz uchun mukofotlaringiz.",
         "ach.recently": "Yaqinda",
-        "ach.empty": "Hozircha yutuqlar yo‘q",
-        "ach.emptyHint": "Istalgan darslikning barcha mavzularini 🟢 yashil medalga o‘ting!",
+        "ach.empty": "Hozircha yutuqlar yo’q",
+        "ach.emptyHint": "Istalgan darslikning barcha mavzularini 🟢 yashil medalga o’ting!",
+        "ach.newTitle": "Yangi yutuq!",
+        "ach.newTitlePlural": "{count} ta yangi yutuq!",
+        "ach.unlocked": "Siz qo’lga kiritdingiz:",
+        "ach.continue": "Davom etish",
 
         // ── Profile ──────────────────────────────────────────────
         "profile.copyId": "ID nusxa olish",
@@ -666,10 +675,11 @@ export const translations: Record<Language, Record<string, string>> = {
         // ── Textbook page ────────────────────────────────────────
         "tb.textbook": "Darslik",
         "tb.notFound": "Darslik topilmadi",
+        "tb.loadError": "Darslikni yuklashda xatolik. Ulanishni tekshiring.",
         "tb.topicN": "{n}-mavzu",
         "tb.questionsShort": "{count} ta savol",
         "tb.startTest": "Testni boshlash",
-        "tb.noTopics": "Bu darslik uchun mavzular hali qo‘shilmagan.",
+        "tb.noTopics": "Bu darslik uchun mavzular hali qo’shilmagan.",
 
         // ── Class detail ─────────────────────────────────────────
         "common.add": "Qo‘shish",

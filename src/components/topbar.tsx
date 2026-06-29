@@ -182,7 +182,7 @@ export default function Topbar() {
                     </button>
 
                     {/* App name — mobile only */}
-                    <span className="md:hidden font-extrabold text-base text-foreground tracking-tight">UniPrep</span>
+                    <span className="md:hidden font-extrabold text-base text-foreground tracking-tight">Kulcha</span>
 
                     {/* Desktop search trigger */}
                     <button

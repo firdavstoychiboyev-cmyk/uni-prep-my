@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuthStore } from "../store/useAuthStore";
@@ -13,6 +13,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const { setUser, setLoading } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
+    // Keep a ref so the listener can read the current pathname without being
+    // in the effect's dependency array (which would re-subscribe on every navigation).
+    const pathnameRef = useRef(pathname);
+    useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
 
     // Гидрируем язык из localStorage до авторизации (чтобы экран входа был на нужном языке)
     useEffect(() => {
@@ -27,28 +31,29 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             setLoading(true);
+            const currentPath = pathnameRef.current;
             if (firebaseUser) {
                 const profile = await getUserProfile(firebaseUser.uid);
                 if (profile) {
                     setUser(profile);
                     useLanguageStore.getState().setLanguage(profile.language || DEFAULT_LANGUAGE);
                     // Если профиль есть и роль выбрана, но мы на логине или онбординге - в дашборд
-                    if (profile.role && (pathname === "/login" || pathname === "/onboarding")) {
+                    if (profile.role && (currentPath === "/login" || currentPath === "/onboarding")) {
                         router.push("/home");
-                    } else if (!profile.role && pathname !== "/onboarding") {
+                    } else if (!profile.role && currentPath !== "/onboarding") {
                         // Если роль не выбрана - на онбординг
                         router.push("/onboarding");
                     }
                 } else {
                     // Если профиля в БД нет - на онбординг для создания
                     setUser(null);
-                    if (pathname !== "/onboarding") {
+                    if (currentPath !== "/onboarding") {
                         router.push("/onboarding");
                     }
                 }
             } else {
                 setUser(null);
-                if (pathname !== "/login" && pathname !== "/") {
+                if (currentPath !== "/login" && currentPath !== "/") {
                     router.push("/login");
                 }
             }
@@ -56,7 +61,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         });
 
         return () => unsubscribe();
-    }, [setUser, setLoading, router, pathname]);
+    // pathnameRef is stable — intentionally omitted from deps to prevent re-subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [setUser, setLoading, router]);
 
     return <>{children}</>;
 }

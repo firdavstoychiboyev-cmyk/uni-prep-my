@@ -11,7 +11,7 @@ export default function DashboardAnnouncement() {
                     aria-hidden
                 />
                 <span>
-                    <span className="font-semibold">UniPrep</span> — графики прогресса на главной, тренировка по
+                    <span className="font-semibold">Kulcha</span> — графики прогресса на главной, тренировка по
                     темам в карточке каждого предмета.
                 </span>
             </p>

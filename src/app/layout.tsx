@@ -41,8 +41,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Uni-Prep",
-  description: "Система подготовки к университету",
+  title: "Kulcha",
+  description: "Universitetga kirish uchun eng qulay tayyorgarlik platformasi",
   icons: {
     icon: [
       { url: "/auto-Photoroom.png", sizes: "any", type: "image/png" },

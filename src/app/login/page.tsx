@@ -100,7 +100,7 @@ export default function LoginPage() {
                                 <Image src="/gogg.png" alt="" fill className="object-contain" priority />
                             </div>
                             <span className="text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.75rem]">
-                                UniPrep
+                                Kulcha
                             </span>
                         </div>
                     </div>

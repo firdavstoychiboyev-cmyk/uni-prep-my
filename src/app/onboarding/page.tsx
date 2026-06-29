@@ -101,7 +101,7 @@ export default function OnboardingPage() {
                                 />
                             </div>
                             <span className="text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-[1.75rem]">
-                                UniPrep
+                                Kulcha
                             </span>
                         </div>
                     </div>

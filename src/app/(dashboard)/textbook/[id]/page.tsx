@@ -17,28 +17,42 @@ export default function TextbookPage() {
     const [topics, setTopics] = useState<Topic[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [loadError, setLoadError] = useState(false);
+
     useEffect(() => {
         if (!id) return;
 
         const load = async () => {
-            const [textbookData, topicsData] = await Promise.all([
-                fetchTextbookById(id as string),
-                fetchTopicsByTextbook(id as string)
-            ]);
+            try {
+                const [textbookData, topicsData] = await Promise.all([
+                    fetchTextbookById(id as string),
+                    fetchTopicsByTextbook(id as string)
+                ]);
 
-            setTextbook(textbookData);
-            setTopics(topicsData);
+                setTextbook(textbookData);
+                setTopics(topicsData);
 
-            if (textbookData?.subjectId) {
-                const subjectData = await fetchSubjectById(textbookData.subjectId);
-                setSubject(subjectData);
+                if (textbookData?.subjectId) {
+                    const subjectData = await fetchSubjectById(textbookData.subjectId);
+                    setSubject(subjectData);
+                }
+            } catch {
+                setLoadError(true);
+            } finally {
+                setIsLoading(false);
             }
-
-            setIsLoading(false);
         };
 
         load();
     }, [id]);
+
+    if (loadError) {
+        return (
+            <div className="flex items-center justify-center min-h-[50vh]">
+                <p className="text-muted-foreground text-lg font-medium">{t("tb.loadError")}</p>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
