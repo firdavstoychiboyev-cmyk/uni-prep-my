@@ -91,7 +91,7 @@ function Sidebar() {
 
             <aside
                 className={`
-                    fixed left-0 top-0 h-screen bg-[#0f1117] border-r border-white/[0.07] flex flex-col z-50
+                    fixed left-0 top-0 h-screen bg-[#2a1810] border-r border-white/[0.07] flex flex-col z-50
                     overflow-y-auto overflow-x-hidden
                     transition-[width,transform] duration-300 ease-in-out
                     w-64

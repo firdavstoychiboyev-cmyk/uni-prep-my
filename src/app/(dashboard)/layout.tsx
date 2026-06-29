@@ -30,7 +30,7 @@ export default function DashboardLayout({
         return (
             <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-muted/50 dark:bg-black">
                 {/* Skeleton sidebar — hidden on mobile */}
-                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-[#0f1117] border-r border-white/[0.07] flex-col z-50 px-3 py-6 gap-2">
+                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-[#2a1810] border-r border-white/[0.07] flex-col z-50 px-3 py-6 gap-2">
                     <div className="h-10 w-40 bg-white/[0.08] rounded-xl animate-pulse mx-3 mb-4" />
                     {[...Array(4)].map((_, i) => (
                         <div key={i} className="h-10 bg-white/[0.08] rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
