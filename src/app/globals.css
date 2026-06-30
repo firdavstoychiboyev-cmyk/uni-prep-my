@@ -13,34 +13,34 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: 220 25% 97%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 212 30% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 212 30% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 222 47% 11%;
+    --popover-foreground: 212 30% 8%;
+    --primary: 214 32% 8%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 217 33% 93%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 217 33% 93%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 217 91% 95%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 212 30% 8%;
+    --muted: 210 18% 96%;
+    --muted-foreground: 213 9% 46%;
+    --accent: 204 87% 93%;
+    --accent-foreground: 212 30% 8%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 88%;
-    --input: 214 32% 88%;
-    --ring: 221 83% 53%;
-    --radius: 1.25rem;
+    --border: 213 18% 92%;
+    --input: 213 18% 92%;
+    --ring: 204 87% 53%;
+    --radius: 1rem;
 
-    /* Brand — deep blue / navy */
+    /* Brand */
     --brand-purple: 221 73% 28%;
     --brand-purple-soft: 214 100% 95%;
     --brand-purple-ink: 224 76% 18%;
-    --brand-blue: 221 83% 53%;
-    --brand-blue-soft: 214 100% 93%;
-    --brand-blue-ink: 224 76% 32%;
+    --brand-blue: 204 87% 53%;
+    --brand-blue-soft: 204 87% 93%;
+    --brand-blue-ink: 204 87% 38%;
   }
   * {
     -webkit-font-smoothing: antialiased;
@@ -86,7 +86,7 @@
   }
   body {
     @apply text-foreground bg-background;
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-family: var(--font-plus-jakarta), var(--font-dm-sans), system-ui, sans-serif;
   }
 }
 
@@ -94,7 +94,7 @@ h1, h2, h3, h4, h5, h6,
 .font-heading,
 .logo-text,
 nav a {
-  font-family: var(--font-montserrat), system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta), var(--font-montserrat), system-ui, sans-serif;
 }
 
 [class*="text-2xl"],
@@ -102,7 +102,7 @@ nav a {
 [class*="text-4xl"],
 [class*="font-bold"],
 [class*="font-semibold"] {
-  font-family: var(--font-montserrat), system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta), var(--font-montserrat), system-ui, sans-serif;
 }
 
 /* Глобальный фон */

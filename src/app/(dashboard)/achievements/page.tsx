@@ -27,8 +27,8 @@ function AchievementIcon({ series, tier, unlocked }: { series: string; tier: num
                 <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center text-[10px]">⭐</div>
             )}
             {!unlocked && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted-foreground/20 flex items-center justify-center">
-                    <Lock className="w-3 h-3 text-muted-foreground/50" />
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm" style={{ background: "#fff", border: "1px solid #EAEDF0" }}>
+                    <Lock className="w-2.5 h-2.5" style={{ color: "#98A1AC" }} />
                 </div>
             )}
         </div>
@@ -93,10 +93,10 @@ export default function AchievementsPage() {
         <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">
             {/* Header */}
             <section>
-                <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+                <h1 className="text-[28px] font-extrabold" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>
                     {t("nav.achievements")}
                 </h1>
-                <p className="mt-2 text-muted-foreground">
+                <p className="mt-1 text-[14px]" style={{ color: "#6B7480" }}>
                     {isLoading ? "…" : `${totalEarned} / ${ACHIEVEMENTS.length} ${isRu ? "разблокировано" : "razblokiylangan"}`}
                 </p>
             </section>
@@ -104,7 +104,7 @@ export default function AchievementsPage() {
             {isLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-40 animate-pulse rounded-2xl border border-border bg-muted" />
+                        <div key={i} className="h-40 animate-pulse rounded-2xl" style={{ border: "1px solid #EAEDF0", background: "#F8FAFB" }} />
                     ))}
                 </div>
             ) : (
@@ -118,10 +118,10 @@ export default function AchievementsPage() {
                         return (
                             <section key={series}>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <h2 className={`text-xl font-bold ${meta.color}`}>
+                                    <h2 className="text-[19px] font-extrabold" style={{ color: "#0E1419" }}>
                                         {isRu ? meta.labelRu : meta.label}
                                     </h2>
-                                    <span className="text-sm text-muted-foreground font-medium">
+                                    <span className="rounded-full px-2.5 py-0.5 text-[12px] font-bold" style={{ background: "#F4F6F8", color: "#6B7480" }}>
                                         {earnedCount}/{seriesAchievements.length}
                                     </span>
                                 </div>
@@ -135,16 +135,14 @@ export default function AchievementsPage() {
                                         return (
                                             <div
                                                 key={ach.id}
-                                                className={`relative flex flex-col items-center rounded-2xl border p-5 text-center transition-all duration-200
-                                                    ${isWar
-                                                        ? earned
-                                                            ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20 shadow-md"
-                                                            : "border-amber-200 bg-amber-50/40 dark:bg-amber-950/10 grayscale opacity-60"
-                                                        : earned
-                                                            ? "border-border bg-card hover:shadow-sm"
-                                                            : "border-border bg-muted/40 grayscale opacity-50"
-                                                    }
-                                                `}
+                                                className="relative flex flex-col items-center rounded-[18px] p-5 text-center transition-all duration-200"
+                                                style={{
+                                                    background: "#fff",
+                                                    border: `1px solid ${isWar && earned ? "#FBBF24" : "#EAEDF0"}`,
+                                                    boxShadow: isWar && earned ? "0 0 0 2px rgba(251,191,36,.2)" : "none",
+                                                    opacity: !earned ? 0.7 : 1,
+                                                    filter: !earned ? "grayscale(0.5)" : "none",
+                                                }}
                                             >
                                                 {/* War badge glow */}
                                                 {isWar && earned && (

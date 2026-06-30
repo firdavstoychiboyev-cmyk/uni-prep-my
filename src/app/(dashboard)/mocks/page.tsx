@@ -44,10 +44,10 @@ export default function MocksPage() {
     return (
         <div className="max-w-4xl mx-auto px-6 py-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
+                <h1 className="text-[28px] font-extrabold" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>
                     {language === "uz" ? "Mock Testlar" : "Мок Тесты"}
                 </h1>
-                <p className="text-muted-foreground mt-1">
+                <p className="text-[14px] mt-1" style={{ color: "#6B7480" }}>
                     {language === "uz"
                         ? "Milliy sertifikat va DTM imtihonlariga tayyorlanish uchun mock testlar"
                         : "Мок тесты для подготовки к национальному сертификату и ДТМ"}
@@ -59,11 +59,10 @@ export default function MocksPage() {
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                            activeCategory === cat
-                                ? "bg-foreground text-background"
-                                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                        }`}
+                        className="px-4 py-2 rounded-full text-[13.5px] font-bold transition-all duration-150"
+                        style={activeCategory === cat
+                            ? { background: "#0E1217", color: "#fff", border: "1px solid #0E1217" }
+                            : { background: "#fff", color: "#44505E", border: "1px solid #EAEDF0" }}
                     >
                         {cat === "all"
                             ? (language === "uz" ? "Barchasi" : "Все")
@@ -90,29 +89,33 @@ export default function MocksPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filtered.map(mock => (
+                    {filtered.map(mock => {
+                        const isGreen = mock.category === "milliy_sertifikat";
+                        return (
                         <Link
                             key={mock.id}
                             href={`/mocks/${mock.id}`}
-                            className="rounded-2xl border border-border bg-card p-6 hover:shadow-md hover:border-blue-300 transition-all group"
+                            className="flex flex-col rounded-[18px] p-6 transition-all duration-150 group"
+                            style={{ background: "#fff", border: "1px solid #EAEDF0" }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#D7DCE2"; (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 26px rgba(14,20,25,.06)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EAEDF0"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
                         >
                             <div className="flex items-start justify-between mb-4">
-                                <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950">
-                                    <ClipboardList className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "#E7F2FE" }}>
+                                    <ClipboardList className="w-5 h-5" style={{ color: "#1C82E0" }} />
                                 </div>
-                                <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
-                                    mock.category === "milliy_sertifikat"
-                                        ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
-                                        : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                                }`}>
-                                    {mock.category === "milliy_sertifikat" ? "Milliy Sertifikat" : "DTM"}
+                                <span className="text-[12px] font-bold px-2.5 py-1 rounded-[8px]"
+                                    style={isGreen
+                                        ? { background: "#E6F7EC", color: "#16A34A" }
+                                        : { background: "#E7F2FE", color: "#1C82E0" }}>
+                                    {isGreen ? "Milliy Sertifikat" : "DTM"}
                                 </span>
                             </div>
-                            <h3 className="font-bold text-foreground text-lg mb-1" style={{ fontFamily: "var(--font-montserrat)" }}>
+                            <h3 className="font-extrabold text-[17px] mb-1.5" style={{ color: "#0E1419" }}>
                                 {mock.title}
                             </h3>
-                            <p className="text-sm text-muted-foreground mb-4">{mock.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <p className="text-[13.5px] mb-4" style={{ color: "#6B7480" }}>{mock.description}</p>
+                            <div className="flex items-center gap-4 text-[13px] mt-auto" style={{ color: "#98A1AC" }}>
                                 <div className="flex items-center gap-1.5">
                                     <BookOpen className="w-4 h-4" />
                                     <span>55 {language === "uz" ? "savol" : "вопросов"}</span>
@@ -121,12 +124,11 @@ export default function MocksPage() {
                                     <Clock className="w-4 h-4" />
                                     <span>{language === "uz" ? "2 soat" : "2 часа"}</span>
                                 </div>
-                            </div>
-                            <div className="mt-4 flex items-center justify-end">
-                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                                <ChevronRight className="w-4 h-4 ml-auto transition-colors group-hover:text-foreground" />
                             </div>
                         </Link>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

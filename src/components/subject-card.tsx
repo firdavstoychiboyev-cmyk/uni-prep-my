@@ -13,73 +13,95 @@ interface SubjectCardProps {
     progress?: number;
 }
 
-const CARD_GRADIENTS: Record<AccentKey, string> = {
-    purple: "from-purple-600 to-purple-800",
-    blue:   "from-blue-500 to-blue-700",
-    sky:    "from-sky-500 to-blue-600",
-    emerald:"from-emerald-500 to-teal-600",
-    teal:   "from-teal-500 to-teal-700",
-    indigo: "from-indigo-500 to-indigo-700",
-    amber:  "from-amber-500 to-orange-600",
-    rose:   "from-rose-500 to-pink-600",
-    orange: "from-orange-500 to-red-500",
-    neutral:"from-slate-600 to-slate-800",
+const ACCENT_STYLES: Record<AccentKey, { color: string; soft: string }> = {
+    purple: { color: "#8B5CF6", soft: "#F1ECFD" },
+    blue:   { color: "#1C82E0", soft: "#E7F2FE" },
+    sky:    { color: "#0EA5E9", soft: "#E0F5FE" },
+    emerald:{ color: "#16A34A", soft: "#E6F7EC" },
+    teal:   { color: "#0D9488", soft: "#E0F5F2" },
+    indigo: { color: "#4F46E5", soft: "#EEF0FE" },
+    amber:  { color: "#D97706", soft: "#FEF1DF" },
+    rose:   { color: "#E8568F", soft: "#FCEAF2" },
+    orange: { color: "#E2562F", soft: "#FDEDE7" },
+    neutral:{ color: "#56616E", soft: "#F4F6F8" },
 };
 
 export default function SubjectCard({
     subject,
-    medals = { green: 0, grey: 0, bronze: 0 },
     progress = 0,
 }: SubjectCardProps) {
     const { t, language } = useTranslation();
     const { icon: Icon, accent: accentKey } = getSubjectMeta(subject.name, subject.id);
-    const gradient = CARD_GRADIENTS[accentKey];
-    const totalMedals = medals.green + medals.grey + medals.bronze;
+    const { color, soft } = ACCENT_STYLES[accentKey];
+
+    const statusText = progress >= 100
+        ? t("card.completed")
+        : progress > 0
+        ? `${progress}% ${language === "uz" ? "bajarildi" : "выполнено"}`
+        : language === "uz" ? "Boshlanmagan" : "Не начато";
 
     return (
-        <Link
-            href={`/subject/${subject.id}`}
-            className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20`}
+        <div
+            className="flex flex-col rounded-[18px] p-[22px] transition-all duration-200 cursor-pointer"
+            style={{ background: "#fff", border: "1px solid #EAEDF0" }}
+            onMouseEnter={e => {
+                const el = e.currentTarget;
+                el.style.borderColor = "#D7DCE2";
+                el.style.boxShadow = "0 10px 26px rgba(14,20,25,.06)";
+            }}
+            onMouseLeave={e => {
+                const el = e.currentTarget;
+                el.style.borderColor = "#EAEDF0";
+                el.style.boxShadow = "none";
+            }}
         >
-            {/* Subtle noise texture overlay */}
-            <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-
-            <div className="relative p-5 flex flex-col min-h-[168px]">
-                {/* Icon */}
-                <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
-                    <Icon size={20} className="text-white" />
+            {/* Top row: icon + progress badge */}
+            <div className="flex items-center justify-between mb-5">
+                <div
+                    className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center flex-shrink-0"
+                    style={{ background: soft }}
+                >
+                    <Icon size={22} style={{ color }} />
                 </div>
+                {progress > 0 && (
+                    <span
+                        className="text-[12px] font-bold rounded-[8px] px-[11px] py-[5px]"
+                        style={{ background: soft, color }}
+                    >
+                        {progress}%
+                    </span>
+                )}
+            </div>
 
-                {/* Subject name + status */}
-                <div className="mt-3 flex-1">
-                    <h3 className="font-bold text-[15px] text-white leading-snug">
-                        {subject.name}
-                    </h3>
-                    <p className="text-[12px] text-white/65 mt-0.5">
-                        {progress >= 100
-                            ? t("card.completed")
-                            : progress > 0
-                            ? t("card.percentDone", { percent: progress })
-                            : totalMedals > 0
-                            ? `${totalMedals} ${language === "uz" ? "mavzu" : "тем"}`
-                            : t("card.notStarted")}
-                    </p>
+            {/* Name + status */}
+            <div className="mb-[18px]">
+                <div className="text-[19px] font-extrabold leading-snug" style={{ color: "#0E1419", letterSpacing: "-.01em" }}>
+                    {subject.name}
                 </div>
-
-                {/* Bottom row: progress bar + open button */}
-                <div className="mt-4 flex items-center gap-3">
-                    <div className="flex-1 h-1 rounded-full bg-white/20 overflow-hidden">
-                        <div
-                            className="h-full rounded-full bg-white/70 transition-all duration-500"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="inline-flex items-center gap-1 bg-white/20 group-hover:bg-white/30 px-3 py-1.5 rounded-full text-white text-[11px] font-bold transition-colors shrink-0">
-                        {language === "uz" ? "Ochish" : "Открыть"}
-                        <ChevronRight size={11} />
-                    </div>
+                <div className="text-[13.5px] mt-[3px]" style={{ color: "#98A1AC" }}>
+                    {statusText}
                 </div>
             </div>
-        </Link>
+
+            {/* Progress bar */}
+            <div className="h-[7px] rounded-full overflow-hidden mb-4" style={{ background: "#EEF0F3" }}>
+                <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ background: color, width: `${Math.max(0, Math.min(100, progress))}%` }}
+                />
+            </div>
+
+            {/* Open button */}
+            <Link
+                href={`/subject/${subject.id}`}
+                className="w-full flex items-center justify-center gap-2 rounded-[11px] py-[11px] text-[14.5px] font-bold text-white transition-all duration-150"
+                style={{ background: "#0E1217" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#1B212A")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#0E1217")}
+            >
+                {language === "uz" ? "Ochish" : "Открыть"}
+                <ChevronRight size={16} strokeWidth={2.4} />
+            </Link>
+        </div>
     );
 }

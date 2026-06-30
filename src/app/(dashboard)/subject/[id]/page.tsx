@@ -424,14 +424,6 @@ export default function SubjectPage() {
         [completedTopicsCount, flatTopics.length]
     );
 
-    const gradientClass = useMemo(() => {
-        const sid = (id as string)?.toLowerCase() ?? "";
-        if (sid === "english" || sid.includes("англ") || subject?.name.toLowerCase().includes("англ"))
-            return "from-[#a855f7] via-[#c026d3] to-[#e879f9]";
-        if (sid === "math" || sid.includes("матем") || subject?.name.toLowerCase().includes("матем"))
-            return "from-[hsl(var(--brand-blue))] via-sky-400 to-cyan-400";
-        return "from-slate-600 via-slate-500 to-slate-400";
-    }, [id, subject]);
 
     const toggleTopic = useCallback(
         (topicId: string) => {
@@ -492,8 +484,8 @@ export default function SubjectPage() {
 
             {/* Title */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("subject.questionBank")}</h1>
-                <p className="text-sm text-muted-foreground mt-1">{subject.name}</p>
+                <h1 className="text-[26px] sm:text-[30px] font-extrabold" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>{subject.name}</h1>
+                <p className="text-[14px] mt-1" style={{ color: "#6B7480" }}>{t("subject.questionBank")}</p>
             </div>
 
             {/* Toolbar row 1: Filters toggle + toggles */}
@@ -575,11 +567,11 @@ export default function SubjectPage() {
                 </div>
             )}
 
-            {/* Gradient header card */}
+            {/* Subject header card */}
             <div
-                className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${gradientClass} p-6 sm:p-8 text-white shadow-lg transition-all duration-300`}
+                className="relative overflow-hidden rounded-[20px] p-6 sm:p-8 transition-all duration-300"
+                style={{ background: "#fff", border: "1px solid #EAEDF0" }}
             >
-                <div className="absolute inset-0 bg-black/10 pointer-events-none" />
                 <div className="relative flex items-start gap-4">
                     <TopicCheckbox
                         checked={hasTopics && selectedIds.size === flatTopics.length}
@@ -589,24 +581,24 @@ export default function SubjectPage() {
                     <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">{subject.name}</h2>
-                                <p className="mt-0.5 text-sm text-white/80 font-medium">
+                                <h2 className="text-xl sm:text-2xl font-extrabold" style={{ color: "#0E1419" }}>{subject.name}</h2>
+                                <p className="mt-0.5 text-[13.5px]" style={{ color: "#6B7480" }}>
                                     {totalQuestions} {pluralQuestions(totalQuestions, language)}
                                 </p>
                             </div>
                             {completedTopicsCount > 0 && (
                                 <div className="shrink-0 text-right">
-                                    <span className="text-2xl sm:text-3xl font-bold tabular-nums drop-shadow-sm">{subjectCompletionPct}%</span>
-                                    <p className="text-xs text-white/75 font-medium mt-0.5">{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
+                                    <span className="text-2xl sm:text-3xl font-extrabold tabular-nums" style={{ color: "#0E1419" }}>{subjectCompletionPct}%</span>
+                                    <p className="text-[12px] mt-0.5" style={{ color: "#98A1AC" }}>{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
                                 </div>
                             )}
                         </div>
                         {hasTopics && completedTopicsCount > 0 && (
                             <div className="mt-4">
-                                <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                                <div className="h-[7px] w-full rounded-full overflow-hidden" style={{ background: "#EEF0F3" }}>
                                     <div
-                                        className="h-full rounded-full bg-white/80 transition-all duration-700"
-                                        style={{ width: `${subjectCompletionPct}%` }}
+                                        className="h-full rounded-full transition-all duration-700"
+                                        style={{ width: `${subjectCompletionPct}%`, background: "#1C9FEF" }}
                                     />
                                 </div>
                             </div>

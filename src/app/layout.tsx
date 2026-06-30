@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Montserrat, DM_Sans, Cormorant_Garamond, Source_Serif_4 } from "next/font/google";
+import { Montserrat, DM_Sans, Cormorant_Garamond, Source_Serif_4, Plus_Jakarta_Sans } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -26,6 +26,12 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
   weight: ["400", "500", "600"],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const cormorantGaramond = Cormorant_Garamond({
@@ -90,7 +96,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} ${cormorantGaramond.variable} ${sourceSerif.variable} antialiased min-h-screen relative app-bg`}
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} ${cormorantGaramond.variable} ${sourceSerif.variable} ${plusJakartaSans.variable} antialiased min-h-screen relative app-bg`}
       >
         <div className="relative z-10 min-h-screen">
           <AuthProvider>{children}</AuthProvider>

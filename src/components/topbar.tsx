@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown, LogOut, User2, GraduationCap, Shield, Menu, X, BookOpen } from "lucide-react";
+import { Search, ChevronDown, LogOut, User2, GraduationCap, Shield, Menu, X, BookOpen, Flame, Star } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
+import { useLanguageStore } from "@/store/useLanguageStore";
 import { logOut } from "@/lib/auth-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type MenuItem = {
     label: string;
@@ -24,14 +27,27 @@ export default function Topbar() {
     const { user } = useAuthStore();
     const { subjects } = useSubjectsStore();
     const { toggle } = useSidebarStore();
+    const { language, setLanguage } = useLanguageStore();
     const { t } = useTranslation();
 
     const [query, setQuery] = useState("");
     const [openSearch, setOpenSearch] = useState(false);
     const [openUser, setOpenUser] = useState(false);
+    const [streakDays, setStreakDays] = useState(0);
+    const [totalStars, setTotalStars] = useState(0);
 
     const searchInputRef = useRef<HTMLInputElement | null>(null);
     const userRef = useRef<HTMLDivElement | null>(null);
+
+    // Fetch streak + stars
+    useEffect(() => {
+        if (!user) return;
+        getDoc(doc(db, "users", user.id)).then((snap) => {
+            const data = snap.data();
+            setStreakDays(data?.streakDays ?? 0);
+            setTotalStars(data?.totalStars ?? data?.totalCorrect ?? 0);
+        });
+    }, [user]);
 
     // Close user menu on outside click
     useEffect(() => {
@@ -102,15 +118,11 @@ export default function Topbar() {
                     className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[10vh] pb-8"
                     onClick={() => setOpenSearch(false)}
                 >
-                    {/* Backdrop */}
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-                    {/* Modal */}
                     <div
                         className="relative w-full max-w-lg bg-card rounded-3xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Input row */}
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
                             <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                             <input
@@ -130,8 +142,6 @@ export default function Topbar() {
                                 <X className="w-4 h-4 text-muted-foreground" />
                             </button>
                         </div>
-
-                        {/* Results / Empty state */}
                         <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
                             {query.trim().length === 0 ? (
                                 <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
@@ -169,8 +179,11 @@ export default function Topbar() {
             )}
 
             {/* ── Topbar ── */}
-            <div className="sticky top-0 z-40 shrink-0 bg-background/80 backdrop-blur-md">
-                <div className="h-16 px-4 md:px-8 flex items-center gap-3">
+            <div
+                className="sticky top-0 z-40 shrink-0 backdrop-blur-md"
+                style={{ background: "rgba(255,255,255,0.88)", borderBottom: "1px solid #EEF0F3" }}
+            >
+                <div className="h-[58px] px-5 md:px-7 flex items-center gap-3">
 
                     {/* Hamburger — mobile only */}
                     <button
@@ -178,24 +191,62 @@ export default function Topbar() {
                         className="md:hidden p-2 -ml-1 rounded-lg hover:bg-muted transition-colors"
                         aria-label={t("sidebar.openMenu")}
                     >
-                        <Menu className="w-5 h-5 text-foreground" />
+                        <Menu className="w-5 h-5" style={{ color: "#0E1419" }} />
                     </button>
 
                     {/* App name — mobile only */}
-                    <span className="md:hidden font-extrabold text-base text-foreground tracking-tight">Kulcha</span>
+                    <span className="md:hidden font-extrabold text-base tracking-tight" style={{ color: "#0E1419" }}>Kulcha</span>
 
-                    {/* Desktop search trigger */}
+                    {/* Desktop search */}
                     <button
                         onClick={() => setOpenSearch(true)}
-                        className="hidden md:flex items-center gap-3 h-10 pl-4 pr-5 rounded-2xl border border-border bg-muted/50 hover:bg-muted transition-colors w-[min(400px,40vw)]"
+                        className="hidden md:flex items-center gap-3 h-9 pl-4 pr-5 rounded-xl border transition-colors w-[min(320px,36vw)]"
+                        style={{ border: "1px solid #EAEDF0", background: "#F8FAFB" }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "#F1F4F6")}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "#F8FAFB")}
                     >
-                        <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground font-medium flex-1 text-left">{t("search.placeholder")}</span>
+                        <Search className="w-[14px] h-[14px] flex-shrink-0" style={{ color: "#98A1AC" }} />
+                        <span className="text-[13.5px] font-medium" style={{ color: "#98A1AC" }}>{t("search.placeholder")}</span>
                     </button>
 
                     <div className="flex-1" />
 
-                    {/* Mobile search icon */}
+                    {/* Streak badge */}
+                    <div
+                        className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-bold"
+                        style={{ background: "#FFF6EC", border: "1px solid #F6E2C8", color: "#C2410C" }}
+                    >
+                        <Flame size={14} fill="#FB923C" style={{ color: "#FB923C" }} />
+                        <span>{streakDays}</span>
+                    </div>
+
+                    {/* Stars badge */}
+                    <div
+                        className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-bold"
+                        style={{ background: "#EAF4FE", border: "1px solid #CFE6FB", color: "#1C6EA4" }}
+                    >
+                        <Star size={14} fill="#38BDF8" style={{ color: "#38BDF8" }} />
+                        <span>{totalStars}</span>
+                    </div>
+
+                    {/* Language toggle */}
+                    <div className="hidden md:flex items-center rounded-full p-0.5" style={{ background: "#F1F3F5" }}>
+                        {(["uz", "ru"] as const).map((lang) => (
+                            <button
+                                key={lang}
+                                onClick={() => setLanguage(lang)}
+                                className="rounded-full px-3 py-1 text-[12px] font-bold transition-all duration-150"
+                                style={{
+                                    background: language === lang ? "#0E1217" : "transparent",
+                                    color: language === lang ? "#fff" : "#6B7480",
+                                }}
+                            >
+                                {lang.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Mobile search */}
                     <button
                         onClick={() => setOpenSearch(true)}
                         className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
@@ -211,9 +262,12 @@ export default function Topbar() {
                         <button
                             type="button"
                             onClick={() => setOpenUser((v) => !v)}
-                            className="h-10 pl-3 pr-2 rounded-full border border-border bg-card hover:bg-muted transition-colors inline-flex items-center gap-2"
+                            className="h-9 pl-3 pr-2 rounded-full border border-border bg-card hover:bg-muted transition-colors inline-flex items-center gap-2"
                         >
-                            <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-[11px] font-black flex items-center justify-center">
+                            <div
+                                className="w-6 h-6 rounded-full text-white text-[11px] font-black flex items-center justify-center"
+                                style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
+                            >
                                 {(user.name?.[0] || "U").toUpperCase()}
                             </div>
                             <div className="hidden sm:flex flex-col items-start leading-tight">
@@ -221,7 +275,7 @@ export default function Topbar() {
                                     {user.name} {user.surname || ""}
                                 </span>
                             </div>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
 
                         {openUser && (

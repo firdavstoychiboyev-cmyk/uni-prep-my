@@ -15,7 +15,7 @@ import {
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
 import SubjectCard from "@/components/subject-card";
 import {
-    BarChart3, Target, Flame, ListChecks, TrendingUp, Trophy,
+    Target, Flame, ListChecks, TrendingUp, Trophy,
     CheckCircle2, ChevronRight, BookOpen,
 } from "lucide-react";
 import Link from "next/link";
@@ -109,36 +109,29 @@ export default function StatisticsPage() {
         <div className="flex flex-col gap-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/30 shadow-sm">
-                    <BarChart3 className="h-6 w-6 text-[hsl(var(--brand-blue))] dark:text-blue-300" />
-                </div>
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("nav.statistics")}</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">{t("stats.subtitle")}</p>
-                </div>
+            <div>
+                <h1 className="text-[28px] font-extrabold" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>{t("nav.statistics")}</h1>
+                <p className="text-[14px] mt-1" style={{ color: "#6B7480" }}>{t("stats.subtitle")}</p>
             </div>
 
-            {/* Global metric cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Global metric cards — horizontal with dividers */}
+            <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #EAEDF0" }}>
+                <div className="grid grid-cols-2 lg:grid-cols-4">
                 {[
-                    { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks, bg: "bg-[hsl(var(--brand-blue-soft))] dark:bg-blue-950/25" },
-                    { title: t("stats.accuracy"), value: `${globalStats?.accuracy ?? 0}%`, icon: Target, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                    { title: t("stats.medals"), value: String(totalMedals), icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/30" },
-                    { title: t("stats.streak"), value: "—", icon: Flame, bg: "bg-rose-50 dark:bg-rose-950/30" },
-                ].map(({ title, value, icon: Icon, bg }) => (
-                    <div key={title} className={`rounded-2xl border border-border p-4 sm:p-5 ${bg}`}>
-                        <div className="flex items-start justify-between gap-2">
-                            <div>
-                                <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground">{title}</div>
-                                <div className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums">{value}</div>
-                            </div>
-                            <div className="w-9 h-9 rounded-xl border border-border/60 bg-card/80 flex items-center justify-center flex-shrink-0">
-                                <Icon className="w-4 h-4 text-foreground/70" />
-                            </div>
+                    { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks },
+                    { title: t("stats.accuracy"), value: `${globalStats?.accuracy ?? 0}%`, icon: Target },
+                    { title: t("stats.medals"), value: String(totalMedals), icon: Trophy },
+                    { title: t("stats.streak"), value: "—", icon: Flame },
+                ].map(({ title, value, icon: Icon }, i) => (
+                    <div key={title} className="p-6 sm:p-7" style={{ borderLeft: i === 0 ? "none" : "1px solid #EAEDF0" }}>
+                        <div className="text-[14px] font-semibold mb-3.5" style={{ color: "#6B7480" }}>{title}</div>
+                        <div className="flex items-end justify-between gap-2">
+                            <div className="text-[36px] font-extrabold tabular-nums" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>{value}</div>
+                            <Icon className="w-5 h-5 mb-2" style={{ color: "#98A1AC" }} />
                         </div>
                     </div>
                 ))}
+                </div>
             </div>
 
             {/* Activity heatmap — calendar grid, last 6 months */}
