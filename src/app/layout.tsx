@@ -84,11 +84,11 @@ export default function RootLayout({
     const key = "uni-prep-theme";
     const saved = localStorage.getItem(key);
     const root = document.documentElement;
-    if (saved === "dark") {
-      root.classList.add("dark");
-    } else {
+    if (saved === "light") {
       root.classList.remove("dark");
-      if (saved !== "light") localStorage.setItem(key, "light");
+    } else {
+      root.classList.add("dark");
+      if (!saved) localStorage.setItem(key, "dark");
     }
   } catch {}
 })();`,

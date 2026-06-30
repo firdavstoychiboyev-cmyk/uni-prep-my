@@ -562,7 +562,7 @@ export default function TestPage() {
         >
 
             {/* ─── TOP BAR ─── */}
-            <div className="sticky top-0 z-30 shrink-0 bg-background/95 backdrop-blur border-b border-border">
+            <div className="sticky top-0 z-30 shrink-0 backdrop-blur" style={{ background: "rgba(8,8,8,0.95)", borderBottom: "1px solid #1c1c1c" }}>
                 <div className="flex items-center justify-between px-4 py-3 gap-4">
                     {/* Left: back + topic */}
                     <div className="flex items-center gap-3 min-w-0">
@@ -719,11 +719,8 @@ export default function TestPage() {
                     {/* Difficulty badge */}
                     {q?.difficulty && (
                         <div className="mb-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                q.difficulty === "easy" ? "bg-emerald-100 text-emerald-700"
-                                : q.difficulty === "medium" ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                                style={{ background: "#1a1a1a", color: "#737373", border: "1px solid #2a2a2a" }}>
                                 {diffLabel(q.difficulty)}
                             </span>
                         </div>
@@ -770,9 +767,9 @@ export default function TestPage() {
                                 }`}
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
-                                <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4">
-                                    <div className="text-xs font-bold text-emerald-700 mb-1">{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-gray-900">{q?.correctAnswer}</div>
+                                <div className="rounded-xl p-4" style={{ background: "#0d2010", border: "1px solid #163d1e" }}>
+                                    <div className="text-xs font-bold mb-1" style={{ color: "#22c55e" }}>{t("test.correctAnswerLabel")}</div>
+                                    <div className="text-base font-medium text-white">{q?.correctAnswer}</div>
                                 </div>
                             )}
                         </div>
@@ -791,9 +788,9 @@ export default function TestPage() {
                                 }`}
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
-                                <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4">
-                                    <div className="text-xs font-bold text-emerald-700 mb-1">{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-gray-900">{q?.correctAnswer}</div>
+                                <div className="rounded-xl p-4" style={{ background: "#0d2010", border: "1px solid #163d1e" }}>
+                                    <div className="text-xs font-bold mb-1" style={{ color: "#22c55e" }}>{t("test.correctAnswerLabel")}</div>
+                                    <div className="text-base font-medium text-white">{q?.correctAnswer}</div>
                                 </div>
                             )}
                         </div>
@@ -826,18 +823,26 @@ export default function TestPage() {
                                     // Blue only when actively selected and not yet judged
                                     const isActiveBlue = isSelected && !isWrong && solvedCorrect === null;
 
-                                    let cls = "border-2 border-border bg-card hover:border-muted-foreground/50 hover:bg-muted/50 cursor-pointer";
-                                    if (isWrong) cls = "border-2 border-red-500 bg-red-100 cursor-pointer";
-                                    else if (isSolved) cls = "border-2 border-green-500 bg-green-100 cursor-pointer";
-                                    else if (isActiveBlue && !isCrossed) cls = "border-2 border-blue-500 bg-blue-50 cursor-pointer";
+                                    let cls = "border border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30 cursor-pointer";
+                                    if (isWrong) cls = "cursor-pointer";
+                                    else if (isSolved) cls = "cursor-pointer";
+                                    else if (isActiveBlue && !isCrossed) cls = "cursor-pointer";
+
+                                    const optStyle = isWrong
+                                        ? { background: "#200a0a", border: "1px solid #7f1d1d" }
+                                        : isSolved
+                                        ? { background: "#0d2010", border: "1px solid #14532d" }
+                                        : isActiveBlue && !isCrossed
+                                        ? { background: "#0c1829", border: "1px solid #1e40af" }
+                                        : undefined;
 
                                     const letterCls = isWrong
-                                        ? "bg-red-500 border-red-500 text-white"
+                                        ? "text-red-400"
                                         : isSolved
-                                        ? "bg-green-500 border-green-500 text-white"
+                                        ? "text-green-400"
                                         : isActiveBlue
-                                        ? "bg-blue-500 border-blue-500 text-white"
-                                        : "border-2 border-border text-muted-foreground bg-transparent";
+                                        ? "text-blue-400"
+                                        : "border border-border text-muted-foreground bg-transparent";
 
                                     const railLetterCls = isWrong
                                         ? "border-red-500 bg-red-100 text-red-800"
@@ -854,7 +859,8 @@ export default function TestPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => { setAnswer(key); }}
-                                                className={`relative flex min-w-0 items-center gap-4 rounded-2xl px-5 py-4 text-left transition-all duration-200 ${cls}`}
+                                                className={`relative flex min-w-0 items-center gap-4 rounded-xl px-5 py-4 text-left transition-all duration-200 ${cls}`}
+                                                style={optStyle}
                                             >
                                                 {isCrossed && (
                                                     <span
@@ -922,12 +928,14 @@ export default function TestPage() {
                     {checked && q?.explanation && (
                         <div className="mt-4">
                             <button type="button" onClick={() => setShowExplanation((v) => !v)}
-                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[hsl(var(--brand-blue))]/30 bg-[hsl(var(--brand-blue-soft))] text-[hsl(var(--brand-blue))] text-sm font-semibold hover:opacity-90 transition-all">
+                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all"
+                                style={{ background: "#141414", border: "1px solid #1f1f1f", color: "#a3a3a3" }}>
                                 <span>{t("test.explanation")}</span>
                                 <ChevronRight className={`w-4 h-4 transition-transform ${showExplanation ? "rotate-90" : ""}`} />
                             </button>
                             {showExplanation && (
-                                <div className="mt-2 px-4 py-4 rounded-xl bg-[hsl(var(--brand-blue-soft))]/50 border border-[hsl(var(--brand-blue))]/20 text-sm text-foreground leading-relaxed">
+                                <div className="mt-2 px-4 py-4 rounded-xl text-sm leading-relaxed"
+                                    style={{ background: "#0f0f0f", border: "1px solid #1f1f1f", color: "#d4d4d4" }}>
                                     {q.explanation}
                                 </div>
                             )}
@@ -940,10 +948,11 @@ export default function TestPage() {
                             ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
                             : answer === q?.correctAnswer);
                         return (
-                            <div className={`mt-4 flex items-center gap-2 px-4 py-3 rounded-xl ${
-                                isCorrect ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                          : "bg-red-100 text-red-800 border border-red-200"
-                            }`}>
+                            <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl"
+                                style={isCorrect
+                                    ? { background: "#0d2010", color: "#22c55e", border: "1px solid #163d1e" }
+                                    : { background: "#200a0a", color: "#f87171", border: "1px solid #3d1212" }
+                                }>
                                 {isCorrect
                                     ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.correct")}</span></>
                                     : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")}</span></>

@@ -8,10 +8,40 @@
   }
 }
 
-
-
 @layer base {
   :root {
+    color-scheme: dark;
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 3%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 85%;
+    --radius: 0.625rem;
+
+    --brand-purple: 250 70% 65%;
+    --brand-purple-soft: 250 40% 15%;
+    --brand-purple-ink: 250 70% 80%;
+    --brand-blue: 213 94% 65%;
+    --brand-blue-soft: 213 60% 14%;
+    --brand-blue-ink: 213 94% 78%;
+  }
+
+  /* Light mode — kept for completeness but dark is default */
+  .light {
     color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 212 30% 8%;
@@ -32,9 +62,8 @@
     --border: 213 18% 92%;
     --input: 213 18% 92%;
     --ring: 204 87% 53%;
-    --radius: 1rem;
+    --radius: 0.625rem;
 
-    /* Brand */
     --brand-purple: 221 73% 28%;
     --brand-purple-soft: 214 100% 95%;
     --brand-purple-ink: 224 76% 18%;
@@ -42,43 +71,43 @@
     --brand-blue-soft: 204 87% 93%;
     --brand-blue-ink: 204 87% 38%;
   }
+
+  /* dark class kept for theme toggle compatibility */
+  .dark {
+    color-scheme: dark;
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 3%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 85%;
+
+    --brand-purple: 250 70% 65%;
+    --brand-purple-soft: 250 40% 15%;
+    --brand-purple-ink: 250 70% 80%;
+    --brand-blue: 213 94% 65%;
+    --brand-blue-soft: 213 60% 14%;
+    --brand-blue-ink: 213 94% 78%;
+  }
+
   * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  .dark {
-    color-scheme: dark;
-    --background: 222 47% 7%;
-    --foreground: 210 40% 96%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 210 40% 96%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 96%;
-    --destructive: 0 63% 40%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 217 91% 65%;
-
-    /* Brand — deep blue brighter in dark mode */
-    --brand-purple: 221 73% 70%;
-    --brand-purple-soft: 224 64% 14%;
-    --brand-purple-ink: 221 83% 88%;
-    --brand-blue: 213 94% 68%;
-    --brand-blue-soft: 224 64% 14%;
-    --brand-blue-ink: 213 94% 82%;
-  }
 }
-
-
 
 @layer base {
   * {
@@ -105,13 +134,8 @@ nav a {
   font-family: var(--font-plus-jakarta), var(--font-montserrat), system-ui, sans-serif;
 }
 
-/* Глобальный фон */
 .app-bg {
-  background-color: hsl(220, 25%, 97%);
-}
-
-.dark .app-bg {
-  background-color: hsl(222, 47%, 7%);
+  background-color: #080808;
 }
 
 @keyframes pageEnter {
@@ -132,12 +156,12 @@ nav a {
 .ql-content sup { vertical-align: super; font-size: 0.8em; }
 
 .landing-bg {
-  background: #ffffff;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-.dark .landing-bg {
   background: linear-gradient(135deg, #07090f 0%, #0c1020 50%, #080f1e 100%);
   background-image: radial-gradient(circle, rgba(59,130,246,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.light .landing-bg {
+  background: #ffffff;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 28px 28px;
 }

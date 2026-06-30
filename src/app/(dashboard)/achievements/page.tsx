@@ -93,18 +93,18 @@ export default function AchievementsPage() {
         <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">
             {/* Header */}
             <section>
-                <h1 className="text-[28px] font-extrabold" style={{ color: "#0E1419", letterSpacing: "-.02em" }}>
+                <h1 className="text-[28px] font-extrabold text-white" style={{ letterSpacing: "-.02em" }}>
                     {t("nav.achievements")}
                 </h1>
-                <p className="mt-1 text-[14px]" style={{ color: "#6B7480" }}>
+                <p className="mt-1 text-[14px]" style={{ color: "#737373" }}>
                     {isLoading ? "…" : `${totalEarned} / ${ACHIEVEMENTS.length} ${isRu ? "разблокировано" : "razblokiylangan"}`}
                 </p>
             </section>
 
             {isLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-40 animate-pulse rounded-2xl" style={{ border: "1px solid #EAEDF0", background: "#F8FAFB" }} />
+                        <div key={i} className="h-36 animate-pulse rounded-xl" style={{ background: "#141414" }} />
                     ))}
                 </div>
             ) : (
@@ -118,10 +118,10 @@ export default function AchievementsPage() {
                         return (
                             <section key={series}>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <h2 className="text-[19px] font-extrabold" style={{ color: "#0E1419" }}>
+                                    <h2 className="text-[17px] font-bold text-white">
                                         {isRu ? meta.labelRu : meta.label}
                                     </h2>
-                                    <span className="rounded-full px-2.5 py-0.5 text-[12px] font-bold" style={{ background: "#F4F6F8", color: "#6B7480" }}>
+                                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "#1a1a1a", color: "#737373" }}>
                                         {earnedCount}/{seriesAchievements.length}
                                     </span>
                                 </div>
@@ -135,13 +135,13 @@ export default function AchievementsPage() {
                                         return (
                                             <div
                                                 key={ach.id}
-                                                className="relative flex flex-col items-center rounded-[18px] p-5 text-center transition-all duration-200"
+                                                className="relative flex flex-col items-center rounded-xl p-4 text-center transition-all duration-200"
                                                 style={{
-                                                    background: "#fff",
-                                                    border: `1px solid ${isWar && earned ? "#FBBF24" : "#EAEDF0"}`,
-                                                    boxShadow: isWar && earned ? "0 0 0 2px rgba(251,191,36,.2)" : "none",
-                                                    opacity: !earned ? 0.7 : 1,
-                                                    filter: !earned ? "grayscale(0.5)" : "none",
+                                                    background: "#111",
+                                                    border: `1px solid ${isWar && earned ? "#ca8a04" : "#1f1f1f"}`,
+                                                    boxShadow: isWar && earned ? "0 0 0 1px rgba(202,138,4,.25)" : "none",
+                                                    opacity: !earned ? 0.5 : 1,
+                                                    filter: !earned ? "grayscale(0.7)" : "none",
                                                 }}
                                             >
                                                 {/* War badge glow */}

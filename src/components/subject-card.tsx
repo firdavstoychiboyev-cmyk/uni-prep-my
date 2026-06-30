@@ -13,95 +13,78 @@ interface SubjectCardProps {
     progress?: number;
 }
 
-const ACCENT_STYLES: Record<AccentKey, { color: string; soft: string }> = {
-    purple: { color: "#8B5CF6", soft: "#F1ECFD" },
-    blue:   { color: "#1C82E0", soft: "#E7F2FE" },
-    sky:    { color: "#0EA5E9", soft: "#E0F5FE" },
-    emerald:{ color: "#16A34A", soft: "#E6F7EC" },
-    teal:   { color: "#0D9488", soft: "#E0F5F2" },
-    indigo: { color: "#4F46E5", soft: "#EEF0FE" },
-    amber:  { color: "#D97706", soft: "#FEF1DF" },
-    rose:   { color: "#E8568F", soft: "#FCEAF2" },
-    orange: { color: "#E2562F", soft: "#FDEDE7" },
-    neutral:{ color: "#56616E", soft: "#F4F6F8" },
+const GRADIENTS: Record<AccentKey, string> = {
+    purple:  "linear-gradient(135deg, #8B5CF6 0%, #C084FC 100%)",
+    blue:    "linear-gradient(135deg, #1C82E0 0%, #6366F1 100%)",
+    sky:     "linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)",
+    emerald: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+    teal:    "linear-gradient(135deg, #0D9488 0%, #06B6D4 100%)",
+    indigo:  "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)",
+    amber:   "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)",
+    rose:    "linear-gradient(135deg, #E8568F 0%, #F43F5E 100%)",
+    orange:  "linear-gradient(135deg, #E2562F 0%, #F97316 100%)",
+    neutral: "linear-gradient(135deg, #525252 0%, #737373 100%)",
 };
 
-export default function SubjectCard({
-    subject,
-    progress = 0,
-}: SubjectCardProps) {
-    const { t, language } = useTranslation();
+export default function SubjectCard({ subject, progress = 0 }: SubjectCardProps) {
+    const { language } = useTranslation();
     const { icon: Icon, accent: accentKey } = getSubjectMeta(subject.name, subject.id);
-    const { color, soft } = ACCENT_STYLES[accentKey];
+    const gradient = GRADIENTS[accentKey];
 
-    const statusText = progress >= 100
-        ? t("card.completed")
-        : progress > 0
-        ? `${progress}% ${language === "uz" ? "bajarildi" : "выполнено"}`
-        : language === "uz" ? "Boshlanmagan" : "Не начато";
+    const pct = Math.max(0, Math.min(100, progress));
 
     return (
         <div
-            className="flex flex-col rounded-[18px] p-[22px] transition-all duration-200 cursor-pointer"
-            style={{ background: "#fff", border: "1px solid #EAEDF0" }}
-            onMouseEnter={e => {
-                const el = e.currentTarget;
-                el.style.borderColor = "#D7DCE2";
-                el.style.boxShadow = "0 10px 26px rgba(14,20,25,.06)";
-            }}
-            onMouseLeave={e => {
-                const el = e.currentTarget;
-                el.style.borderColor = "#EAEDF0";
-                el.style.boxShadow = "none";
-            }}
+            className="relative flex flex-col rounded-xl overflow-hidden transition-all duration-200"
+            style={{ background: gradient, minHeight: 172 }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 16px 40px rgba(0,0,0,.5)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
         >
-            {/* Top row: icon + progress badge */}
-            <div className="flex items-center justify-between mb-5">
-                <div
-                    className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center flex-shrink-0"
-                    style={{ background: soft }}
-                >
-                    <Icon size={22} style={{ color }} />
+            {/* Noise overlay for depth */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+
+            <div className="relative z-10 flex flex-col flex-1 p-5">
+                {/* Icon + progress badge */}
+                <div className="flex items-start justify-between mb-auto">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ background: "rgba(255,255,255,0.2)" }}>
+                        <Icon size={20} style={{ color: "#fff" }} />
+                    </div>
+                    {pct > 0 && (
+                        <span className="text-[11px] font-bold rounded-full px-2.5 py-1"
+                            style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>
+                            {pct}%
+                        </span>
+                    )}
                 </div>
-                {progress > 0 && (
-                    <span
-                        className="text-[12px] font-bold rounded-[8px] px-[11px] py-[5px]"
-                        style={{ background: soft, color }}
-                    >
-                        {progress}%
-                    </span>
+
+                {/* Name */}
+                <div className="mt-4 mb-3">
+                    <div className="text-[17px] font-extrabold text-white leading-tight" style={{ letterSpacing: "-.01em" }}>
+                        {subject.name}
+                    </div>
+                </div>
+
+                {/* Progress bar */}
+                {pct > 0 && (
+                    <div className="h-1 w-full rounded-full mb-3" style={{ background: "rgba(255,255,255,0.25)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "rgba(255,255,255,0.85)" }} />
+                    </div>
                 )}
-            </div>
 
-            {/* Name + status */}
-            <div className="mb-[18px]">
-                <div className="text-[19px] font-extrabold leading-snug" style={{ color: "#0E1419", letterSpacing: "-.01em" }}>
-                    {subject.name}
-                </div>
-                <div className="text-[13.5px] mt-[3px]" style={{ color: "#98A1AC" }}>
-                    {statusText}
-                </div>
+                {/* Open button */}
+                <Link
+                    href={`/subject/${subject.id}`}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-bold rounded-lg px-4 py-2.5 transition-all duration-150 self-start"
+                    style={{ background: "rgba(0,0,0,0.35)", color: "#fff" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.5)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(0,0,0,0.35)")}
+                >
+                    {language === "uz" ? "Ochish" : "Открыть"}
+                    <ChevronRight size={14} strokeWidth={2.5} />
+                </Link>
             </div>
-
-            {/* Progress bar */}
-            <div className="h-[7px] rounded-full overflow-hidden mb-4" style={{ background: "#EEF0F3" }}>
-                <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ background: color, width: `${Math.max(0, Math.min(100, progress))}%` }}
-                />
-            </div>
-
-            {/* Open button */}
-            <Link
-                href={`/subject/${subject.id}`}
-                className="w-full flex items-center justify-center gap-2 rounded-[11px] py-[11px] text-[14.5px] font-bold text-white transition-all duration-150"
-                style={{ background: "#0E1217" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#1B212A")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#0E1217")}
-            >
-                {language === "uz" ? "Ochish" : "Открыть"}
-                <ChevronRight size={16} strokeWidth={2.4} />
-            </Link>
         </div>
     );
 }
