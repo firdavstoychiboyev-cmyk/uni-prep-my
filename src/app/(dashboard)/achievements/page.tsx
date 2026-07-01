@@ -27,8 +27,8 @@ function AchievementIcon({ series, tier, unlocked }: { series: string; tier: num
                 <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center text-[10px]">⭐</div>
             )}
             {!unlocked && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm" style={{ background: "#fff", border: "1px solid #EAEDF0" }}>
-                    <Lock className="w-2.5 h-2.5" style={{ color: "#98A1AC" }} />
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm bg-card border border-border">
+                    <Lock className="w-2.5 h-2.5 text-muted-foreground" />
                 </div>
             )}
         </div>
@@ -93,10 +93,10 @@ export default function AchievementsPage() {
         <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">
             {/* Header */}
             <section>
-                <h1 className="text-[28px] font-extrabold text-white" style={{ letterSpacing: "-.02em" }}>
+                <h1 className="text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>
                     {t("nav.achievements")}
                 </h1>
-                <p className="mt-1 text-[14px]" style={{ color: "#737373" }}>
+                <p className="mt-1 text-[14px] text-muted-foreground">
                     {isLoading ? "…" : `${totalEarned} / ${ACHIEVEMENTS.length} ${isRu ? "разблокировано" : "razblokiylangan"}`}
                 </p>
             </section>
@@ -104,7 +104,7 @@ export default function AchievementsPage() {
             {isLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-36 animate-pulse rounded-xl" style={{ background: "#141414" }} />
+                        <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />
                     ))}
                 </div>
             ) : (
@@ -118,10 +118,10 @@ export default function AchievementsPage() {
                         return (
                             <section key={series}>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <h2 className="text-[17px] font-bold text-white">
+                                    <h2 className="text-[17px] font-bold text-foreground">
                                         {isRu ? meta.labelRu : meta.label}
                                     </h2>
-                                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "#1a1a1a", color: "#737373" }}>
+                                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-muted text-muted-foreground">
                                         {earnedCount}/{seriesAchievements.length}
                                     </span>
                                 </div>
@@ -135,10 +135,9 @@ export default function AchievementsPage() {
                                         return (
                                             <div
                                                 key={ach.id}
-                                                className="relative flex flex-col items-center rounded-xl p-4 text-center transition-all duration-200"
+                                                className="relative flex flex-col items-center rounded-xl p-4 text-center transition-all duration-200 bg-card"
                                                 style={{
-                                                    background: "#111",
-                                                    border: `1px solid ${isWar && earned ? "#ca8a04" : "#1f1f1f"}`,
+                                                    border: `1px solid ${isWar && earned ? "#ca8a04" : "hsl(var(--border))"}`,
                                                     boxShadow: isWar && earned ? "0 0 0 1px rgba(202,138,4,.25)" : "none",
                                                     opacity: !earned ? 0.5 : 1,
                                                     filter: !earned ? "grayscale(0.7)" : "none",

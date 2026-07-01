@@ -110,12 +110,12 @@ export default function StatisticsPage() {
 
             {/* Header */}
             <div>
-                <h1 className="text-[28px] font-extrabold text-white" style={{ letterSpacing: "-.02em" }}>{t("nav.statistics")}</h1>
-                <p className="text-[14px] mt-1" style={{ color: "#737373" }}>{t("stats.subtitle")}</p>
+                <h1 className="text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>{t("nav.statistics")}</h1>
+                <p className="text-[14px] mt-1 text-muted-foreground">{t("stats.subtitle")}</p>
             </div>
 
             {/* Global metric cards — horizontal with dividers */}
-            <div className="rounded-xl overflow-hidden" style={{ background: "#111", border: "1px solid #1f1f1f" }}>
+            <div className="rounded-xl overflow-hidden bg-card border border-border">
                 <div className="grid grid-cols-2 lg:grid-cols-4">
                 {[
                     { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks },
@@ -123,11 +123,11 @@ export default function StatisticsPage() {
                     { title: t("stats.medals"), value: String(totalMedals), icon: Trophy },
                     { title: t("stats.streak"), value: "—", icon: Flame },
                 ].map(({ title, value, icon: Icon }, i) => (
-                    <div key={title} className="p-5 sm:p-6" style={{ borderLeft: i === 0 ? "none" : "1px solid #1f1f1f" }}>
-                        <div className="text-[11px] font-semibold mb-3 uppercase tracking-wider" style={{ color: "#525252" }}>{title}</div>
+                    <div key={title} className={`p-5 sm:p-6 ${i !== 0 ? "border-l border-border" : ""}`}>
+                        <div className="text-[11px] font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{title}</div>
                         <div className="flex items-end justify-between gap-2">
-                            <div className="text-[34px] font-extrabold tabular-nums text-white" style={{ letterSpacing: "-.02em" }}>{value}</div>
-                            <Icon className="w-4 h-4 mb-2" style={{ color: "#3a3a3a" }} />
+                            <div className="text-[34px] font-extrabold tabular-nums text-foreground" style={{ letterSpacing: "-.02em" }}>{value}</div>
+                            <Icon className="w-4 h-4 mb-2 text-muted-foreground/40" />
                         </div>
                     </div>
                 ))}
@@ -155,13 +155,13 @@ export default function StatisticsPage() {
                 };
 
                 return (
-                    <div className="rounded-xl p-5 sm:p-6" style={{ background: "#111", border: "1px solid #1f1f1f" }}>
+                    <div className="rounded-xl p-5 sm:p-6 bg-card border border-border">
                         <div className="flex items-center justify-between gap-3 mb-5">
                             <div className="flex items-center gap-3">
-                                <TrendingUp className="w-4 h-4" style={{ color: "#525252" }} />
+                                <TrendingUp className="w-4 h-4 text-muted-foreground" />
                                 <div>
-                                    <div className="font-bold text-white text-[15px]">{t("stats.activity")}</div>
-                                    <div className="text-[12px]" style={{ color: "#525252" }}>Всего решено: <span className="font-semibold text-white">{globalStats?.totalSolved ?? 0}</span></div>
+                                    <div className="font-bold text-foreground text-[15px]">{t("stats.activity")}</div>
+                                    <div className="text-[12px] text-muted-foreground">Всего решено: <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -221,12 +221,12 @@ export default function StatisticsPage() {
 
             {/* Per-subject detailed cards */}
             <section>
-                <h2 className="text-[17px] font-bold text-white mb-4">{t("stats.bySubjects")}</h2>
+                <h2 className="text-[17px] font-bold text-foreground mb-4">{t("stats.bySubjects")}</h2>
 
                 {isLoading ? (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {[1, 2, 3, 4].map((n) => (
-                            <div key={n} className="h-72 animate-pulse rounded-xl" style={{ background: "#141414" }} />
+                            <div key={n} className="h-72 animate-pulse rounded-xl bg-muted" />
                         ))}
                     </div>
                 ) : (

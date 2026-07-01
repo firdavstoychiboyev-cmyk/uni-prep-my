@@ -14,13 +14,14 @@ function applyTheme(mode: ThemeMode) {
 }
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
-    const [mode, setMode] = useState<ThemeMode>("light");
+    const [mode, setMode] = useState<ThemeMode>("dark");
 
     useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
-        const initial: ThemeMode = saved === "dark" ? "dark" : "light";
+        // Default is dark — only go light if explicitly saved as "light"
+        const initial: ThemeMode = saved === "light" ? "light" : "dark";
         if (saved !== "dark" && saved !== "light") {
-            localStorage.setItem(STORAGE_KEY, "light");
+            localStorage.setItem(STORAGE_KEY, "dark");
         }
         setMode(initial);
         applyTheme(initial);
@@ -42,9 +43,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             onClick={toggle}
             aria-label={label}
             title={label}
-            className={`h-10 w-10 rounded-full border border-border bg-card hover:bg-muted text-foreground transition-colors flex items-center justify-center ${className}`}
+            className={`h-9 w-9 rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-colors flex items-center justify-center ${className}`}
         >
-            <Icon className="w-4.5 h-4.5" />
+            <Icon className="w-4 h-4" />
         </button>
     );
 }

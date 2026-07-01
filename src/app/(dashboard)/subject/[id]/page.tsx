@@ -484,8 +484,8 @@ export default function SubjectPage() {
 
             {/* Title */}
             <div>
-                <h1 className="text-[24px] sm:text-[28px] font-extrabold text-white" style={{ letterSpacing: "-.02em" }}>{subject.name}</h1>
-                <p className="text-[13px] mt-1" style={{ color: "#737373" }}>{t("subject.questionBank")}</p>
+                <h1 className="text-[24px] sm:text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>{subject.name}</h1>
+                <p className="text-[13px] mt-1 text-muted-foreground">{t("subject.questionBank")}</p>
             </div>
 
             {/* Toolbar row 1: Filters toggle + toggles */}
@@ -568,10 +568,7 @@ export default function SubjectPage() {
             )}
 
             {/* Subject header card */}
-            <div
-                className="relative overflow-hidden rounded-xl p-6 sm:p-7 transition-all duration-300"
-                style={{ background: "#111", border: "1px solid #1f1f1f" }}
-            >
+            <div className="relative overflow-hidden rounded-xl p-6 sm:p-7 transition-all duration-300 bg-card border border-border">
                 <div className="relative flex items-start gap-4">
                     <TopicCheckbox
                         checked={hasTopics && selectedIds.size === flatTopics.length}
@@ -581,24 +578,24 @@ export default function SubjectPage() {
                     <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-extrabold text-white">{subject.name}</h2>
-                                <p className="mt-0.5 text-[13px]" style={{ color: "#737373" }}>
+                                <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{subject.name}</h2>
+                                <p className="mt-0.5 text-[13px] text-muted-foreground">
                                     {totalQuestions} {pluralQuestions(totalQuestions, language)}
                                 </p>
                             </div>
                             {completedTopicsCount > 0 && (
                                 <div className="shrink-0 text-right">
-                                    <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-white">{subjectCompletionPct}%</span>
-                                    <p className="text-[12px] mt-0.5" style={{ color: "#525252" }}>{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
+                                    <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground">{subjectCompletionPct}%</span>
+                                    <p className="text-[12px] mt-0.5 text-muted-foreground">{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
                                 </div>
                             )}
                         </div>
                         {hasTopics && completedTopicsCount > 0 && (
                             <div className="mt-4">
-                                <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: "#1f1f1f" }}>
+                                <div className="h-1 w-full rounded-full overflow-hidden bg-muted">
                                     <div
-                                        className="h-full rounded-full transition-all duration-700"
-                                        style={{ width: `${subjectCompletionPct}%`, background: "#fff" }}
+                                        className="h-full rounded-full transition-all duration-700 bg-foreground"
+                                        style={{ width: `${subjectCompletionPct}%` }}
                                     />
                                 </div>
                             </div>

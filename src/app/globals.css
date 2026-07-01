@@ -9,70 +9,36 @@
 }
 
 @layer base {
+  /* ── Light mode (default when no .dark class) ── */
   :root {
-    color-scheme: dark;
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 3%;
-    --secondary: 0 0% 13%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 13%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 0 0% 16%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 0% 85%;
-    --radius: 0.625rem;
-
-    --brand-purple: 250 70% 65%;
-    --brand-purple-soft: 250 40% 15%;
-    --brand-purple-ink: 250 70% 80%;
-    --brand-blue: 213 94% 65%;
-    --brand-blue-soft: 213 60% 14%;
-    --brand-blue-ink: 213 94% 78%;
-  }
-
-  /* Light mode — kept for completeness but dark is default */
-  .light {
     color-scheme: light;
-    --background: 0 0% 100%;
-    --foreground: 212 30% 8%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 212 30% 8%;
+    --card-foreground: 0 0% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 212 30% 8%;
-    --primary: 214 32% 8%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 0 0% 7%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 212 30% 8%;
-    --muted: 210 18% 96%;
-    --muted-foreground: 213 9% 46%;
-    --accent: 204 87% 93%;
-    --accent-foreground: 212 30% 8%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 7%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 44%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 7%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 213 18% 92%;
-    --input: 213 18% 92%;
-    --ring: 204 87% 53%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 20%;
     --radius: 0.625rem;
 
-    --brand-purple: 221 73% 28%;
-    --brand-purple-soft: 214 100% 95%;
-    --brand-purple-ink: 224 76% 18%;
-    --brand-blue: 204 87% 53%;
-    --brand-blue-soft: 204 87% 93%;
-    --brand-blue-ink: 204 87% 38%;
+    --brand-blue: 204 87% 48%;
+    --brand-blue-soft: 204 80% 93%;
+    --brand-blue-ink: 204 87% 35%;
   }
 
-  /* dark class kept for theme toggle compatibility */
+  /* ── Dark mode (applied when .dark class on <html>) ── */
   .dark {
     color-scheme: dark;
     --background: 0 0% 3%;
@@ -95,9 +61,6 @@
     --input: 0 0% 16%;
     --ring: 0 0% 85%;
 
-    --brand-purple: 250 70% 65%;
-    --brand-purple-soft: 250 40% 15%;
-    --brand-purple-ink: 250 70% 80%;
     --brand-blue: 213 94% 65%;
     --brand-blue-soft: 213 60% 14%;
     --brand-blue-ink: 213 94% 78%;
@@ -135,7 +98,7 @@ nav a {
 }
 
 .app-bg {
-  background-color: #080808;
+  background-color: hsl(var(--background));
 }
 
 @keyframes pageEnter {
@@ -143,25 +106,21 @@ nav a {
   to   { opacity: 1; }
 }
 
-/* Rich text content rendered from Quill editor */
-.ql-content .katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0.25rem 0;
-}
+/* Rich text / Quill */
+.ql-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: .25rem 0; }
 .ql-content strong { font-weight: 700; }
-.ql-content em { font-style: italic; }
-.ql-content u { text-decoration: underline; }
-.ql-content sub { vertical-align: sub; font-size: 0.8em; }
-.ql-content sup { vertical-align: super; font-size: 0.8em; }
+.ql-content em     { font-style: italic; }
+.ql-content u      { text-decoration: underline; }
+.ql-content sub    { vertical-align: sub;   font-size: .8em; }
+.ql-content sup    { vertical-align: super; font-size: .8em; }
 
 .landing-bg {
-  background: linear-gradient(135deg, #07090f 0%, #0c1020 50%, #080f1e 100%);
-  background-image: radial-gradient(circle, rgba(59,130,246,0.07) 1px, transparent 1px);
+  background: hsl(var(--background));
+  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 28px 28px;
 }
-.light .landing-bg {
-  background: #ffffff;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
+.dark .landing-bg {
+  background: linear-gradient(135deg, #07090f 0%, #0c1020 50%, #080f1e 100%);
+  background-image: radial-gradient(circle, rgba(59,130,246,0.07) 1px, transparent 1px);
   background-size: 28px 28px;
 }

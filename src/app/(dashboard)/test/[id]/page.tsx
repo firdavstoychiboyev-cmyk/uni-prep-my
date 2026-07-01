@@ -562,7 +562,7 @@ export default function TestPage() {
         >
 
             {/* ─── TOP BAR ─── */}
-            <div className="sticky top-0 z-30 shrink-0 backdrop-blur" style={{ background: "rgba(8,8,8,0.95)", borderBottom: "1px solid #1c1c1c" }}>
+            <div className="sticky top-0 z-30 shrink-0 backdrop-blur bg-background/95 border-b border-border">
                 <div className="flex items-center justify-between px-4 py-3 gap-4">
                     {/* Left: back + topic */}
                     <div className="flex items-center gap-3 min-w-0">
@@ -719,8 +719,7 @@ export default function TestPage() {
                     {/* Difficulty badge */}
                     {q?.difficulty && (
                         <div className="mb-4">
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
-                                style={{ background: "#1a1a1a", color: "#737373", border: "1px solid #2a2a2a" }}>
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-border">
                                 {diffLabel(q.difficulty)}
                             </span>
                         </div>
@@ -767,9 +766,9 @@ export default function TestPage() {
                                 }`}
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
-                                <div className="rounded-xl p-4" style={{ background: "#0d2010", border: "1px solid #163d1e" }}>
-                                    <div className="text-xs font-bold mb-1" style={{ color: "#22c55e" }}>{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-white">{q?.correctAnswer}</div>
+                                <div className="rounded-xl p-4 bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-900">
+                                    <div className="text-xs font-bold mb-1 text-green-700 dark:text-green-400">{t("test.correctAnswerLabel")}</div>
+                                    <div className="text-base font-medium text-foreground">{q?.correctAnswer}</div>
                                 </div>
                             )}
                         </div>
@@ -788,9 +787,9 @@ export default function TestPage() {
                                 }`}
                             />
                             {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
-                                <div className="rounded-xl p-4" style={{ background: "#0d2010", border: "1px solid #163d1e" }}>
-                                    <div className="text-xs font-bold mb-1" style={{ color: "#22c55e" }}>{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-white">{q?.correctAnswer}</div>
+                                <div className="rounded-xl p-4 bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-900">
+                                    <div className="text-xs font-bold mb-1 text-green-700 dark:text-green-400">{t("test.correctAnswerLabel")}</div>
+                                    <div className="text-base font-medium text-foreground">{q?.correctAnswer}</div>
                                 </div>
                             )}
                         </div>
@@ -823,36 +822,33 @@ export default function TestPage() {
                                     // Blue only when actively selected and not yet judged
                                     const isActiveBlue = isSelected && !isWrong && solvedCorrect === null;
 
-                                    let cls = "border border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30 cursor-pointer";
-                                    if (isWrong) cls = "cursor-pointer";
-                                    else if (isSolved) cls = "cursor-pointer";
-                                    else if (isActiveBlue && !isCrossed) cls = "cursor-pointer";
-
-                                    const optStyle = isWrong
-                                        ? { background: "#200a0a", border: "1px solid #7f1d1d" }
+                                    const cls = isWrong
+                                        ? "cursor-pointer border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/60"
                                         : isSolved
-                                        ? { background: "#0d2010", border: "1px solid #14532d" }
+                                        ? "cursor-pointer border border-green-300 dark:border-green-900 bg-green-50 dark:bg-green-950/60"
                                         : isActiveBlue && !isCrossed
-                                        ? { background: "#0c1829", border: "1px solid #1e40af" }
-                                        : undefined;
+                                        ? "cursor-pointer border border-blue-300 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60"
+                                        : "cursor-pointer border border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30";
+
+                                    const optStyle = undefined;
 
                                     const letterCls = isWrong
-                                        ? "text-red-400"
+                                        ? "text-red-600 dark:text-red-400"
                                         : isSolved
-                                        ? "text-green-400"
+                                        ? "text-green-600 dark:text-green-400"
                                         : isActiveBlue
-                                        ? "text-blue-400"
+                                        ? "text-blue-600 dark:text-blue-400"
                                         : "border border-border text-muted-foreground bg-transparent";
 
                                     const railLetterCls = isWrong
-                                        ? "border-red-500 bg-red-100 text-red-800"
+                                        ? "border-red-400 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"
                                         : isSolved
-                                        ? "border-green-500 bg-green-100 text-green-800"
+                                        ? "border-green-400 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300"
                                         : isCrossed
-                                        ? "border-foreground bg-background text-foreground"
+                                        ? "border-border bg-muted text-foreground"
                                         : isActiveBlue
-                                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                                        : "border-foreground bg-background text-foreground";
+                                        ? "border-blue-400 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                                        : "border-border bg-muted text-foreground";
 
                                     return (
                                         <Fragment key={key}>
@@ -928,14 +924,12 @@ export default function TestPage() {
                     {checked && q?.explanation && (
                         <div className="mt-4">
                             <button type="button" onClick={() => setShowExplanation((v) => !v)}
-                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all"
-                                style={{ background: "#141414", border: "1px solid #1f1f1f", color: "#a3a3a3" }}>
+                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all bg-muted border border-border text-muted-foreground hover:text-foreground">
                                 <span>{t("test.explanation")}</span>
                                 <ChevronRight className={`w-4 h-4 transition-transform ${showExplanation ? "rotate-90" : ""}`} />
                             </button>
                             {showExplanation && (
-                                <div className="mt-2 px-4 py-4 rounded-xl text-sm leading-relaxed"
-                                    style={{ background: "#0f0f0f", border: "1px solid #1f1f1f", color: "#d4d4d4" }}>
+                                <div className="mt-2 px-4 py-4 rounded-xl text-sm leading-relaxed bg-card border border-border text-foreground">
                                     {q.explanation}
                                 </div>
                             )}
@@ -948,11 +942,11 @@ export default function TestPage() {
                             ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
                             : answer === q?.correctAnswer);
                         return (
-                            <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl"
-                                style={isCorrect
-                                    ? { background: "#0d2010", color: "#22c55e", border: "1px solid #163d1e" }
-                                    : { background: "#200a0a", color: "#f87171", border: "1px solid #3d1212" }
-                                }>
+                            <div className={`mt-4 flex items-center gap-2 px-4 py-3 rounded-xl ${
+                                isCorrect
+                                    ? "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-900"
+                                    : "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900"
+                            }`}>
                                 {isCorrect
                                     ? <><CheckCircle2 className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.correct")}</span></>
                                     : <><XCircle className="w-5 h-5 shrink-0" /><span className="text-sm font-semibold">{t("test.incorrect")}</span></>

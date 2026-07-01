@@ -44,8 +44,6 @@ function getGreeting(language: string) {
     return language === "uz" ? GREETING_UZ[i] : GREETING_RU[i];
 }
 
-const CARD = { background: "#111", border: "1px solid #1f1f1f" } as const;
-
 export default function HomePage() {
     const { t } = useTranslation();
     const { user } = useAuthStore();
@@ -96,24 +94,18 @@ export default function HomePage() {
             {/* ── Greeting ── */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
                 <div>
-                    <h1 className="text-[40px] sm:text-[48px] font-extrabold leading-[1.05] mb-6 text-white" style={{ letterSpacing: "-.03em" }}>
+                    <h1 className="text-[40px] sm:text-[48px] font-extrabold leading-[1.05] mb-6 text-foreground" style={{ letterSpacing: "-.03em" }}>
                         {getGreeting(language)},<br />
-                        <span style={{ color: "#737373" }}>{user?.name}</span>
+                        <span className="text-muted-foreground">{user?.name}</span>
                     </h1>
                     <div className="flex items-center gap-5 flex-wrap">
                         <Link href="/subjects"
-                            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[14px] font-bold text-black transition-all duration-150"
-                            style={{ background: "#fff" }}
-                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "#e5e5e5")}
-                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "#fff")}>
+                            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[14px] font-bold transition-all duration-150 bg-foreground text-background hover:opacity-90 active:scale-95">
                             <Play size={14} fill="currentColor" />
                             {language === "uz" ? "Mashqni boshlash" : "Начать практику"}
                         </Link>
                         <Link href="/statistics"
-                            className="inline-flex items-center gap-1.5 text-[14px] font-semibold transition-colors"
-                            style={{ color: "#737373" }}
-                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#fff")}
-                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "#737373")}>
+                            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
                             {language === "uz" ? "Statistika" : "Статистика"}
                             <ArrowRight size={14} />
                         </Link>
@@ -122,8 +114,8 @@ export default function HomePage() {
 
                 {/* Countdown */}
                 {nextExam && (
-                    <div className="rounded-xl p-6" style={CARD}>
-                        <div className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#525252" }}>
+                    <div className="rounded-xl p-6 bg-card border border-border">
+                        <div className="text-[12px] font-semibold uppercase tracking-widest mb-4 text-muted-foreground">
                             {language === "uz" ? "DTM IMTIHONIGA QOLDI" : "ДО ЭКЗАМЕНА DTM"}
                         </div>
                         <div className="flex gap-6">
@@ -133,14 +125,14 @@ export default function HomePage() {
                                 { value: timeLeft.minutes, label: language === "uz" ? "daqiqa" : "мин" },
                             ].map((item) => (
                                 <div key={item.label}>
-                                    <div className="text-[40px] font-extrabold tabular-nums text-white" style={{ letterSpacing: "-.03em" }}>
+                                    <div className="text-[40px] font-extrabold tabular-nums text-foreground" style={{ letterSpacing: "-.03em" }}>
                                         {String(item.value).padStart(2, "0")}
                                     </div>
-                                    <div className="text-[12px] font-medium mt-0.5" style={{ color: "#525252" }}>{item.label}</div>
+                                    <div className="text-[12px] font-medium mt-0.5 text-muted-foreground">{item.label}</div>
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-4 pt-4 text-[13px] font-medium" style={{ color: "#737373", borderTop: "1px solid #1f1f1f" }}>
+                        <div className="mt-4 pt-4 text-[13px] font-medium text-muted-foreground border-t border-border">
                             {language === "uz" ? nextExam.name : nextExam.nameRu}
                         </div>
                     </div>
@@ -151,18 +143,15 @@ export default function HomePage() {
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <BarChart2 size={17} style={{ color: "#737373" }} />
-                        <span className="text-[17px] font-bold text-white">{language === "uz" ? "Tahlil" : "Аналитика"}</span>
+                        <BarChart2 size={17} className="text-muted-foreground" />
+                        <span className="text-[17px] font-bold text-foreground">{language === "uz" ? "Tahlil" : "Аналитика"}</span>
                     </div>
                     <Link href="/statistics"
-                        className="text-[13px] font-semibold transition-colors"
-                        style={{ color: "#525252" }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#fff")}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "#525252")}>
+                        className="text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
                         {language === "uz" ? "Barchasi →" : "Все →"}
                     </Link>
                 </div>
-                <div className="rounded-xl overflow-hidden" style={CARD}>
+                <div className="rounded-xl overflow-hidden bg-card border border-border">
                     <div className="grid grid-cols-2 lg:grid-cols-4">
                         {[
                             { label: language === "uz" ? "Yechilgan" : "Решено", value: String(totalCorrect) },
@@ -170,9 +159,9 @@ export default function HomePage() {
                             { label: language === "uz" ? "Seria" : "Серия", value: String(streakDays) },
                             { label: language === "uz" ? "Universitetlar" : "Университеты", value: String(TOP_UNIVERSITIES.length) },
                         ].map((s, i) => (
-                            <div key={s.label} className="p-5 sm:p-6" style={{ borderLeft: i === 0 ? "none" : "1px solid #1f1f1f" }}>
-                                <div className="text-[12px] font-semibold mb-2 uppercase tracking-wider" style={{ color: "#525252" }}>{s.label}</div>
-                                <div className="text-[34px] font-extrabold tabular-nums text-white" style={{ letterSpacing: "-.02em" }}>{s.value}</div>
+                            <div key={s.label} className={`p-5 sm:p-6 ${i !== 0 ? "border-l border-border" : ""}`}>
+                                <div className="text-[12px] font-semibold mb-2 uppercase tracking-wider text-muted-foreground">{s.label}</div>
+                                <div className="text-[34px] font-extrabold tabular-nums text-foreground" style={{ letterSpacing: "-.02em" }}>{s.value}</div>
                             </div>
                         ))}
                     </div>
@@ -180,19 +169,19 @@ export default function HomePage() {
             </div>
 
             {/* ── Daily quote ── */}
-            <div className="rounded-xl p-6" style={CARD}>
-                <div className="text-[11px] font-bold uppercase tracking-[.18em] mb-4" style={{ color: "#525252" }}>Daily Wisdom</div>
-                <p className="text-[17px] font-medium text-white leading-relaxed" style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}>
+            <div className="rounded-xl p-6 bg-card border border-border">
+                <div className="text-[11px] font-bold uppercase tracking-[.18em] mb-4 text-muted-foreground">Daily Wisdom</div>
+                <p className="text-[17px] font-medium text-foreground leading-relaxed" style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}>
                     &ldquo;{dailyQuote.text}&rdquo;
                 </p>
-                <p className="mt-3 text-[13px] font-semibold" style={{ color: "#525252" }}>— {dailyQuote.author}</p>
+                <p className="mt-3 text-[13px] font-semibold text-muted-foreground">— {dailyQuote.author}</p>
             </div>
 
             {/* ── Universities ── */}
             <div>
                 <div className="flex items-center gap-2 mb-4">
-                    <GraduationCap size={17} style={{ color: "#737373" }} />
-                    <span className="text-[17px] font-bold text-white">{t("home.chooseDreamUni")}</span>
+                    <GraduationCap size={17} className="text-muted-foreground" />
+                    <span className="text-[17px] font-bold text-foreground">{t("home.chooseDreamUni")}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     {TOP_UNIVERSITIES.map((uni) => {
@@ -200,32 +189,30 @@ export default function HomePage() {
                         return (
                             <div key={uni.id}
                                 onClick={() => handleSelectUni(uni.id)}
-                                className="rounded-xl p-4 cursor-pointer transition-all duration-150"
+                                className="rounded-xl p-4 cursor-pointer transition-all duration-150 hover:border-foreground/20"
                                 style={{
-                                    background: isDream ? `${uni.color}18` : "#111",
-                                    border: `1px solid ${isDream ? `${uni.color}55` : "#1f1f1f"}`,
-                                }}
-                                onMouseEnter={e => { if (!isDream) (e.currentTarget as HTMLElement).style.borderColor = "#2a2a2a"; }}
-                                onMouseLeave={e => { if (!isDream) (e.currentTarget as HTMLElement).style.borderColor = "#1f1f1f"; }}>
+                                    background: isDream ? `${uni.color}18` : "hsl(var(--card))",
+                                    border: `1px solid ${isDream ? `${uni.color}55` : "hsl(var(--border))"}`,
+                                }}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
                                         style={{ background: `${uni.color}22`, color: uni.color }}>
                                         {uni.name.slice(0, 4)}
                                     </div>
-                                    <div className="text-[13px] font-semibold text-white leading-snug">{uni.fullName}</div>
+                                    <div className="text-[13px] font-semibold text-foreground leading-snug">{uni.fullName}</div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <div className="flex-1 rounded-lg p-2.5" style={{ background: "#0d1f12" }}>
-                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "#22c55e" }}>
+                                    <div className="flex-1 rounded-lg p-2.5 bg-emerald-50 dark:bg-[#0d1f12]">
+                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-emerald-600 dark:text-emerald-400">
                                             {language === "uz" ? "Grant" : "Грант"}
                                         </div>
-                                        <div className="text-[18px] font-extrabold text-white">{uni.grant}</div>
+                                        <div className="text-[18px] font-extrabold text-foreground">{uni.grant}</div>
                                     </div>
-                                    <div className="flex-1 rounded-lg p-2.5" style={{ background: "#141414" }}>
-                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "#525252" }}>
+                                    <div className="flex-1 rounded-lg p-2.5 bg-muted">
+                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-muted-foreground">
                                             {language === "uz" ? "Mening ball" : "Мой балл"}
                                         </div>
-                                        <div className="text-[18px] font-extrabold text-white">{totalCorrect}</div>
+                                        <div className="text-[18px] font-extrabold text-foreground">{totalCorrect}</div>
                                     </div>
                                 </div>
                             </div>
