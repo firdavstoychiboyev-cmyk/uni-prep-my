@@ -442,11 +442,20 @@ export default function SubjectPage() {
         setSelectedIds(new Set(flatTopics.map(({ topic }) => topic.id)));
     }, [flatTopics, selectedIds.size]);
 
+    // Тест сохраняет прогресс/результаты — без входа отправляем на логин с возвратом обратно на тест
+    const startTest = useCallback((url: string) => {
+        if (!user) {
+            router.push(`/login?next=${encodeURIComponent(url)}`);
+            return;
+        }
+        router.push(url);
+    }, [user, router]);
+
     const startPractice = () => {
         const ids = Array.from(selectedIds);
         if (ids.length === 0) return;
         const params = ids.length > 1 ? `?t=${ids.join(",")}` : "";
-        router.push(`/test/${ids[0]}${params}`);
+        startTest(`/test/${ids[0]}${params}`);
     };
 
     if (isLoading) {
@@ -645,12 +654,12 @@ export default function SubjectPage() {
                                             if (e.key === "Enter" || e.key === " ") {
                                                 e.preventDefault();
                                                 if (multiSelect) toggleTopic(topic.id);
-                                                else router.push(`/test/${topic.id}`);
+                                                else startTest(`/test/${topic.id}`);
                                             }
                                         }}
                                         onClick={() => {
                                             if (multiSelect) toggleTopic(topic.id);
-                                            else router.push(`/test/${topic.id}`);
+                                            else startTest(`/test/${topic.id}`);
                                         }}
                                         className={`flex cursor-pointer items-center gap-3 py-3 px-2 -mx-2 rounded-xl transition-colors duration-200 ${
                                             selected ? "bg-[hsl(var(--brand-blue-soft))]/50 dark:bg-[hsl(var(--brand-blue))]/15" : "hover:bg-muted/60 dark:hover:bg-white/5"

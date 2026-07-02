@@ -38,8 +38,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     setUser(profile);
                     useLanguageStore.getState().setLanguage(profile.language || DEFAULT_LANGUAGE);
                     // Если профиль есть и роль выбрана, но мы на логине или онбординге - в дашборд
+                    // (или на страницу из ?next=, если пришли с точки действия)
                     if (profile.role && (currentPath === "/login" || currentPath === "/onboarding")) {
-                        router.push("/home");
+                        const next = new URLSearchParams(window.location.search).get("next");
+                        router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/home");
                     } else if (!profile.role && currentPath !== "/onboarding") {
                         // Если роль не выбрана - на онбординг
                         router.push("/onboarding");
@@ -52,10 +54,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     }
                 }
             } else {
+                // Неавторизованные пользователи могут свободно просматривать сайт.
+                // Доступ к защищённым страницам контролируется в (dashboard)/layout.tsx,
+                // а точки действий (старт теста и т.п.) сами ведут на /login.
                 setUser(null);
-                if (currentPath !== "/login" && currentPath !== "/") {
-                    router.push("/login");
-                }
             }
             setLoading(false);
         });

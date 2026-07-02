@@ -9,16 +9,24 @@ import { useSidebarStore } from "@/store/useSidebarStore";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
+// Routes that read/write personal user data — everything else is open to anonymous browsing
+const PROTECTED_PREFIXES = ["/test", "/statistics", "/achievements", "/profile", "/settings", "/classes", "/student", "/admin"];
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
     const { isCollapsed } = useSidebarStore();
     const router = useRouter();
     const pathname = usePathname();
     const isTestPage = pathname?.startsWith("/test/");
+    const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname?.startsWith(`${p}/`));
 
     useEffect(() => {
-        if (!isLoading && !user) router.push("/login");
-    }, [user, isLoading, router]);
+        if (!isLoading && !user && isProtected) {
+            // window.location preserves query params (e.g. /test/x?t=a,b) that usePathname drops
+            const next = encodeURIComponent(window.location.pathname + window.location.search);
+            router.push(`/login?next=${next}`);
+        }
+    }, [user, isLoading, isProtected, router]);
 
     if (isLoading) {
         return (
@@ -49,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    if (!user) return null;
+    if (!user && isProtected) return null;
 
     if (isTestPage) {
         return (

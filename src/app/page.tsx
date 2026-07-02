@@ -368,7 +368,7 @@ export default function LandingPage() {
               &ldquo;{displayQuote}&rdquo;
             </p>
             <Link
-              href="/login"
+              href="/subjects"
               className="mt-2 inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md hover:scale-105 active:scale-100 text-white bg-blue-700 dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-500"
             >
               {t.cta}

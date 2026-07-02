@@ -95,8 +95,6 @@ export default function Topbar() {
 
     const handleSelect = (href: string) => { router.push(href); setOpenSearch(false); };
 
-    if (!user) return null;
-
     return (
         <>
             {/* ── Search Modal ── */}
@@ -168,21 +166,25 @@ export default function Topbar() {
 
                     <div className="flex-1" />
 
-                    {/* Streak badge */}
-                    <div className="hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold
-                        bg-orange-50 dark:bg-[#1c1100] border border-orange-200 dark:border-[#3d2800]
-                        text-orange-600 dark:text-orange-400">
-                        <Flame size={12} fill="currentColor" />
-                        <span>{streakDays}</span>
-                    </div>
+                    {user && (
+                        <>
+                            {/* Streak badge */}
+                            <div className="hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold
+                                bg-orange-50 dark:bg-[#1c1100] border border-orange-200 dark:border-[#3d2800]
+                                text-orange-600 dark:text-orange-400">
+                                <Flame size={12} fill="currentColor" />
+                                <span>{streakDays}</span>
+                            </div>
 
-                    {/* Stars badge */}
-                    <div className="hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold
-                        bg-sky-50 dark:bg-[#0c1829] border border-sky-200 dark:border-[#1a3a5c]
-                        text-sky-600 dark:text-sky-400">
-                        <Star size={12} fill="currentColor" />
-                        <span>{totalStars}</span>
-                    </div>
+                            {/* Stars badge */}
+                            <div className="hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold
+                                bg-sky-50 dark:bg-[#0c1829] border border-sky-200 dark:border-[#1a3a5c]
+                                text-sky-600 dark:text-sky-400">
+                                <Star size={12} fill="currentColor" />
+                                <span>{totalStars}</span>
+                            </div>
+                        </>
+                    )}
 
                     {/* Language toggle */}
                     <div className="hidden md:flex items-center rounded-full p-0.5 bg-muted border border-border">
@@ -207,6 +209,7 @@ export default function Topbar() {
                     <ThemeToggle />
 
                     {/* User dropdown */}
+                    {user && (
                     <div ref={userRef} className="relative">
                         <button type="button" onClick={() => setOpenUser((v) => !v)}
                             className="flex items-center gap-2 h-8 pl-2 pr-2.5 rounded-lg bg-muted border border-border hover:border-foreground/20 transition-colors">
@@ -253,6 +256,7 @@ export default function Topbar() {
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
             </div>
         </>

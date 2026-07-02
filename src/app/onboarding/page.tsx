@@ -21,8 +21,13 @@ export default function OnboardingPage() {
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
-    const { setUser } = useAuthStore();
+    const { setUser, isLoading } = useAuthStore();
     const { t } = useTranslation();
+
+    // Онбординг только для вошедших через Google — иначе createUserProfile упадёт
+    useEffect(() => {
+        if (!isLoading && !auth.currentUser) router.push("/login");
+    }, [isLoading, router]);
 
     useEffect(() => {
         const root = document.documentElement;

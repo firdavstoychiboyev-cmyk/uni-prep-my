@@ -50,9 +50,7 @@ function Sidebar() {
 
     useEffect(() => { close(); }, [pathname, close]);
 
-    if (!user) return null;
-
-    const links = mainLinks(user.role === "teacher", t);
+    const links = mainLinks(user?.role === "teacher", t);
 
     return (
         <>
@@ -190,28 +188,30 @@ function Sidebar() {
                 </div>
 
                 {/* ── Bottom: user + settings ── */}
-                <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#1c1c1c" }}>
-                    <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${isCollapsed ? "md:justify-center md:px-0" : ""}`}>
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 text-white"
-                            style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
-                            title={isCollapsed ? `${user.name} ${user.surname || ""}` : undefined}>
-                            {user.name[0].toUpperCase()}
+                {user && (
+                    <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#1c1c1c" }}>
+                        <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${isCollapsed ? "md:justify-center md:px-0" : ""}`}>
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 text-white"
+                                style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
+                                title={isCollapsed ? `${user.name} ${user.surname || ""}` : undefined}>
+                                {user.name[0].toUpperCase()}
+                            </div>
+                            <div className={`flex-1 min-w-0 ${isCollapsed ? "md:hidden" : ""}`}>
+                                <p className="text-[13px] font-semibold truncate" style={{ color: "#e0e0e0" }}>
+                                    {user.name} {user.surname || ""}
+                                </p>
+                            </div>
+                            <Link href="/settings"
+                                title={t("nav.settings")}
+                                className={`flex-shrink-0 p-1 rounded transition-colors ${isCollapsed ? "md:hidden" : ""}`}
+                                style={{ color: "#525252" }}
+                                onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                                onMouseLeave={e => (e.currentTarget.style.color = "#525252")}>
+                                <Settings size={15} />
+                            </Link>
                         </div>
-                        <div className={`flex-1 min-w-0 ${isCollapsed ? "md:hidden" : ""}`}>
-                            <p className="text-[13px] font-semibold truncate" style={{ color: "#e0e0e0" }}>
-                                {user.name} {user.surname || ""}
-                            </p>
-                        </div>
-                        <Link href="/settings"
-                            title={t("nav.settings")}
-                            className={`flex-shrink-0 p-1 rounded transition-colors ${isCollapsed ? "md:hidden" : ""}`}
-                            style={{ color: "#525252" }}
-                            onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "#525252")}>
-                            <Settings size={15} />
-                        </Link>
                     </div>
-                </div>
+                )}
             </aside>
         </>
     );
