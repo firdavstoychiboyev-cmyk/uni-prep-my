@@ -20,10 +20,13 @@ const TOP_UNIVERSITIES = [
     { id: "tashgiu", name: "ToshDShI",  fullName: "Toshkent Davlat Sharqshunoslik Universiteti",   grant: 170.0, color: "#6366F1" },
 ];
 
+// Даты ориентировочные — обновляйте при публикации официального календаря DTM.
+// Прошедшие даты автоматически скрываются (futureExams), поэтому держите здесь и следующий цикл.
 const upcomingExams = [
-    { name: "Ona tili imtihoni", nameRu: "Экзамен по родному языку", date: new Date("2026-04-25") },
-    { name: "DTM ro'yxatdan o'tish", nameRu: "Регистрация ДТМ", date: new Date("2026-06-05") },
-    { name: "DTM kirish imtihoni", nameRu: "Вступительный экзамен ДТМ", date: new Date("2026-07-01") },
+    { name: "DTM imtihonlari yakuni", nameRu: "Окончание экзаменов ДТМ", date: new Date("2026-08-01") },
+    { name: "Ona tili imtihoni", nameRu: "Экзамен по родному языку", date: new Date("2027-04-25") },
+    { name: "DTM ro'yxatdan o'tish", nameRu: "Регистрация ДТМ", date: new Date("2027-06-05") },
+    { name: "DTM kirish imtihoni", nameRu: "Вступительный экзамен ДТМ", date: new Date("2027-07-01") },
 ];
 
 const quotes = [

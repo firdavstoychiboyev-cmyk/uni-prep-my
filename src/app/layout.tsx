@@ -67,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="uz" suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/png" sizes="512x512" href="/auto-Photoroom.png" />
         <link rel="icon" type="image/png" sizes="256x256" href="/auto-Photoroom.png" />

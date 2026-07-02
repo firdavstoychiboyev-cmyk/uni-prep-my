@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchUserBadges } from "@/lib/stats-utils";
-import { ACHIEVEMENTS } from "@/lib/achievements";
+import { ACHIEVEMENTS, getAchievementName, getAchievementDescription } from "@/lib/achievements";
 import { Trophy, Lock, Calendar, Target, Shield, Crosshair, Zap, Brain } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -36,12 +36,12 @@ function AchievementIcon({ series, tier, unlocked }: { series: string; tier: num
     );
 }
 
-const SERIES_META: Record<string, { label: string; labelRu: string; color: string }> = {
-    sniper:  { label: "Sniper",  labelRu: "Снайпер",          color: "text-rose-500" },
-    veteran: { label: "Veteran", labelRu: "Ветеран",           color: "text-amber-500" },
-    focused: { label: "Focused", labelRu: "Сфокусированный",   color: "text-blue-500" },
-    sharp:   { label: "Sharp",   labelRu: "Меткий",            color: "text-violet-500" },
-    expert:  { label: "Expert",  labelRu: "Эксперт",           color: "text-emerald-500" },
+const SERIES_META: Record<string, { label: string; labelRu: string; labelUz: string; color: string }> = {
+    sniper:  { label: "Sniper",  labelRu: "Снайпер",          labelUz: "Snayper",     color: "text-rose-500" },
+    veteran: { label: "Veteran", labelRu: "Ветеран",           labelUz: "Veteran",     color: "text-amber-500" },
+    focused: { label: "Focused", labelRu: "Сфокусированный",   labelUz: "Fokuslangan", color: "text-blue-500" },
+    sharp:   { label: "Sharp",   labelRu: "Меткий",            labelUz: "Mergan",      color: "text-violet-500" },
+    expert:  { label: "Expert",  labelRu: "Эксперт",           labelUz: "Ekspert",     color: "text-emerald-500" },
 };
 
 const SERIES_ORDER = ["sniper", "veteran", "focused", "sharp", "expert"] as const;
@@ -119,7 +119,7 @@ export default function AchievementsPage() {
                     {t("nav.achievements")}
                 </h1>
                 <p className="mt-1 text-[14px] text-muted-foreground">
-                    {isLoading ? "…" : `${totalEarned} / ${ACHIEVEMENTS.length} ${isRu ? "разблокировано" : "razblokiylangan"}`}
+                    {isLoading ? "…" : `${totalEarned} / ${ACHIEVEMENTS.length} ${isRu ? "разблокировано" : "ochilgan"}`}
                 </p>
             </section>
 
@@ -141,7 +141,7 @@ export default function AchievementsPage() {
                             <section key={series}>
                                 <div className="flex items-center gap-3 mb-4">
                                     <h2 className="text-[17px] font-bold text-foreground">
-                                        {isRu ? meta.labelRu : meta.label}
+                                        {isRu ? meta.labelRu : meta.labelUz}
                                     </h2>
                                     <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-muted text-muted-foreground">
                                         {earnedCount}/{seriesAchievements.length}
@@ -174,10 +174,10 @@ export default function AchievementsPage() {
                                                     <AchievementIcon series={ach.series} tier={ach.tier} unlocked={!!earned} />
                                                 </div>
                                                 <div className={`font-bold text-foreground leading-tight ${isWar ? "text-base" : "text-sm"}`}>
-                                                    {isRu ? ach.nameRu : ach.name}
+                                                    {getAchievementName(ach, language)}
                                                 </div>
                                                 <div className="mt-1 text-xs text-muted-foreground leading-snug">
-                                                    {isRu ? ach.descriptionRu : ach.description}
+                                                    {getAchievementDescription(ach, language)}
                                                 </div>
 
                                                 {earned && date && (

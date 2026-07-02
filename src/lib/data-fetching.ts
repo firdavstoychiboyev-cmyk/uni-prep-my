@@ -82,7 +82,11 @@ export const fetchQuestionsByTopic = (topicId: string, langOverride?: Language):
         const questions = snap.docs
             .map((d) => ({ id: d.id, ...d.data() }) as Question)
             .filter((qq) => langOf(qq) === lang);
-        // Shuffle once and cache — consistent order within the session
-        return questions.sort(() => Math.random() - 0.5);
+        // Fisher–Yates shuffle once and cache — consistent order within the session
+        for (let i = questions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [questions[i], questions[j]] = [questions[j], questions[i]];
+        }
+        return questions;
     }, TTL_QUESTIONS);
 };

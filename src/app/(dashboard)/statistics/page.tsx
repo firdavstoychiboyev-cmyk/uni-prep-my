@@ -13,6 +13,8 @@ import {
     fetchUserDailyActivity,
 } from "@/lib/stats-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTopicsBySubject } from "@/lib/data-fetching";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import SubjectCard from "@/components/subject-card";
 import {
     Target, Flame, ListChecks, TrendingUp, Trophy,
@@ -41,7 +43,16 @@ export default function StatisticsPage() {
     const [globalStats, setGlobalStats] = useState<GlobalStats | null>(cachedStats);
     const [topicsBySubject, setTopicsBySubject] = useState<SubjectTopics>({});
     const [dailyActivity, setDailyActivity] = useState<Record<string, number>>({});
+    const [streakDays, setStreakDays] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(!subjectsLoaded);
+
+    // Серия дней — хранится в документе пользователя
+    useEffect(() => {
+        if (!user) return;
+        getDoc(doc(db, "users", user.id))
+            .then((snap) => setStreakDays(snap.data()?.streakDays ?? 0))
+            .catch(() => setStreakDays(0));
+    }, [user]);
 
     // Load subjects if not yet loaded
     useEffect(() => {
@@ -141,7 +152,7 @@ export default function StatisticsPage() {
                     { title: t("stats.solved"), value: String(globalStats?.totalSolved ?? 0), icon: ListChecks },
                     { title: t("stats.accuracy"), value: `${globalStats?.accuracy ?? 0}%`, icon: Target },
                     { title: t("stats.medals"), value: String(totalMedals), icon: Trophy },
-                    { title: t("stats.streak"), value: "—", icon: Flame },
+                    { title: t("stats.streak"), value: streakDays === null ? "—" : String(streakDays), icon: Flame },
                 ].map(({ title, value, icon: Icon }, i) => (
                     <div key={title} className={`p-5 sm:p-6 ${i !== 0 ? "border-l border-border" : ""}`}>
                         <div className="text-[11px] font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{title}</div>

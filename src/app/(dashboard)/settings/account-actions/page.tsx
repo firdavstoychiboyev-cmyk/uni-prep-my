@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { logOut } from "@/lib/auth-utils";
 import { deleteUser } from "firebase/auth";
-import { deleteDoc, doc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function SettingsAccountActionsPage() {
@@ -30,7 +30,19 @@ export default function SettingsAccountActionsPage() {
             const u = auth.currentUser;
             if (!u) return;
 
-            // best-effort cleanup of profile doc
+            // best-effort cleanup: подколлекции удаляются явно — Firestore не удаляет их каскадно
+            const subcollections = ["userProgress", "testResults", "badges", "ratings", "dailyActivity"];
+            for (const sub of subcollections) {
+                try {
+                    const snap = await getDocs(collection(db, "users", u.uid, sub));
+                    // Батчи по 400 (лимит Firestore — 500 операций на батч)
+                    for (let i = 0; i < snap.docs.length; i += 400) {
+                        const batch = writeBatch(db);
+                        snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+                        await batch.commit();
+                    }
+                } catch { /* продолжаем удаление остальных */ }
+            }
             await deleteDoc(doc(db, "users", u.uid)).catch(() => {});
             await deleteUser(u);
             router.push("/login");

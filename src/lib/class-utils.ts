@@ -2,10 +2,10 @@ import {
     collection,
     doc,
     addDoc,
-    getDoc,
     getDocs,
     query,
     where,
+    documentId,
     updateDoc,
     arrayUnion,
     arrayRemove,
@@ -91,17 +91,18 @@ export const addStudentToClass = async (classId: string, studentId: string) => {
 export const fetchClassStudents = async (studentIds: string[]): Promise<User[]> => {
     if (studentIds.length === 0) return [];
     try {
-        const students: User[] = [];
-        // Firestore 'in' query has a limit of 10 IDs. For simplicity, we fetch individually if small.
-        // In production, you'd chunk this.
-        for (const id of studentIds) {
-            const userRef = doc(db, "users", id);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                students.push({ id: userSnap.id, ...userSnap.data() } as User);
-            }
-        }
-        return students;
+        // 'in'-запрос принимает максимум 10 ID — читаем чанками параллельно вместо N одиночных чтений
+        const chunks: string[][] = [];
+        for (let i = 0; i < studentIds.length; i += 10) chunks.push(studentIds.slice(i, i + 10));
+        const snaps = await Promise.all(
+            chunks.map((chunk) =>
+                getDocs(query(collection(db, "users"), where(documentId(), "in", chunk)))
+            )
+        );
+        const byId = new Map<string, User>();
+        snaps.forEach((snap) => snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() } as User)));
+        // Сохраняем исходный порядок списка класса
+        return studentIds.map((id) => byId.get(id)).filter((u): u is User => Boolean(u));
     } catch (error) {
         console.error("Error fetching class students:", error);
         return [];

@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Question, Topic, Medal } from "@/lib/firestore-schema";
-import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook, fetchTextbooksBySubject, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
 import { invalidateUserCache } from "@/lib/stats-utils";
 import { useStatsStore } from "@/store/useStatsStore";
@@ -22,7 +22,7 @@ import { getMedalByErrors } from "@/lib/constants";
 import MathInput from "@/components/MathInput";
 import MathText from "@/components/MathText";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { checkAndAwardAchievements, AchievementDef } from "@/lib/achievements";
+import { checkAndAwardAchievements, AchievementDef, getAchievementName, getAchievementDescription } from "@/lib/achievements";
 
 /* ─── types ─────────────────────────────────────────── */
 type QStatus = "unanswered" | "correct-first" | "correct-retry" | "incorrect";
@@ -61,7 +61,7 @@ export default function TestPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const { reset: resetStats } = useStatsStore();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const diffLabel = (d?: string) =>
         d === "easy" ? t("subject.diff.easy") : d === "medium" ? t("subject.diff.medium") : t("subject.diff.hard");
 
@@ -304,6 +304,7 @@ export default function TestPage() {
             corrFirst: number; corrRetry: number; corr: number;
             errs: number; markedCount: number; accuracy: number;
             medal: Medal;
+            hardTotal: number; hardCorrect: number; hardAllDone: boolean;
         };
         const map = new Map<string, Payload>();
         questions.forEach((q, i) => {
@@ -312,20 +313,28 @@ export default function TestPage() {
                     topicId: q.topicId, questionStatuses: {},
                     corrFirst: 0, corrRetry: 0, corr: 0, errs: 0, markedCount: 0, accuracy: 0,
                     medal: "none" as Medal,
+                    hardTotal: 0, hardCorrect: 0, hardAllDone: false,
                 });
             }
             const p = map.get(q.topicId)!;
+            const isCorrect = states[i].status === "correct-first" || states[i].status === "correct-retry";
             p.questionStatuses[q.id] = { status: states[i].status, marked: states[i].marked, answer: states[i].answer };
             if (states[i].status === "correct-first") p.corrFirst++;
             else if (states[i].status === "correct-retry") p.corrRetry++;
             else if (states[i].status === "incorrect") p.errs++;
             if (states[i].marked) p.markedCount++;
+            if (q.difficulty === "hard") {
+                p.hardTotal++;
+                if (isCorrect) p.hardCorrect++;
+            }
         });
         map.forEach((p) => {
             const total = Object.keys(p.questionStatuses).length;
             p.corr = p.corrFirst + p.corrRetry;
             p.accuracy = total > 0 ? Math.round((p.corr / total) * 100) : 0;
-            p.medal = getMedalByErrors(p.errs, 1);
+            // Реальное число попыток: топик без единого ответа не должен получать медаль
+            p.medal = getMedalByErrors(p.errs, p.corr + p.errs);
+            p.hardAllDone = p.hardCorrect >= p.hardTotal;
         });
         return map;
     }, [questions]);
@@ -344,7 +353,7 @@ export default function TestPage() {
         const totalCorr = states.filter((s) => s.status === "correct-first" || s.status === "correct-retry").length;
         const totalErrs = states.filter((s) => s.status === "incorrect").length;
         const totalAcc = questions.length > 0 ? Math.round((totalCorr / questions.length) * 100) : 0;
-        const totalMedal = getMedalByErrors(totalErrs, 1);
+        const totalMedal = getMedalByErrors(totalErrs, totalCorr + totalErrs);
 
         invalidateUserCache(user.id);
         resetStats();
@@ -355,7 +364,7 @@ export default function TestPage() {
             // Save progress per topic
             await Promise.all(Array.from(payloads.values()).map((p) => {
                 if (wasAlreadyCompletedRef.current.has(p.topicId)) {
-                    return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), { questionStatuses: p.questionStatuses }, { merge: true });
+                    return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), { questionStatuses: p.questionStatuses, hardAllDone: p.hardAllDone }, { merge: true });
                 }
                 return setDoc(doc(db, "users", user.id, "userProgress", p.topicId), {
                     userId: user.id, topicId: p.topicId,
@@ -363,6 +372,7 @@ export default function TestPage() {
                     errors: p.errs, markedQuestions: p.markedCount, medal: p.medal, accuracy: p.accuracy,
                     completedAt: new Date().toISOString(),
                     questionStatuses: p.questionStatuses,
+                    hardAllDone: p.hardAllDone,
                 });
             }));
 
@@ -374,7 +384,7 @@ export default function TestPage() {
             });
 
             // Fetch all userProgress once — reused for medal check and achievement input.
-            type ProgData = { medal?: string; solvedQuestions?: number; errors?: number };
+            type ProgData = { medal?: string; solvedQuestions?: number; errors?: number; hardAllDone?: boolean };
             const allProgSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
             const progByTopicId = new Map<string, ProgData>();
             let totalCorrect = 0;
@@ -396,10 +406,11 @@ export default function TestPage() {
                 navSubjectId = subjectId as string;
                 const rRef = doc(db, "users", user.id, "ratings", subjectId);
                 const rSnap = await getDoc(rRef);
+                // Звёзды только за впервые пройденные темы — иначе их можно фармить, повторяя один топик
                 const tbCorr = allTopics
-                    .filter((t) => t.textbookId === tbId)
+                    .filter((t) => t.textbookId === tbId && !wasAlreadyCompletedRef.current.has(t.id))
                     .reduce((sum, t) => sum + (payloads.get(t.id)?.corr ?? 0), 0);
-                if (rSnap.exists()) await updateDoc(rRef, { stars: increment(tbCorr), lastUpdated: serverTimestamp() });
+                if (rSnap.exists()) { if (tbCorr > 0) await updateDoc(rRef, { stars: increment(tbCorr), lastUpdated: serverTimestamp() }); }
                 else await setDoc(rRef, { userId: user.id, subjectId, stars: tbCorr, lastUpdated: serverTimestamp() });
 
                 const tbTopics = await fetchTopicsByTextbook(tbId);
@@ -445,8 +456,8 @@ export default function TestPage() {
                 }
             );
 
-            // Streak update
-            const today = new Date().toISOString().split("T")[0];
+            // Streak update — локальная дата (UTC сдвигал вечернюю активность на следующий день)
+            const today = new Date().toLocaleDateString("en-CA");
             const userDocRef = doc(db, "users", user.id);
             const userDocSnap = await getDoc(userDocRef);
             const userData = userDocSnap.exists() ? userDocSnap.data() : {};
@@ -456,9 +467,15 @@ export default function TestPage() {
                 const diffDays = Math.round(
                     (new Date(today).getTime() - new Date(lastActiveDate).getTime()) / 86400000
                 );
-                streakDays = diffDays <= 2 ? streakDays + 1 : 1;
+                // Серия продолжается только при занятиях каждый день
+                streakDays = diffDays === 1 ? streakDays + 1 : 1;
             }
             await setDoc(userDocRef, { streakDays, lastActiveDate: today }, { merge: true });
+
+            // Дневная активность — точный счётчик по дням для теплокарты статистики
+            await setDoc(doc(db, "users", user.id, "dailyActivity", today), {
+                date: today, solved: increment(totalCorr),
+            }, { merge: true });
 
             // Highest consecutive correct streak in this session
             let cur = 0, maxStreak = 0;
@@ -467,12 +484,33 @@ export default function TestPage() {
                 else if (s.status === "incorrect") cur = 0;
             }
 
+            // Expert: все сложные вопросы фана решены — проверяем по флагу hardAllDone
+            // в userProgress каждого топика предмета (0 дополнительных чтений вопросов)
+            const hardQuestionsCompletedBySubject = await Promise.all(
+                Array.from(subjectProgAgg.keys()).map(async (sid) => {
+                    try {
+                        const [tbs, directTopics] = await Promise.all([
+                            fetchTextbooksBySubject(sid),
+                            fetchTopicsBySubject(sid),
+                        ]);
+                        const topicLists = await Promise.all(tbs.map((tb) => fetchTopicsByTextbook(tb.id)));
+                        const allIds = Array.from(new Set([...topicLists.flat(), ...directTopics].map((tp) => tp.id)));
+                        const allDone = allIds.length > 0 && allIds.every((tid) =>
+                            (payloads.get(tid)?.hardAllDone ?? progByTopicId.get(tid)?.hardAllDone) === true
+                        );
+                        return { subjectId: sid, allDone };
+                    } catch {
+                        return { subjectId: sid, allDone: false };
+                    }
+                })
+            );
+
             awarded = await checkAndAwardAchievements(user.id, {
                 subjectAccuracies,
                 streakDays,
                 totalCorrect,
                 correctStreak: maxStreak,
-                hardQuestionsCompletedBySubject: [],
+                hardQuestionsCompletedBySubject,
             });
         } catch {
             setSaveError(t("test.saveError"));
@@ -1188,8 +1226,8 @@ export default function TestPage() {
                                 <div key={ach.id} className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-left">
                                     <span className="text-3xl">{ach.icon}</span>
                                     <div>
-                                        <div className="font-semibold text-sm text-foreground">{ach.nameRu}</div>
-                                        <div className="text-xs text-muted-foreground">{ach.descriptionRu}</div>
+                                        <div className="font-semibold text-sm text-foreground">{getAchievementName(ach, language)}</div>
+                                        <div className="text-xs text-muted-foreground">{getAchievementDescription(ach, language)}</div>
                                     </div>
                                 </div>
                             ))}

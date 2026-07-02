@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import katex from "katex";
+import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 
 interface MathTextProps {
@@ -38,7 +39,9 @@ export default function MathText({ content, as = "div", className, style }: Math
         if (!rootRef.current) return;
 
         const container = rootRef.current;
-        container.innerHTML = content;
+        // Контент приходит из Firestore (Quill HTML) — санитизируем от XSS,
+        // TeX-разметка ($...$) — обычный текст, DOMPurify её не трогает
+        container.innerHTML = DOMPurify.sanitize(content);
 
         // CDN auto-render expects window.katex
         if (typeof window !== "undefined") {

@@ -12,51 +12,60 @@ export interface AchievementDef {
   id: AchievementId;
   name: string;
   nameRu: string;
+  nameUz: string;
   description: string;
   descriptionRu: string;
+  descriptionUz: string;
   icon: string;
   series: "sniper" | "veteran" | "focused" | "sharp" | "expert";
   tier: number;
 }
 
+// Локализованные имя/описание достижения (uz — язык по умолчанию)
+export const getAchievementName = (a: AchievementDef, lang: string): string =>
+  lang === "ru" ? a.nameRu : a.nameUz;
+
+export const getAchievementDescription = (a: AchievementDef, lang: string): string =>
+  lang === "ru" ? a.descriptionRu : a.descriptionUz;
+
 export const ACHIEVEMENTS: AchievementDef[] = [
   // SNIPER — 95%+ accuracy in N subjects (80%+ questions completed)
-  { id: "sniper_1", name: "Sniper I", nameRu: "Снайпер I", description: "95%+ accuracy in 1 subject", descriptionRu: "95%+ точность в 1 предмете", icon: "🎯", series: "sniper", tier: 1 },
-  { id: "sniper_2", name: "Sniper II", nameRu: "Снайпер II", description: "95%+ accuracy in 2 subjects", descriptionRu: "95%+ точность в 2 предметах", icon: "🎯", series: "sniper", tier: 2 },
-  { id: "sniper_3", name: "Sniper III", nameRu: "Снайпер III", description: "95%+ accuracy in 3 subjects", descriptionRu: "95%+ точность в 3 предметах", icon: "🎯", series: "sniper", tier: 3 },
-  { id: "sniper_4", name: "Sniper IV", nameRu: "Снайпер IV", description: "95%+ accuracy in 4 subjects", descriptionRu: "95%+ точность в 4 предметах", icon: "🎯", series: "sniper", tier: 4 },
-  { id: "sniper_5", name: "Sniper V", nameRu: "Снайпер V", description: "95%+ accuracy in 5 subjects", descriptionRu: "95%+ точность в 5 предметах", icon: "🎯", series: "sniper", tier: 5 },
-  { id: "sniper_6", name: "Sniper VI", nameRu: "Снайпер VI", description: "95%+ accuracy in 6 subjects", descriptionRu: "95%+ точность в 6 предметах", icon: "🎯", series: "sniper", tier: 6 },
-  { id: "sniper_war", name: "Sniper of the War", nameRu: "Снайпер Войны", description: "95%+ accuracy in ALL 7 subjects", descriptionRu: "95%+ точность во всех 7 предметах", icon: "💀🎯", series: "sniper", tier: 7 },
+  { id: "sniper_1", name: "Sniper I", nameRu: "Снайпер I", nameUz: "Snayper I", description: "95%+ accuracy in 1 subject", descriptionRu: "95%+ точность в 1 предмете", descriptionUz: "1 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 1 },
+  { id: "sniper_2", name: "Sniper II", nameRu: "Снайпер II", nameUz: "Snayper II", description: "95%+ accuracy in 2 subjects", descriptionRu: "95%+ точность в 2 предметах", descriptionUz: "2 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 2 },
+  { id: "sniper_3", name: "Sniper III", nameRu: "Снайпер III", nameUz: "Snayper III", description: "95%+ accuracy in 3 subjects", descriptionRu: "95%+ точность в 3 предметах", descriptionUz: "3 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 3 },
+  { id: "sniper_4", name: "Sniper IV", nameRu: "Снайпер IV", nameUz: "Snayper IV", description: "95%+ accuracy in 4 subjects", descriptionRu: "95%+ точность в 4 предметах", descriptionUz: "4 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 4 },
+  { id: "sniper_5", name: "Sniper V", nameRu: "Снайпер V", nameUz: "Snayper V", description: "95%+ accuracy in 5 subjects", descriptionRu: "95%+ точность в 5 предметах", descriptionUz: "5 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 5 },
+  { id: "sniper_6", name: "Sniper VI", nameRu: "Снайпер VI", nameUz: "Snayper VI", description: "95%+ accuracy in 6 subjects", descriptionRu: "95%+ точность в 6 предметах", descriptionUz: "6 ta fanda 95%+ aniqlik", icon: "🎯", series: "sniper", tier: 6 },
+  { id: "sniper_war", name: "Sniper of the War", nameRu: "Снайпер Войны", nameUz: "Urush Snayperi", description: "95%+ accuracy in ALL 7 subjects", descriptionRu: "95%+ точность во всех 7 предметах", descriptionUz: "Barcha 7 fanda 95%+ aniqlik", icon: "💀🎯", series: "sniper", tier: 7 },
 
   // VETERAN — daily streak
-  { id: "veteran_1", name: "Veteran I", nameRu: "Ветеран I", description: "7 day streak", descriptionRu: "7 дней подряд", icon: "🪖", series: "veteran", tier: 1 },
-  { id: "veteran_2", name: "Veteran II", nameRu: "Ветеран II", description: "14 day streak", descriptionRu: "14 дней подряд", icon: "🪖", series: "veteran", tier: 2 },
-  { id: "veteran_3", name: "Veteran III", nameRu: "Ветеран III", description: "30 day streak", descriptionRu: "30 дней подряд", icon: "🪖", series: "veteran", tier: 3 },
-  { id: "veteran_4", name: "Veteran IV", nameRu: "Ветеран IV", description: "100 day streak", descriptionRu: "100 дней подряд", icon: "🪖", series: "veteran", tier: 4 },
-  { id: "veteran_5", name: "Veteran V", nameRu: "Ветеран V", description: "200 day streak", descriptionRu: "200 дней подряд", icon: "🪖", series: "veteran", tier: 5 },
-  { id: "veteran_war", name: "Veteran of the War", nameRu: "Ветеран Войны", description: "365 day streak", descriptionRu: "365 дней подряд", icon: "💀🪖", series: "veteran", tier: 7 },
+  { id: "veteran_1", name: "Veteran I", nameRu: "Ветеран I", nameUz: "Veteran I", description: "7 day streak", descriptionRu: "7 дней подряд", descriptionUz: "7 kun ketma-ket", icon: "🪖", series: "veteran", tier: 1 },
+  { id: "veteran_2", name: "Veteran II", nameRu: "Ветеран II", nameUz: "Veteran II", description: "14 day streak", descriptionRu: "14 дней подряд", descriptionUz: "14 kun ketma-ket", icon: "🪖", series: "veteran", tier: 2 },
+  { id: "veteran_3", name: "Veteran III", nameRu: "Ветеран III", nameUz: "Veteran III", description: "30 day streak", descriptionRu: "30 дней подряд", descriptionUz: "30 kun ketma-ket", icon: "🪖", series: "veteran", tier: 3 },
+  { id: "veteran_4", name: "Veteran IV", nameRu: "Ветеран IV", nameUz: "Veteran IV", description: "100 day streak", descriptionRu: "100 дней подряд", descriptionUz: "100 kun ketma-ket", icon: "🪖", series: "veteran", tier: 4 },
+  { id: "veteran_5", name: "Veteran V", nameRu: "Ветеран V", nameUz: "Veteran V", description: "200 day streak", descriptionRu: "200 дней подряд", descriptionUz: "200 kun ketma-ket", icon: "🪖", series: "veteran", tier: 5 },
+  { id: "veteran_war", name: "Veteran of the War", nameRu: "Ветеран Войны", nameUz: "Urush Veterani", description: "365 day streak", descriptionRu: "365 дней подряд", descriptionUz: "365 kun ketma-ket", icon: "💀🪖", series: "veteran", tier: 7 },
 
   // FOCUSED — total correct answers
-  { id: "focused_1", name: "Focused I", nameRu: "Сфокусированный I", description: "50 correct answers total", descriptionRu: "50 правильных ответов", icon: "🔫", series: "focused", tier: 1 },
-  { id: "focused_2", name: "Focused II", nameRu: "Сфокусированный II", description: "100 correct answers total", descriptionRu: "100 правильных ответов", icon: "🔫", series: "focused", tier: 2 },
-  { id: "focused_3", name: "Focused III", nameRu: "Сфокусированный III", description: "200 correct answers total", descriptionRu: "200 правильных ответов", icon: "🔫", series: "focused", tier: 3 },
-  { id: "focused_war", name: "Focused on War", nameRu: "Сфокусирован на Войне", description: "500 correct answers total", descriptionRu: "500 правильных ответов", icon: "💀🔫", series: "focused", tier: 7 },
+  { id: "focused_1", name: "Focused I", nameRu: "Сфокусированный I", nameUz: "Fokuslangan I", description: "50 correct answers total", descriptionRu: "50 правильных ответов", descriptionUz: "Jami 50 ta to'g'ri javob", icon: "🔫", series: "focused", tier: 1 },
+  { id: "focused_2", name: "Focused II", nameRu: "Сфокусированный II", nameUz: "Fokuslangan II", description: "100 correct answers total", descriptionRu: "100 правильных ответов", descriptionUz: "Jami 100 ta to'g'ri javob", icon: "🔫", series: "focused", tier: 2 },
+  { id: "focused_3", name: "Focused III", nameRu: "Сфокусированный III", nameUz: "Fokuslangan III", description: "200 correct answers total", descriptionRu: "200 правильных ответов", descriptionUz: "Jami 200 ta to'g'ri javob", icon: "🔫", series: "focused", tier: 3 },
+  { id: "focused_war", name: "Focused on War", nameRu: "Сфокусирован на Войне", nameUz: "Urushga fokuslangan", description: "500 correct answers total", descriptionRu: "500 правильных ответов", descriptionUz: "Jami 500 ta to'g'ri javob", icon: "💀🔫", series: "focused", tier: 7 },
 
   // SHARP — correct answers in a row
-  { id: "sharp_1", name: "Sharp I", nameRu: "Меткий I", description: "10 correct answers in a row", descriptionRu: "10 правильных ответов подряд", icon: "⚡", series: "sharp", tier: 1 },
-  { id: "sharp_2", name: "Sharp II", nameRu: "Меткий II", description: "25 correct answers in a row", descriptionRu: "25 правильных ответов подряд", icon: "⚡", series: "sharp", tier: 2 },
-  { id: "sharp_3", name: "Sharp III", nameRu: "Меткий III", description: "50 correct answers in a row", descriptionRu: "50 правильных ответов подряд", icon: "⚡", series: "sharp", tier: 3 },
-  { id: "sharp_war", name: "Sharp of the War", nameRu: "Меткий Войны", description: "100 correct answers in a row", descriptionRu: "100 правильных ответов подряд", icon: "💀⚡", series: "sharp", tier: 7 },
+  { id: "sharp_1", name: "Sharp I", nameRu: "Меткий I", nameUz: "Mergan I", description: "10 correct answers in a row", descriptionRu: "10 правильных ответов подряд", descriptionUz: "Ketma-ket 10 ta to'g'ri javob", icon: "⚡", series: "sharp", tier: 1 },
+  { id: "sharp_2", name: "Sharp II", nameRu: "Меткий II", nameUz: "Mergan II", description: "25 correct answers in a row", descriptionRu: "25 правильных ответов подряд", descriptionUz: "Ketma-ket 25 ta to'g'ri javob", icon: "⚡", series: "sharp", tier: 2 },
+  { id: "sharp_3", name: "Sharp III", nameRu: "Меткий III", nameUz: "Mergan III", description: "50 correct answers in a row", descriptionRu: "50 правильных ответов подряд", descriptionUz: "Ketma-ket 50 ta to'g'ri javob", icon: "⚡", series: "sharp", tier: 3 },
+  { id: "sharp_war", name: "Sharp of the War", nameRu: "Меткий Войны", nameUz: "Urush Mergani", description: "100 correct answers in a row", descriptionRu: "100 правильных ответов подряд", descriptionUz: "Ketma-ket 100 ta to'g'ri javob", icon: "💀⚡", series: "sharp", tier: 7 },
 
   // EXPERT — solve ALL hard questions in N subjects
-  { id: "expert_1", name: "Expert I", nameRu: "Эксперт I", description: "All hard questions in 1 subject", descriptionRu: "Все сложные вопросы в 1 предмете", icon: "🧠", series: "expert", tier: 1 },
-  { id: "expert_2", name: "Expert II", nameRu: "Эксперт II", description: "All hard questions in 2 subjects", descriptionRu: "Все сложные вопросы в 2 предметах", icon: "🧠", series: "expert", tier: 2 },
-  { id: "expert_3", name: "Expert III", nameRu: "Эксперт III", description: "All hard questions in 3 subjects", descriptionRu: "Все сложные вопросы в 3 предметах", icon: "🧠", series: "expert", tier: 3 },
-  { id: "expert_4", name: "Expert IV", nameRu: "Эксперт IV", description: "All hard questions in 4 subjects", descriptionRu: "Все сложные вопросы в 4 предметах", icon: "🧠", series: "expert", tier: 4 },
-  { id: "expert_5", name: "Expert V", nameRu: "Эксперт V", description: "All hard questions in 5 subjects", descriptionRu: "Все сложные вопросы в 5 предметах", icon: "🧠", series: "expert", tier: 5 },
-  { id: "expert_6", name: "Expert VI", nameRu: "Эксперт VI", description: "All hard questions in 6 subjects", descriptionRu: "Все сложные вопросы в 6 предметах", icon: "🧠", series: "expert", tier: 6 },
-  { id: "expert_war", name: "Expert of the War", nameRu: "Эксперт Войны", description: "All hard questions in ALL 7 subjects", descriptionRu: "Все сложные вопросы во всех 7 предметах", icon: "💀🧠", series: "expert", tier: 7 },
+  { id: "expert_1", name: "Expert I", nameRu: "Эксперт I", nameUz: "Ekspert I", description: "All hard questions in 1 subject", descriptionRu: "Все сложные вопросы в 1 предмете", descriptionUz: "1 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 1 },
+  { id: "expert_2", name: "Expert II", nameRu: "Эксперт II", nameUz: "Ekspert II", description: "All hard questions in 2 subjects", descriptionRu: "Все сложные вопросы в 2 предметах", descriptionUz: "2 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 2 },
+  { id: "expert_3", name: "Expert III", nameRu: "Эксперт III", nameUz: "Ekspert III", description: "All hard questions in 3 subjects", descriptionRu: "Все сложные вопросы в 3 предметах", descriptionUz: "3 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 3 },
+  { id: "expert_4", name: "Expert IV", nameRu: "Эксперт IV", nameUz: "Ekspert IV", description: "All hard questions in 4 subjects", descriptionRu: "Все сложные вопросы в 4 предметах", descriptionUz: "4 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 4 },
+  { id: "expert_5", name: "Expert V", nameRu: "Эксперт V", nameUz: "Ekspert V", description: "All hard questions in 5 subjects", descriptionRu: "Все сложные вопросы в 5 предметах", descriptionUz: "5 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 5 },
+  { id: "expert_6", name: "Expert VI", nameRu: "Эксперт VI", nameUz: "Ekspert VI", description: "All hard questions in 6 subjects", descriptionRu: "Все сложные вопросы в 6 предметах", descriptionUz: "6 ta fandagi barcha qiyin savollar", icon: "🧠", series: "expert", tier: 6 },
+  { id: "expert_war", name: "Expert of the War", nameRu: "Эксперт Войны", nameUz: "Urush Eksperti", description: "All hard questions in ALL 7 subjects", descriptionRu: "Все сложные вопросы во всех 7 предметах", descriptionUz: "Barcha 7 fandagi barcha qiyin savollar", icon: "💀🧠", series: "expert", tier: 7 },
 ];
 
 export interface UserAchievementStats {

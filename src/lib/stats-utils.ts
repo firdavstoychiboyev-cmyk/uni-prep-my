@@ -113,9 +113,22 @@ export const fetchUserBadges = (userId: string) =>
         }>;
     }, TTL_USER);
 
-/** Daily activity map { "2026-06-25": solvedCount } — derived from userProgress timestamps */
+/** Daily activity map { "2026-06-25": solvedCount } */
 export const fetchUserDailyActivity = async (userId: string): Promise<Record<string, number>> => {
     return pageCache.fetch(`daily-activity:${userId}`, async () => {
+        // Точные дневные счётчики — пишутся при завершении каждого теста
+        const actSnap = await getDocs(collection(db, "users", userId, "dailyActivity"));
+        if (!actSnap.empty) {
+            const daily: Record<string, number> = {};
+            actSnap.forEach((d) => {
+                const data = d.data() as { date?: string; solved?: number };
+                const date = data.date ?? d.id;
+                daily[date] = (daily[date] ?? 0) + (data.solved ?? 0);
+            });
+            return daily;
+        }
+        // Legacy fallback: приблизительная оценка по датам последнего обновления прогресса
+        // (весь solvedQuestions топика относится к одному дню — неточно, но лучше пустоты)
         const snap = await getDocs(collection(db, "users", userId, "userProgress"));
         const daily: Record<string, number> = {};
         snap.forEach((d) => {

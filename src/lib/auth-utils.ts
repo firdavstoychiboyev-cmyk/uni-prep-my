@@ -4,7 +4,7 @@ import {
     signOut,
     User as FirebaseUser
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { User, UserRole, Language, DEFAULT_LANGUAGE } from "./firestore-schema";
 import { pageCache } from "./page-cache";
@@ -53,6 +53,22 @@ const generateShortId = () => {
 };
 
 /**
+ * Короткий ID с проверкой уникальности (до 5 попыток; коллизия крайне маловероятна)
+ */
+const generateUniqueShortId = async (): Promise<string> => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = generateShortId();
+        try {
+            const snap = await getDocs(query(collection(db, "users"), where("shortId", "==", candidate), limit(1)));
+            if (snap.empty) return candidate;
+        } catch {
+            return candidate; // проверка недоступна — используем как есть
+        }
+    }
+    return generateShortId();
+};
+
+/**
  * Создание или обновление профиля пользователя
  */
 export const createUserProfile = async (
@@ -69,9 +85,10 @@ export const createUserProfile = async (
         // Если профиль уже есть, проверяем shortId
         let shortId = docSnap.exists() ? (docSnap.data() as User).shortId : "";
         if (!shortId) {
-            shortId = generateShortId();
+            shortId = await generateUniqueShortId();
         }
 
+        // Firestore отклоняет undefined-значения полей, поэтому createdAt добавляем условно
         const userData: Partial<User> = {
             id: firebaseUser.uid,
             shortId,
@@ -79,9 +96,11 @@ export const createUserProfile = async (
             name: name || firebaseUser.displayName || "Ученик",
             surname: surname || "",
             avatar: firebaseUser.photoURL || "",
-            createdAt: docSnap.exists() ? undefined : new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+        if (!docSnap.exists()) {
+            userData.createdAt = new Date().toISOString();
+        }
 
         // Новым пользователям выставляем язык по умолчанию (русский)
         if (!docSnap.exists() || !(docSnap.data() as User).language) {
