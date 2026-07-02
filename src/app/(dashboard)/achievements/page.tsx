@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { fetchUserBadges } from "@/lib/stats-utils";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { Trophy, Lock, Calendar, Target, Shield, Crosshair, Zap, Brain } from "lucide-react";
+import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const seriesConfig = {
@@ -63,7 +64,7 @@ function parseDate(unlockedAt?: RawBadge["unlockedAt"]): Date | null {
 }
 
 export default function AchievementsPage() {
-    const { user } = useAuthStore();
+    const { user, isLoading: authLoading } = useAuthStore();
     const { t, language } = useTranslation();
     const isRu = language === "ru";
 
@@ -88,6 +89,27 @@ export default function AchievementsPage() {
     }, [user]);
 
     const totalEarned = ACHIEVEMENTS.filter(a => earnedMap.has(a.id)).length;
+
+    // Достижения персональны — анонимному пользователю показываем приглашение войти вместо редиректа
+    if (!authLoading && !user) {
+        return (
+            <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">
+                <section>
+                    <h1 className="text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>
+                        {t("nav.achievements")}
+                    </h1>
+                </section>
+                <div className="rounded-xl bg-card border border-border px-6 py-14 flex flex-col items-center gap-5 text-center">
+                    <Trophy className="w-8 h-8 text-muted-foreground/40" />
+                    <p className="text-[15px] font-medium text-muted-foreground max-w-sm">{t("authPrompt.achievements")}</p>
+                    <Link href="/login?returnTo=/achievements"
+                        className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[14px] font-bold transition-all duration-150 bg-foreground text-background hover:opacity-90 active:scale-95">
+                        {t("authPrompt.login")}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-10 py-4 duration-700">

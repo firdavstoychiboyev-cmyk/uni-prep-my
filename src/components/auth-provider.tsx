@@ -38,10 +38,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     setUser(profile);
                     useLanguageStore.getState().setLanguage(profile.language || DEFAULT_LANGUAGE);
                     // Если профиль есть и роль выбрана, но мы на логине или онбординге - в дашборд
-                    // (или на страницу из ?next=, если пришли с точки действия)
+                    // (или на страницу из ?returnTo=, если пришли с точки действия)
                     if (profile.role && (currentPath === "/login" || currentPath === "/onboarding")) {
-                        const next = new URLSearchParams(window.location.search).get("next");
-                        router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/home");
+                        const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+                        router.push(returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/home");
                     } else if (!profile.role && currentPath !== "/onboarding") {
                         // Если роль не выбрана - на онбординг
                         router.push("/onboarding");

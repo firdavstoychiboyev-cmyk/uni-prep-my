@@ -26,7 +26,7 @@ interface SubjectTopics {
 }
 
 export default function StatisticsPage() {
-    const { user } = useAuthStore();
+    const { user, isLoading: authLoading } = useAuthStore();
     const { t } = useTranslation();
     const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
     const {
@@ -104,6 +104,26 @@ export default function StatisticsPage() {
     }, [user, subjectsLoaded, subjects, setStats, setRatings, setLoadedForUser, setSubjectProgress]);
 
     const totalMedals = (globalStats?.medals.green ?? 0) + (globalStats?.medals.grey ?? 0) + (globalStats?.medals.bronze ?? 0);
+
+    // Статистика персональна — анонимному пользователю показываем приглашение войти вместо редиректа
+    if (!authLoading && !user) {
+        return (
+            <div className="flex flex-col gap-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div>
+                    <h1 className="text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>{t("nav.statistics")}</h1>
+                    <p className="text-[14px] mt-1 text-muted-foreground">{t("stats.subtitle")}</p>
+                </div>
+                <div className="rounded-xl bg-card border border-border px-6 py-14 flex flex-col items-center gap-5 text-center">
+                    <TrendingUp className="w-8 h-8 text-muted-foreground/40" />
+                    <p className="text-[15px] font-medium text-muted-foreground max-w-sm">{t("authPrompt.statistics")}</p>
+                    <Link href="/login?returnTo=/statistics"
+                        className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[14px] font-bold transition-all duration-150 bg-foreground text-background hover:opacity-90 active:scale-95">
+                        {t("authPrompt.login")}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">

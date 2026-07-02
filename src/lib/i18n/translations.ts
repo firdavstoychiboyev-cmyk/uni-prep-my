@@ -216,6 +216,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "role.teacher": "Учитель",
         "role.student": "Ученик",
 
+        // ── Auth prompts (anonymous users) ───────────────────────
+        "authPrompt.statistics": "Войдите, чтобы посмотреть свою статистику",
+        "authPrompt.achievements": "Войдите, чтобы посмотреть свои достижения",
+        "authPrompt.login": "Войти",
+
         // ── Statistics ───────────────────────────────────────────
         "stats.subtitle": "Прогресс и достижения по всем предметам",
         "stats.solved": "Решено задач",
@@ -629,6 +634,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "profile.percentTopics": "o‘tilgan mavzular %",
         "role.teacher": "O‘qituvchi",
         "role.student": "O‘quvchi",
+
+        // ── Auth prompts (anonymous users) ───────────────────────
+        "authPrompt.statistics": "Statistikangizni ko‘rish uchun tizimga kiring",
+        "authPrompt.achievements": "Yutuqlaringizni ko‘rish uchun tizimga kiring",
+        "authPrompt.login": "Kirish",
 
         // ── Statistics ───────────────────────────────────────────
         "stats.subtitle": "Barcha fanlar bo‘yicha taraqqiyot va yutuqlar",

@@ -9,8 +9,9 @@ import { useSidebarStore } from "@/store/useSidebarStore";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-// Routes that read/write personal user data — everything else is open to anonymous browsing
-const PROTECTED_PREFIXES = ["/test", "/statistics", "/achievements", "/profile", "/settings", "/classes", "/student", "/admin"];
+// Routes that are meaningless without an account — everything else is open to anonymous browsing.
+// /statistics и /achievements открыты: они показывают inline-приглашение войти вместо редиректа.
+const PROTECTED_PREFIXES = ["/test", "/profile", "/settings", "/classes", "/student", "/admin"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
@@ -23,8 +24,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     useEffect(() => {
         if (!isLoading && !user && isProtected) {
             // window.location preserves query params (e.g. /test/x?t=a,b) that usePathname drops
-            const next = encodeURIComponent(window.location.pathname + window.location.search);
-            router.push(`/login?next=${next}`);
+            const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+            router.push(`/login?returnTo=${returnTo}`);
         }
     }, [user, isLoading, isProtected, router]);
 

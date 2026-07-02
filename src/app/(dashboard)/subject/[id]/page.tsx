@@ -445,7 +445,7 @@ export default function SubjectPage() {
     // Тест сохраняет прогресс/результаты — без входа отправляем на логин с возвратом обратно на тест
     const startTest = useCallback((url: string) => {
         if (!user) {
-            router.push(`/login?next=${encodeURIComponent(url)}`);
+            router.push(`/login?returnTo=${encodeURIComponent(url)}`);
             return;
         }
         router.push(url);
