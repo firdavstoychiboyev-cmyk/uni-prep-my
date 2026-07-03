@@ -90,6 +90,29 @@ service cloud.firestore {
     }
 
 
+    // ── Partner access codes (Registan etc.) ──────────────────────────────────
+    // Codes are validated on the signup form before the user is authenticated,
+    // so `get` is public. `list` is admin-only (for the admin codes page).
+    // The ONLY non-admin write allowed is incrementing usesCount by exactly 1
+    // (the atomic use-count bump inside the signup batch), and only while the
+    // code is active and under its maxUses limit.
+
+    match /accessCodes/{code} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usesCount"])
+        && request.resource.data.usesCount == resource.data.usesCount + 1
+        && resource.data.active == true
+        && (!("maxUses" in resource.data)
+            || resource.data.maxUses == null
+            || resource.data.usesCount < resource.data.maxUses)
+      );
+    }
+
+
     // ── Content collections (admin writes, public read for anonymous browsing) ─
 
     match /subjects/{docId} {

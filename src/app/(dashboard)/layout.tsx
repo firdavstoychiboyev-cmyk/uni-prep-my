@@ -11,7 +11,7 @@ import { useEffect } from "react";
 
 // Routes that are meaningless without an account — everything else is open to anonymous browsing.
 // /statistics и /achievements открыты: они показывают inline-приглашение войти вместо редиректа.
-const PROTECTED_PREFIXES = ["/test", "/profile", "/settings", "/classes", "/student", "/admin"];
+const PROTECTED_PREFIXES = ["/test", "/profile", "/settings", "/classes", "/student", "/admin", "/registan"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();

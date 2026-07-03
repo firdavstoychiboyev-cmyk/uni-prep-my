@@ -7,9 +7,9 @@ import {
     signOut,
     User as FirebaseUser
 } from "firebase/auth";
-import { doc, getDoc, setDoc, writeBatch, collection, query, where, limit, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, writeBatch, collection, query, where, limit, getDocs, increment } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { User, UserRole, Language, DEFAULT_LANGUAGE } from "./firestore-schema";
+import { User, UserRole, Language, DEFAULT_LANGUAGE, AccessCode } from "./firestore-schema";
 import { pageCache } from "./page-cache";
 
 const googleProvider = new GoogleAuthProvider();
@@ -79,6 +79,26 @@ export const isPhoneTaken = async (phone: string) => {
     return snap.exists();
 };
 
+// ── Коды доступа организаций-партнёров (Registan и будущие) ────────────────
+
+export const normalizeAccessCode = (raw: string) => raw.trim().toUpperCase();
+
+export type AccessCodeCheck =
+    | { ok: true; organization: string }
+    | { ok: false; reason: "not-found" | "inactive" | "exhausted" };
+
+/** Проверка кода доступа перед регистрацией (читается без авторизации) */
+export const validateAccessCode = async (raw: string): Promise<AccessCodeCheck> => {
+    const code = normalizeAccessCode(raw);
+    if (!code) return { ok: false, reason: "not-found" };
+    const snap = await getDoc(doc(db, "accessCodes", code));
+    if (!snap.exists()) return { ok: false, reason: "not-found" };
+    const data = snap.data() as AccessCode;
+    if (!data.active) return { ok: false, reason: "inactive" };
+    if (data.maxUses != null && data.usesCount >= data.maxUses) return { ok: false, reason: "exhausted" };
+    return { ok: true, organization: data.organization };
+};
+
 /** Бросается, когда username/телефон не найден в lookup-коллекциях */
 export class IdentifierNotFoundError extends Error {
     constructor(public identifierType: IdentifierType) {
@@ -127,12 +147,23 @@ export const signUpWithEmail = async (params: {
     password: string;
     username: string;
     phone?: string; // уже нормализованный E.164
+    accessCode?: string; // код организации-партнёра (уже проверенный формой)
 }) => {
     const username = normalizeUsername(params.username);
     const email = params.email.trim();
 
     if (await isUsernameTaken(username)) throw new Error("username-taken");
     if (params.phone && (await isPhoneTaken(params.phone))) throw new Error("phone-taken");
+
+    // Повторная проверка кода прямо перед регистрацией (форма могла устареть)
+    let organization: string | undefined;
+    let accessCode: string | undefined;
+    if (params.accessCode?.trim()) {
+        const check = await validateAccessCode(params.accessCode);
+        if (!check.ok) throw new Error(`access-code-${check.reason}`);
+        organization = check.organization;
+        accessCode = normalizeAccessCode(params.accessCode);
+    }
 
     const result = await createUserWithEmailAndPassword(auth, email, params.password);
     const uid = result.user.uid;
@@ -152,11 +183,15 @@ export const signUpWithEmail = async (params: {
             updatedAt: new Date().toISOString()
         };
         if (params.phone) userData.phone = params.phone;
+        if (organization) userData.organization = organization;
 
         const batch = writeBatch(db);
         batch.set(doc(db, "users", uid), userData, { merge: true });
         batch.set(doc(db, "usernames", username), { uid, email });
         if (params.phone) batch.set(doc(db, "phoneNumbers", params.phone), { uid, email });
+        // Инкремент атомарно с созданием профиля; правила Firestore допускают
+        // только +1 к usesCount и только пока код активен и не исчерпан
+        if (accessCode) batch.update(doc(db, "accessCodes", accessCode), { usesCount: increment(1) });
         await batch.commit();
 
         pageCache.invalidate(`userProfile:${uid}`);

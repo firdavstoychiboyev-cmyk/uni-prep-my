@@ -10,6 +10,7 @@ import { useSidebarStore } from "@/store/useSidebarStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { logOut } from "@/lib/auth-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import OrgBadge from "@/components/org-badge";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -168,6 +169,9 @@ export default function Topbar() {
 
                     {user && (
                         <>
+                            {/* Organization badge (Registan etc.) */}
+                            <OrgBadge organization={user.organization} className="hidden sm:inline-flex text-[12px]" />
+
                             {/* Streak badge */}
                             <div className="hidden sm:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold
                                 bg-orange-50 dark:bg-[#1c1100] border border-orange-200 dark:border-[#3d2800]
@@ -229,6 +233,7 @@ export default function Topbar() {
                                     <div className="text-[13px] font-semibold text-foreground">
                                         {user.name} {user.surname || ""}
                                     </div>
+                                    <OrgBadge organization={user.organization} className="mt-1.5" />
                                 </div>
                                 <div className="py-1">
                                     {userMenu.map((item) => {

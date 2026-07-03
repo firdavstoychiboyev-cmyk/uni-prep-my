@@ -20,6 +20,7 @@ import {
     PanelLeftClose,
     PanelLeft,
     ClipboardList,
+    Landmark,
 } from "lucide-react";
 
 const SUBJECT_DOT_COLORS = [
@@ -27,13 +28,14 @@ const SUBJECT_DOT_COLORS = [
     "#F59E0B", "#14B8A6", "#EF4444", "#6366F1",
 ];
 
-const mainLinks = (isTeacher: boolean, t: (k: string) => string) => [
+const mainLinks = (isTeacher: boolean, isRegistan: boolean, t: (k: string) => string) => [
     { label: t("nav.home"), href: "/home", icon: LayoutDashboard },
     ...(isTeacher ? [{ label: t("nav.classes"), href: "/classes", icon: GraduationCap }] : []),
     { label: t("nav.statistics"), href: "/statistics", icon: BarChart3 },
     { label: t("nav.achievements"), href: "/achievements", icon: Award },
     { label: t("nav.mocks"), href: "/mocks", icon: ClipboardList },
     { label: t("nav.subjects"), href: "/subjects", icon: BookOpen },
+    ...(isRegistan ? [{ label: "Registan", href: "/registan", icon: Landmark }] : []),
     { label: t("nav.profile"), href: "/profile", icon: CircleUserRound },
 ];
 
@@ -50,7 +52,7 @@ function Sidebar() {
 
     useEffect(() => { close(); }, [pathname, close]);
 
-    const links = mainLinks(user?.role === "teacher", t);
+    const links = mainLinks(user?.role === "teacher", user?.organization === "registan", t);
 
     return (
         <>
@@ -200,6 +202,11 @@ function Sidebar() {
                                 <p className="text-[13px] font-semibold truncate" style={{ color: "#e0e0e0" }}>
                                     {user.name} {user.surname || ""}
                                 </p>
+                                {user.organization === "registan" && (
+                                    <p className="flex items-center gap-1 text-[10px] font-bold truncate text-violet-400">
+                                        <Landmark size={9} /> Registan
+                                    </p>
+                                )}
                             </div>
                             <Link href="/settings"
                                 title={t("nav.settings")}

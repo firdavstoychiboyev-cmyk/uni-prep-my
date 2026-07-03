@@ -15,6 +15,7 @@ export interface User {
   email: string;
   username?: string; // Уникальный username (нижний регистр) для входа по логину
   phone?: string; // Телефон в формате E.164 (+998...) для входа по номеру
+  organization?: string; // Организация-партнёр (напр. "registan"), выставляется по коду доступа при регистрации
   name: string; // Имя
   surname?: string; // Фамилия (опционально)
   role: UserRole;
@@ -23,6 +24,18 @@ export interface User {
   createdAt: string;
   updatedAt?: string; // Дата последнего обновления
   avatar: string; // URL аватара
+}
+
+/**
+ * Код доступа организации-партнёра: accessCodes/{CODE}.
+ * Студент вводит код при регистрации и получает organization в профиле.
+ */
+export interface AccessCode {
+  organization: string; // напр. "registan"
+  active: boolean;
+  createdAt: string;
+  maxUses: number | null; // null — без лимита
+  usesCount: number;
 }
 
 export interface Subject {

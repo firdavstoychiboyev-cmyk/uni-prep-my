@@ -11,6 +11,7 @@ import {
     IdentifierNotFoundError,
     isValidUsername,
     normalizePhone,
+    validateAccessCode,
 } from "@/lib/auth-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -62,6 +63,13 @@ const content = {
         passwordShort: "Parol kamida 6 ta belgidan iborat bo'lishi kerak.",
         emailInUse: "Bu email allaqachon ro'yxatdan o'tgan.",
         emailInvalid: "Email manzili noto'g'ri.",
+        accessCodeToggle: "O'quv markazi kodingiz bormi?",
+        accessCodeLabel: "Kirish kodi (ixtiyoriy)",
+        accessCodePlaceholder: "Masalan: REGISTAN2026",
+        accessCodeHelper: "O'quv markazingiz bergan kodni kiriting.",
+        accessCodeNotFound: "Bunday kod topilmadi. Kodni tekshiring yoki maydonni bo'sh qoldirib davom eting.",
+        accessCodeInactive: "Bu kod endi faol emas. Maydonni bo'sh qoldirib davom etishingiz mumkin.",
+        accessCodeExhausted: "Bu kod limitiga yetgan. Maydonni bo'sh qoldirib davom etishingiz mumkin.",
         feature1: "Mavzular bo'yicha materiallar va mashqlar",
         feature2: "Tezkor fikr-mulohaza bilan testlar",
         feature3: "Bosh sahifada progress va yutuqlar",
@@ -102,6 +110,13 @@ const content = {
         passwordShort: "Пароль должен содержать минимум 6 символов.",
         emailInUse: "Этот email уже зарегистрирован.",
         emailInvalid: "Неверный адрес email.",
+        accessCodeToggle: "Есть код учебного центра?",
+        accessCodeLabel: "Код доступа (необязательно)",
+        accessCodePlaceholder: "Например: REGISTAN2026",
+        accessCodeHelper: "Введите код, который вам дал учебный центр.",
+        accessCodeNotFound: "Такой код не найден. Проверьте код или оставьте поле пустым и продолжите.",
+        accessCodeInactive: "Этот код больше не активен. Можно оставить поле пустым и продолжить.",
+        accessCodeExhausted: "Лимит использований кода исчерпан. Можно оставить поле пустым и продолжить.",
         feature1: "Материалы и тренировка по темам в карточках предметов",
         feature2: "Тесты с мгновенной обратной связью",
         feature3: "Графики прогресса и достижения на главной",
@@ -133,6 +148,9 @@ export default function LoginPage() {
     const [signupUsername, setSignupUsername] = useState("");
     const [signupPhone, setSignupPhone] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
+    const [showAccessCode, setShowAccessCode] = useState(false);
+    const [accessCode, setAccessCode] = useState("");
+    const [accessCodeError, setAccessCodeError] = useState<string | null>(null);
 
     useEffect(() => {
         const saved = localStorage.getItem(THEME_KEY);
@@ -188,11 +206,17 @@ export default function LoginPage() {
         }
     };
 
+    const accessCodeErrorText = (reason: string) =>
+        reason === "inactive" ? t.accessCodeInactive
+        : reason === "exhausted" ? t.accessCodeExhausted
+        : t.accessCodeNotFound;
+
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         if (busy) return;
         setError(null);
         setInfo(null);
+        setAccessCodeError(null);
 
         if (!isValidUsername(signupUsername)) {
             setError(t.usernameInvalid);
@@ -214,11 +238,23 @@ export default function LoginPage() {
 
         setBusy(true);
         try {
+            // Плохой код не должен блокировать регистрацию: показываем ошибку
+            // под полем, аккаунт не создаём — пользователь может исправить код
+            // или очистить поле и зарегистрироваться без него.
+            if (accessCode.trim()) {
+                const check = await validateAccessCode(accessCode);
+                if (!check.ok) {
+                    setAccessCodeError(accessCodeErrorText(check.reason));
+                    setBusy(false);
+                    return;
+                }
+            }
             await signUpWithEmail({
                 email: signupEmail,
                 password: signupPassword,
                 username: signupUsername,
                 phone,
+                accessCode: accessCode.trim() || undefined,
             });
             // Дальше AuthProvider отправит на /onboarding
         } catch (err) {
@@ -226,6 +262,7 @@ export default function LoginPage() {
             const fbCode = (err as { code?: string })?.code || "";
             if (code === "username-taken") setError(t.usernameTaken);
             else if (code === "phone-taken") setError(t.phoneTaken);
+            else if (code.startsWith("access-code-")) setAccessCodeError(accessCodeErrorText(code.replace("access-code-", "")));
             else if (fbCode === "auth/email-already-in-use") setError(t.emailInUse);
             else if (fbCode === "auth/invalid-email") setError(t.emailInvalid);
             else if (fbCode === "auth/weak-password") setError(t.passwordShort);
@@ -429,6 +466,38 @@ export default function LoginPage() {
                                             required
                                         />
                                     </div>
+
+                                    {/* Access code — свернуто, нужен только студентам центров-партнёров */}
+                                    {!showAccessCode ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAccessCode(true)}
+                                            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {t.accessCodeToggle}
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-1.5">
+                                            <label className={labelClass}>{t.accessCodeLabel}</label>
+                                            <input
+                                                type="text"
+                                                value={accessCode}
+                                                onChange={(e) => {
+                                                    setAccessCode(e.target.value.toUpperCase());
+                                                    setAccessCodeError(null);
+                                                }}
+                                                placeholder={t.accessCodePlaceholder}
+                                                autoComplete="off"
+                                                className={`${inputClass} uppercase tracking-wide ${accessCodeError ? "border-red-300 dark:border-red-900" : ""}`}
+                                            />
+                                            {accessCodeError ? (
+                                                <p className="ml-0.5 text-xs text-red-600 dark:text-red-400">{accessCodeError}</p>
+                                            ) : (
+                                                <p className="ml-0.5 text-xs text-muted-foreground">{t.accessCodeHelper}</p>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <button
                                         type="submit"
                                         disabled={busy || isLoading}
