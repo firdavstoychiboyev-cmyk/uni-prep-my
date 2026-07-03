@@ -65,6 +65,31 @@ service cloud.firestore {
     }
 
 
+    // ── Login identifier lookups (username / phone → email) ───────────────────
+    // Public `get` is required so the login page can resolve an identifier
+    // BEFORE the user is authenticated. `list` stays closed so the collections
+    // can't be enumerated. Uniqueness is enforced here: writing to a document
+    // owned by another uid is an update, which only the owner may perform.
+
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
+    }
+
+    match /phoneNumbers/{phone} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
+    }
+
+
     // ── Content collections (admin writes, public read for anonymous browsing) ─
 
     match /subjects/{docId} {

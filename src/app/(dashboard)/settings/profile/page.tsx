@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { updateUserProfile } from "@/lib/auth-utils";
+import { updateUserProfile, updateUserIdentifiers, isValidUsername, normalizePhone } from "@/lib/auth-utils";
 import { Check, Copy, Pencil, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -13,12 +13,17 @@ export default function SettingsProfilePage() {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
     const [surname, setSurname] = useState("");
+    const [username, setUsername] = useState("");
+    const [phone, setPhone] = useState("");
+    const [formError, setFormError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (!user) return;
         setName(user.name || "");
         setSurname(user.surname || "");
+        setUsername(user.username || "");
+        setPhone(user.phone || "");
     }, [user]);
 
     if (!user) return null;
@@ -32,11 +37,37 @@ export default function SettingsProfilePage() {
     const save = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim().length < 2) return;
+        setFormError(null);
+
+        const trimmedUsername = username.trim();
+        if (trimmedUsername && !isValidUsername(trimmedUsername)) {
+            setFormError(t("settings.usernameInvalid"));
+            return;
+        }
+        let normalizedPhone = "";
+        if (phone.trim()) {
+            const result = normalizePhone(phone);
+            if (!result) {
+                setFormError(t("settings.phoneInvalid"));
+                return;
+            }
+            normalizedPhone = result;
+        }
+
         try {
             setSaving(true);
-            const updated = await updateUserProfile(user.id, { name: name.trim(), surname: surname.trim() });
+            let updated = await updateUserProfile(user.id, { name: name.trim(), surname: surname.trim() });
+            updated = await updateUserIdentifiers(updated, {
+                username: trimmedUsername,
+                phone: normalizedPhone,
+            });
             setUser(updated);
             setOpen(false);
+        } catch (err) {
+            const code = err instanceof Error ? err.message : "";
+            if (code === "username-taken") setFormError(t("settings.usernameTaken"));
+            else if (code === "phone-taken") setFormError(t("settings.phoneTaken"));
+            else setFormError(t("settings.profileError"));
         } finally {
             setSaving(false);
         }
@@ -58,6 +89,18 @@ export default function SettingsProfilePage() {
                     <div>
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.email")}</div>
                         <div className="mt-2 text-lg font-semibold text-foreground">{user.email}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.username")}</div>
+                        <div className="mt-2 text-lg font-semibold text-foreground">
+                            {user.username ? `@${user.username}` : <span className="text-muted-foreground">{t("settings.notSet")}</span>}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.phone")}</div>
+                        <div className="mt-2 text-lg font-semibold text-foreground">
+                            {user.phone || <span className="text-muted-foreground">{t("settings.notSet")}</span>}
+                        </div>
                     </div>
                     <div>
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.role")}</div>
@@ -130,6 +173,36 @@ export default function SettingsProfilePage() {
                                         placeholder={t("settings.surname")}
                                     />
                                 </div>
+                                <div>
+                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.username")}</label>
+                                    <input
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="mt-2 w-full h-12 px-4 rounded-2xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-blue))]/20 focus:border-[hsl(var(--brand-blue))]"
+                                        placeholder={t("settings.usernamePlaceholder")}
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-black tracking-[0.18em] uppercase text-muted-foreground">{t("settings.phone")}</label>
+                                    <input
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        className="mt-2 w-full h-12 px-4 rounded-2xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-blue))]/20 focus:border-[hsl(var(--brand-blue))]"
+                                        placeholder="+998 90 123 45 67"
+                                        type="tel"
+                                        autoComplete="tel"
+                                    />
+                                </div>
+
+                                {formError && (
+                                    <div
+                                        role="alert"
+                                        className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400"
+                                    >
+                                        {formError}
+                                    </div>
+                                )}
 
                                 <div className="pt-2 flex gap-3">
                                     <button

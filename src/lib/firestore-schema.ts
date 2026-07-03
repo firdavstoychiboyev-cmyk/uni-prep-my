@@ -13,6 +13,8 @@ export interface User {
   id: string; // Firebase UID
   shortId: string; // Короткий ID (только буквы и цифры)
   email: string;
+  username?: string; // Уникальный username (нижний регистр) для входа по логину
+  phone?: string; // Телефон в формате E.164 (+998...) для входа по номеру
   name: string; // Имя
   surname?: string; // Фамилия (опционально)
   role: UserRole;

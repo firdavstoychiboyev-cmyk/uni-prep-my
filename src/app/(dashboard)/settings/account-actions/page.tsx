@@ -7,6 +7,7 @@ import { logOut } from "@/lib/auth-utils";
 import { deleteUser } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function SettingsAccountActionsPage() {
     const router = useRouter();
@@ -43,6 +44,10 @@ export default function SettingsAccountActionsPage() {
                     }
                 } catch { /* продолжаем удаление остальных */ }
             }
+            // Освобождаем username и телефон в lookup-коллекциях
+            const profile = useAuthStore.getState().user;
+            if (profile?.username) await deleteDoc(doc(db, "usernames", profile.username)).catch(() => {});
+            if (profile?.phone) await deleteDoc(doc(db, "phoneNumbers", profile.phone)).catch(() => {});
             await deleteDoc(doc(db, "users", u.uid)).catch(() => {});
             await deleteUser(u);
             router.push("/login");
