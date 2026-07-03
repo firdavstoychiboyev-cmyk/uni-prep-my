@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Class, User, Homework, Topic } from "@/lib/firestore-schema";
+import { Class, User, Homework, Topic, Subject, Textbook } from "@/lib/firestore-schema";
 import { SUBJECTS } from "@/lib/constants";
 import { findStudentById, addStudentToClass, deleteStudentFromClass, deleteClass, fetchClassStudents } from "@/lib/class-utils";
-import { fetchClassHomework, assignHomework, deleteHomework, countHomeworkCompletions, fetchActiveMocks, isHomeworkOverdue } from "@/lib/homework-utils";
-import { fetchTopicsBySubject, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { fetchClassHomework, assignHomework, deleteHomework, countHomeworkCompletions, fetchActiveMocks, isHomeworkOverdue, MockOption } from "@/lib/homework-utils";
+import { fetchSubjects, fetchTopicById, fetchTopicsBySubject, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Search, UserPlus, Trash2, ChevronRight, X, Eye, BookOpen, ClipboardList, CalendarDays } from "lucide-react";
 import Link from "next/link";
@@ -29,14 +29,24 @@ export default function ClassDetailPage() {
 
     // ── Homework state ──
     const [homeworks, setHomeworks] = useState<Homework[]>([]);
-    const [hwTopics, setHwTopics] = useState<Topic[]>([]);
-    const [hwMocks, setHwMocks] = useState<{ id: string; title: string }[]>([]);
     const [hwCounts, setHwCounts] = useState<Record<string, number>>({});
+    const [hwTopicNames, setHwTopicNames] = useState<Record<string, string>>({});
+    const [hwAllMocks, setHwAllMocks] = useState<MockOption[]>([]);
+    // Каскад формы: предмет → (учебник, если есть) → тема; мок фильтруется по предмету
+    const [hwSubjects, setHwSubjects] = useState<Subject[]>([]);
+    const [hwSubjectId, setHwSubjectId] = useState("");
+    const [hwTextbooks, setHwTextbooks] = useState<Textbook[]>([]);
+    const [hwTextbookId, setHwTextbookId] = useState("");
+    const [hwDirectTopics, setHwDirectTopics] = useState<Topic[]>([]);
+    const [hwTopics, setHwTopics] = useState<Topic[]>([]);
     const [hwTopicId, setHwTopicId] = useState("");
     const [hwMockId, setHwMockId] = useState("");
     const [hwDueDate, setHwDueDate] = useState("");
     const [hwBusy, setHwBusy] = useState(false);
     const [hwError, setHwError] = useState<string | null>(null);
+
+    // Специальное значение селекта учебников: темы предмета вне учебников
+    const NO_TEXTBOOK = "__no_textbook__";
 
     useEffect(() => {
         const fetchData = async () => {
@@ -61,31 +71,33 @@ export default function ClassDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    // Домашние задания: список + справочники тем/моков + счётчики выполнения.
+    // Домашние задания: список, предметы для каскада, моки, счётчики выполнения.
     // Зависит от cls: при изменении состава класса счётчики пересчитываются.
     useEffect(() => {
         if (!cls) return;
         let cancelled = false;
         (async () => {
             try {
-                const [directTopics, textbooks, mocks, hws] = await Promise.all([
-                    fetchTopicsBySubject(cls.subjectId),
-                    fetchTextbooksBySubject(cls.subjectId),
+                const [subjects, mocks, hws] = await Promise.all([
+                    fetchSubjects(),
                     fetchActiveMocks(),
                     fetchClassHomework(cls.id),
                 ]);
-                // Темы предмета живут в двух местах: напрямую (subjectId) и внутри учебников
-                const textbookTopics = (
-                    await Promise.all(textbooks.map((tb) => fetchTopicsByTextbook(tb.id)))
-                ).flat();
                 if (cancelled) return;
-                const seen = new Set<string>();
-                const topics = [...directTopics, ...textbookTopics].filter((tp) =>
-                    seen.has(tp.id) ? false : (seen.add(tp.id), true)
-                );
-                setHwTopics(topics);
-                setHwMocks(mocks);
+                setHwSubjects(subjects);
+                setHwAllMocks(mocks);
                 setHomeworks(hws);
+
+                // Названия тем для списка ДЗ (темы могут быть из любого предмета/учебника)
+                const names: Record<string, string> = {};
+                await Promise.all(
+                    Array.from(new Set(hws.map((hw) => hw.topicId))).map(async (tid) => {
+                        const topic = await fetchTopicById(tid);
+                        if (topic) names[tid] = topic.title;
+                    })
+                );
+                if (!cancelled) setHwTopicNames(names);
+
                 const counts: Record<string, number> = {};
                 await Promise.all(
                     hws.map(async (hw) => {
@@ -100,9 +112,56 @@ export default function ClassDetailPage() {
         return () => { cancelled = true; };
     }, [cls]);
 
+    // Шаг 1 каскада: выбор предмета — сбрасывает всё ниже, грузит учебники и прямые темы
+    const handleSubjectChange = async (subjectId: string) => {
+        setHwSubjectId(subjectId);
+        setHwTextbookId("");
+        setHwTopicId("");
+        setHwMockId("");
+        setHwTextbooks([]);
+        setHwDirectTopics([]);
+        setHwTopics([]);
+        if (!subjectId) return;
+        try {
+            const [textbooks, subjectTopics] = await Promise.all([
+                fetchTextbooksBySubject(subjectId),
+                fetchTopicsBySubject(subjectId),
+            ]);
+            // Прямые темы — не привязанные ни к какому учебнику
+            const directOnly = subjectTopics.filter((tp) => !tp.textbookId);
+            setHwTextbooks(textbooks);
+            setHwDirectTopics(directOnly);
+            // Без учебников тема выбирается сразу; с учебниками — после выбора учебника
+            if (textbooks.length === 0) setHwTopics(subjectTopics);
+        } catch (err) {
+            console.error("Error loading subject topics/textbooks:", err);
+        }
+    };
+
+    // Шаг 2 каскада: выбор учебника (или тем вне учебников)
+    const handleTextbookChange = async (textbookId: string) => {
+        setHwTextbookId(textbookId);
+        setHwTopicId("");
+        setHwTopics([]);
+        if (!textbookId) return;
+        if (textbookId === NO_TEXTBOOK) {
+            setHwTopics(hwDirectTopics);
+            return;
+        }
+        try {
+            setHwTopics(await fetchTopicsByTextbook(textbookId));
+        } catch (err) {
+            console.error("Error loading textbook topics:", err);
+        }
+    };
+
+    // Моки выбранного предмета; моки без привязки к предмету видны всегда
+    const hwFilteredMocks = hwAllMocks.filter((m) => !m.subject || m.subject === hwSubjectId);
+    const hwTextbookStepDone = hwTextbooks.length === 0 || hwTextbookId !== "";
+
     const handleAssignHomework = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!cls || !user || !hwTopicId || !hwMockId || !hwDueDate || hwBusy) return;
+        if (!cls || !user || !hwSubjectId || !hwTextbookStepDone || !hwTopicId || !hwMockId || !hwDueDate || hwBusy) return;
         setHwBusy(true);
         setHwError(null);
         try {
@@ -117,6 +176,8 @@ export default function ClassDetailPage() {
                 ...prev,
             ]);
             setHwCounts((prev) => ({ ...prev, [hwId]: 0 }));
+            const assignedTopic = hwTopics.find((tp) => tp.id === hwTopicId);
+            if (assignedTopic) setHwTopicNames((prev) => ({ ...prev, [hwTopicId]: assignedTopic.title }));
             setHwTopicId("");
             setHwMockId("");
             setHwDueDate("");
@@ -378,29 +439,63 @@ export default function ClassDetailPage() {
                 {/* Assign form */}
                 <form onSubmit={handleAssignHomework} className="mb-5 rounded-2xl border border-border bg-muted/50 p-6 dark:bg-muted/30">
                     <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("hw.assign")}</h3>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_170px_auto]">
+                    {/* Каскад: предмет → (учебник) → тема; мок фильтруется по предмету */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <select
+                            value={hwSubjectId}
+                            onChange={(e) => void handleSubjectChange(e.target.value)}
+                            required
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
+                        >
+                            <option value="">{t("hw.selectSubject")}</option>
+                            {hwSubjects.map((s) => (
+                                <option key={s.id} value={s.id}>{s.emoji ? `${s.emoji} ` : ""}{s.name}</option>
+                            ))}
+                        </select>
+
+                        {hwTextbooks.length > 0 && (
+                            <select
+                                value={hwTextbookId}
+                                onChange={(e) => void handleTextbookChange(e.target.value)}
+                                required
+                                className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                            >
+                                <option value="">{t("hw.selectTextbook")}</option>
+                                {hwTextbooks.map((tb) => (
+                                    <option key={tb.id} value={tb.id}>{tb.title}</option>
+                                ))}
+                                {hwDirectTopics.length > 0 && (
+                                    <option value={NO_TEXTBOOK}>{t("hw.noTextbook")}</option>
+                                )}
+                            </select>
+                        )}
+
                         <select
                             value={hwTopicId}
                             onChange={(e) => setHwTopicId(e.target.value)}
                             required
-                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                            disabled={!hwSubjectId || !hwTextbookStepDone}
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
                         >
                             <option value="">{t("hw.selectTopic")}</option>
                             {hwTopics.map((tp) => (
                                 <option key={tp.id} value={tp.id}>{tp.title}</option>
                             ))}
                         </select>
+
                         <select
                             value={hwMockId}
                             onChange={(e) => setHwMockId(e.target.value)}
                             required
-                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                            disabled={!hwSubjectId}
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
                         >
                             <option value="">{t("hw.selectMock")}</option>
-                            {hwMocks.map((m) => (
+                            {hwFilteredMocks.map((m) => (
                                 <option key={m.id} value={m.id}>{m.title}</option>
                             ))}
                         </select>
+
                         <input
                             type="date"
                             value={hwDueDate}
@@ -411,7 +506,7 @@ export default function ClassDetailPage() {
                         />
                         <button
                             type="submit"
-                            disabled={hwBusy || !hwTopicId || !hwMockId || !hwDueDate}
+                            disabled={hwBusy || !hwSubjectId || !hwTextbookStepDone || !hwTopicId || !hwMockId || !hwDueDate}
                             className="inline-flex h-12 items-center justify-center rounded-xl bg-foreground px-7 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
                         >
                             {hwBusy ? t("hw.assigning") : t("hw.assignBtn")}
@@ -426,8 +521,8 @@ export default function ClassDetailPage() {
                 {homeworks.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3">
                         {homeworks.map((hw) => {
-                            const topic = hwTopics.find((tp) => tp.id === hw.topicId);
-                            const mock = hwMocks.find((m) => m.id === hw.mockId);
+                            const topicTitle = hwTopicNames[hw.topicId];
+                            const mock = hwAllMocks.find((m) => m.id === hw.mockId);
                             const count = hwCounts[hw.id];
                             const overdue = isHomeworkOverdue(hw.dueDate);
                             return (
@@ -439,7 +534,7 @@ export default function ClassDetailPage() {
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                             <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
                                                 <BookOpen size={15} className="shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{topic?.title || hw.topicId}</span>
+                                                <span className="truncate">{topicTitle || hw.topicId}</span>
                                             </span>
                                             <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
                                                 <ClipboardList size={15} className="shrink-0 text-muted-foreground" />

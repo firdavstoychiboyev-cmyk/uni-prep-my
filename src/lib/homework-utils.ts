@@ -73,13 +73,25 @@ export const countHomeworkCompletions = async (
     return statuses.filter((s) => s.done).length;
 };
 
+export interface MockOption {
+    id: string;
+    title: string;
+    /** id документа предмета (subjects/{id}); у старых моков может отсутствовать */
+    subject?: string;
+}
+
 /** Активные мок-тесты для выпадающего списка назначения */
-export const fetchActiveMocks = async (): Promise<{ id: string; title: string }[]> => {
+export const fetchActiveMocks = async (): Promise<MockOption[]> => {
     const snap = await getDocs(collection(db, "mocks"));
     return snap.docs
-        .map((d) => ({ id: d.id, title: (d.data().title as string) || d.id, active: d.data().active }))
+        .map((d) => ({
+            id: d.id,
+            title: (d.data().title as string) || d.id,
+            subject: (d.data().subject as string) || undefined,
+            active: d.data().active
+        }))
         .filter((m) => m.active !== false)
-        .map(({ id, title }) => ({ id, title }));
+        .map(({ id, title, subject }) => ({ id, title, subject }));
 };
 
 /** Отметка о завершении мок-теста (вызывается со страницы мока) */
