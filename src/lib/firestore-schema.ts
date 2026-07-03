@@ -115,13 +115,19 @@ export interface UserProgress {
 
 /**
  * Домашнее задание класса: classes/{classId}/homework/{homeworkId}.
- * Учитель назначает тему + мок-тест со сроком; выполнение выводится из
- * существующих записей: userProgress/{topicId}.completedAt и mockResults/{mockId}.
+ * Два типа: "topics" — набор тем предмета (возможно, из учебника);
+ * "mock" — один мок-тест предмета. Выполнение выводится из существующих
+ * записей: userProgress/{topicId}.completedAt и mockResults/{mockId}.
  */
+export type HomeworkType = "topics" | "mock";
+
 export interface Homework {
   id: string;
-  topicId: string;
-  mockId: string;
+  type: HomeworkType;
+  subjectId: string;
+  textbookId?: string; // только для type "topics", если темы из учебника
+  topicIds?: string[]; // для type "topics"
+  mockId?: string; // для type "mock"
   dueDate: string; // ISO-дата (yyyy-mm-dd); срок — конец этого дня
   createdAt: string;
   createdBy: string; // uid учителя

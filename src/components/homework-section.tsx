@@ -12,27 +12,32 @@ import {
     fetchClassHomework,
     fetchStudentHomeworkStatus,
     isHomeworkOverdue,
-    HomeworkStatus,
 } from "@/lib/homework-utils";
+import { HomeworkType } from "@/lib/firestore-schema";
 import { BookOpen, ClipboardList, CalendarDays, Check, CircleAlert, NotebookPen } from "lucide-react";
+
+interface HomeworkItemLink {
+    id: string;
+    title: string;
+    done: boolean;
+    href: string;
+}
 
 interface HomeworkItem {
     id: string;
     classId: string;
     className: string;
-    topicId: string;
-    mockId: string;
-    topicTitle: string;
-    mockTitle: string;
+    type: HomeworkType;
     dueDate: string;
-    status: HomeworkStatus;
+    done: boolean;
+    links: HomeworkItemLink[]; // темы (type "topics") или один мок (type "mock")
 }
 
 /**
  * Блок «Домашние задания» на главной странице ученика.
- * Показывает ДЗ всех классов ученика; выполнение — из его же
- * userProgress/{topicId} и mockResults/{mockId}. Ничего не рендерит,
- * если пользователь не ученик или заданий нет.
+ * Тип "topics" — выполнено, когда пройдены ВСЕ назначенные темы;
+ * тип "mock" — когда завершён мок. Ничего не рендерит, если пользователь
+ * не ученик или заданий нет.
  */
 export default function HomeworkSection() {
     const { user } = useAuthStore();
@@ -52,21 +57,38 @@ export default function HomeworkSection() {
                         const hws = await fetchClassHomework(cls.id);
                         await Promise.all(
                             hws.map(async (hw) => {
-                                const [status, topic, mockSnap] = await Promise.all([
-                                    fetchStudentHomeworkStatus(user.id, hw.topicId, hw.mockId),
-                                    fetchTopicById(hw.topicId),
-                                    getDoc(doc(db, "mocks", hw.mockId)),
-                                ]);
+                                const status = await fetchStudentHomeworkStatus(user.id, hw);
+                                let links: HomeworkItemLink[] = [];
+                                if (hw.type === "mock" && hw.mockId) {
+                                    const mockSnap = await getDoc(doc(db, "mocks", hw.mockId));
+                                    links = [{
+                                        id: hw.mockId,
+                                        title: (mockSnap.data()?.title as string) || hw.mockId,
+                                        done: status.mockDone,
+                                        href: `/mocks/${hw.mockId}`,
+                                    }];
+                                } else if (hw.type === "topics") {
+                                    links = await Promise.all(
+                                        (hw.topicIds ?? []).map(async (tid) => {
+                                            const topic = await fetchTopicById(tid);
+                                            return {
+                                                id: tid,
+                                                title: topic?.title || tid,
+                                                done: Boolean(status.topicsDone[tid]),
+                                                href: `/test/${tid}`,
+                                            };
+                                        })
+                                    );
+                                }
+                                if (links.length === 0) return;
                                 all.push({
                                     id: hw.id,
                                     classId: cls.id,
                                     className: cls.name,
-                                    topicId: hw.topicId,
-                                    mockId: hw.mockId,
-                                    topicTitle: topic?.title || hw.topicId,
-                                    mockTitle: (mockSnap.data()?.title as string) || hw.mockId,
+                                    type: hw.type,
                                     dueDate: hw.dueDate,
-                                    status,
+                                    done: status.done,
+                                    links,
                                 });
                             })
                         );
@@ -74,9 +96,7 @@ export default function HomeworkSection() {
                 );
                 if (!cancelled) {
                     // Невыполненные сверху, внутри групп — по сроку
-                    all.sort((a, b) =>
-                        Number(a.status.done) - Number(b.status.done) || a.dueDate.localeCompare(b.dueDate)
-                    );
+                    all.sort((a, b) => Number(a.done) - Number(b.done) || a.dueDate.localeCompare(b.dueDate));
                     setItems(all);
                 }
             } catch (e) {
@@ -98,7 +118,9 @@ export default function HomeworkSection() {
             </div>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {items.map((hw) => {
-                    const overdue = !hw.status.done && isHomeworkOverdue(hw.dueDate);
+                    const overdue = !hw.done && isHomeworkOverdue(hw.dueDate);
+                    const doneCount = hw.links.filter((l) => l.done).length;
+                    const TypeIcon = hw.type === "topics" ? BookOpen : ClipboardList;
                     return (
                         <div
                             key={`${hw.classId}-${hw.id}`}
@@ -108,15 +130,23 @@ export default function HomeworkSection() {
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                    <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                                        {hw.className}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            {hw.className}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                            <TypeIcon size={10} />
+                                            {hw.type === "topics"
+                                                ? `${t("hw.typeTopics")} · ${doneCount}/${hw.links.length}`
+                                                : t("hw.typeMock")}
+                                        </span>
                                     </div>
                                     <div className={`mt-1 inline-flex items-center gap-1.5 text-xs font-medium ${overdue ? "text-red-500" : "text-muted-foreground"}`}>
                                         <CalendarDays size={13} />
                                         {t("hw.due", { date: hw.dueDate })}
                                     </div>
                                 </div>
-                                {hw.status.done ? (
+                                {hw.done ? (
                                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                                         <Check size={12} /> {t("hw.statusDone")}
                                     </span>
@@ -131,31 +161,22 @@ export default function HomeworkSection() {
                                 )}
                             </div>
 
-                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <Link
-                                    href={`/test/${hw.topicId}`}
-                                    className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors ${
-                                        hw.status.topicDone
-                                            ? "border-emerald-200 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                            : "border-border bg-background text-foreground hover:bg-muted"
-                                    }`}
-                                >
-                                    <BookOpen size={15} className="shrink-0" />
-                                    <span className="min-w-0 flex-1 truncate">{hw.topicTitle}</span>
-                                    {hw.status.topicDone && <Check size={14} className="shrink-0" />}
-                                </Link>
-                                <Link
-                                    href={`/mocks/${hw.mockId}`}
-                                    className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors ${
-                                        hw.status.mockDone
-                                            ? "border-emerald-200 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                            : "border-border bg-background text-foreground hover:bg-muted"
-                                    }`}
-                                >
-                                    <ClipboardList size={15} className="shrink-0" />
-                                    <span className="min-w-0 flex-1 truncate">{hw.mockTitle}</span>
-                                    {hw.status.mockDone && <Check size={14} className="shrink-0" />}
-                                </Link>
+                            <div className={`mt-4 grid grid-cols-1 gap-2 ${hw.links.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                                {hw.links.map((link) => (
+                                    <Link
+                                        key={link.id}
+                                        href={link.href}
+                                        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+                                            link.done
+                                                ? "border-emerald-200 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                                : "border-border bg-background text-foreground hover:bg-muted"
+                                        }`}
+                                    >
+                                        <TypeIcon size={15} className="shrink-0" />
+                                        <span className="min-w-0 flex-1 truncate">{link.title}</span>
+                                        {link.done && <Check size={14} className="shrink-0" />}
+                                    </Link>
+                                ))}
                             </div>
                         </div>
                     );

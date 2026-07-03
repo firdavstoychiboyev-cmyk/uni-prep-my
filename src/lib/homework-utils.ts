@@ -27,12 +27,31 @@ export const fetchClassHomework = async (classId: string): Promise<Homework[]> =
 
 export const assignHomework = async (
     classId: string,
-    data: { topicId: string; mockId: string; dueDate: string; createdBy: string }
+    data: {
+        type: "topics" | "mock";
+        subjectId: string;
+        textbookId?: string;
+        topicIds?: string[];
+        mockId?: string;
+        dueDate: string;
+        createdBy: string;
+    }
 ) => {
-    const ref = await addDoc(collection(db, "classes", classId, "homework"), {
-        ...data,
+    // Firestore отклоняет undefined-поля — собираем документ по типу
+    const docData: Record<string, unknown> = {
+        type: data.type,
+        subjectId: data.subjectId,
+        dueDate: data.dueDate,
+        createdBy: data.createdBy,
         createdAt: new Date().toISOString()
-    });
+    };
+    if (data.type === "topics") {
+        docData.topicIds = data.topicIds ?? [];
+        if (data.textbookId) docData.textbookId = data.textbookId;
+    } else {
+        docData.mockId = data.mockId;
+    }
+    const ref = await addDoc(collection(db, "classes", classId, "homework"), docData);
     return ref.id;
 };
 
@@ -40,35 +59,48 @@ export const deleteHomework = (classId: string, homeworkId: string) =>
     deleteDoc(doc(db, "classes", classId, "homework", homeworkId));
 
 export interface HomeworkStatus {
-    topicDone: boolean;
-    mockDone: boolean;
     done: boolean;
+    /** Для type "topics": статус каждой темы */
+    topicsDone: Record<string, boolean>;
+    /** Для type "mock" */
+    mockDone: boolean;
 }
 
-/** Статус одного ученика по одному ДЗ (тема пройдена И мок завершён) */
+/**
+ * Статус одного ученика по одному ДЗ:
+ * "topics" — выполнены ВСЕ назначенные темы; "mock" — мок завершён.
+ */
 export const fetchStudentHomeworkStatus = async (
     studentId: string,
-    topicId: string,
-    mockId: string
+    hw: Homework
 ): Promise<HomeworkStatus> => {
-    const [progSnap, mockSnap] = await Promise.all([
-        getDoc(doc(db, "users", studentId, "userProgress", topicId)),
-        getDoc(doc(db, "users", studentId, "mockResults", mockId))
-    ]);
-    const topicDone = progSnap.exists() && Boolean(progSnap.data()?.completedAt);
-    const mockDone = mockSnap.exists();
-    return { topicDone, mockDone, done: topicDone && mockDone };
+    if (hw.type === "mock") {
+        const snap = hw.mockId
+            ? await getDoc(doc(db, "users", studentId, "mockResults", hw.mockId))
+            : null;
+        const mockDone = Boolean(snap?.exists());
+        return { done: mockDone, topicsDone: {}, mockDone };
+    }
+    const topicIds = hw.topicIds ?? [];
+    const snaps = await Promise.all(
+        topicIds.map((tid) => getDoc(doc(db, "users", studentId, "userProgress", tid)))
+    );
+    const topicsDone: Record<string, boolean> = {};
+    topicIds.forEach((tid, i) => {
+        topicsDone[tid] = snaps[i].exists() && Boolean(snaps[i].data()?.completedAt);
+    });
+    const done = topicIds.length > 0 && topicIds.every((tid) => topicsDone[tid]);
+    return { done, topicsDone, mockDone: false };
 };
 
 /** Сколько учеников класса выполнили ДЗ целиком */
 export const countHomeworkCompletions = async (
     studentIds: string[],
-    topicId: string,
-    mockId: string
+    hw: Homework
 ): Promise<number> => {
     if (studentIds.length === 0) return 0;
     const statuses = await Promise.all(
-        studentIds.map((sid) => fetchStudentHomeworkStatus(sid, topicId, mockId))
+        studentIds.map((sid) => fetchStudentHomeworkStatus(sid, hw))
     );
     return statuses.filter((s) => s.done).length;
 };

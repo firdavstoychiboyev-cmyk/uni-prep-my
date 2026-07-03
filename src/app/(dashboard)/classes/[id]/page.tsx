@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Class, User, Homework, Topic, Subject, Textbook } from "@/lib/firestore-schema";
+import { Class, User, Homework, HomeworkType, Topic, Subject, Textbook } from "@/lib/firestore-schema";
 import { SUBJECTS } from "@/lib/constants";
 import { findStudentById, addStudentToClass, deleteStudentFromClass, deleteClass, fetchClassStudents } from "@/lib/class-utils";
 import { fetchClassHomework, assignHomework, deleteHomework, countHomeworkCompletions, fetchActiveMocks, isHomeworkOverdue, MockOption } from "@/lib/homework-utils";
@@ -32,18 +32,23 @@ export default function ClassDetailPage() {
     const [hwCounts, setHwCounts] = useState<Record<string, number>>({});
     const [hwTopicNames, setHwTopicNames] = useState<Record<string, string>>({});
     const [hwAllMocks, setHwAllMocks] = useState<MockOption[]>([]);
-    // Каскад формы: предмет → (учебник, если есть) → тема; мок фильтруется по предмету
+    // Форма: тип ДЗ ("topics" | "mock"), затем каскад предмет → (учебник) → темы, либо предмет → мок
+    const [hwType, setHwType] = useState<HomeworkType>("topics");
     const [hwSubjects, setHwSubjects] = useState<Subject[]>([]);
     const [hwSubjectId, setHwSubjectId] = useState("");
     const [hwTextbooks, setHwTextbooks] = useState<Textbook[]>([]);
     const [hwTextbookId, setHwTextbookId] = useState("");
     const [hwDirectTopics, setHwDirectTopics] = useState<Topic[]>([]);
     const [hwTopics, setHwTopics] = useState<Topic[]>([]);
-    const [hwTopicId, setHwTopicId] = useState("");
+    const [hwSelectedTopics, setHwSelectedTopics] = useState<string[]>([]);
     const [hwMockId, setHwMockId] = useState("");
     const [hwDueDate, setHwDueDate] = useState("");
     const [hwBusy, setHwBusy] = useState(false);
     const [hwError, setHwError] = useState<string | null>(null);
+    const [hwExpanded, setHwExpanded] = useState<Record<string, boolean>>({});
+    // Ref-защита от двойного сабмита: state hwBusy в быстрых повторных
+    // кликах читается из устаревшего замыкания и пропускает второй вызов
+    const hwBusyRef = useRef(false);
 
     // Специальное значение селекта учебников: темы предмета вне учебников
     const NO_TEXTBOOK = "__no_textbook__";
@@ -89,9 +94,10 @@ export default function ClassDetailPage() {
                 setHomeworks(hws);
 
                 // Названия тем для списка ДЗ (темы могут быть из любого предмета/учебника)
+                const allTopicIds = Array.from(new Set(hws.flatMap((hw) => hw.topicIds ?? [])));
                 const names: Record<string, string> = {};
                 await Promise.all(
-                    Array.from(new Set(hws.map((hw) => hw.topicId))).map(async (tid) => {
+                    allTopicIds.map(async (tid) => {
                         const topic = await fetchTopicById(tid);
                         if (topic) names[tid] = topic.title;
                     })
@@ -101,7 +107,7 @@ export default function ClassDetailPage() {
                 const counts: Record<string, number> = {};
                 await Promise.all(
                     hws.map(async (hw) => {
-                        counts[hw.id] = await countHomeworkCompletions(cls.students, hw.topicId, hw.mockId);
+                        counts[hw.id] = await countHomeworkCompletions(cls.students, hw);
                     })
                 );
                 if (!cancelled) setHwCounts(counts);
@@ -112,16 +118,29 @@ export default function ClassDetailPage() {
         return () => { cancelled = true; };
     }, [cls]);
 
-    // Шаг 1 каскада: выбор предмета — сбрасывает всё ниже, грузит учебники и прямые темы
+    // Переключение типа ДЗ сбрасывает форму целиком
+    const handleTypeChange = (type: HomeworkType) => {
+        setHwType(type);
+        setHwSubjectId("");
+        setHwTextbookId("");
+        setHwTextbooks([]);
+        setHwDirectTopics([]);
+        setHwTopics([]);
+        setHwSelectedTopics([]);
+        setHwMockId("");
+        setHwError(null);
+    };
+
+    // Выбор предмета — сбрасывает всё ниже; для типа "topics" грузит учебники и темы
     const handleSubjectChange = async (subjectId: string) => {
         setHwSubjectId(subjectId);
         setHwTextbookId("");
-        setHwTopicId("");
+        setHwSelectedTopics([]);
         setHwMockId("");
         setHwTextbooks([]);
         setHwDirectTopics([]);
         setHwTopics([]);
-        if (!subjectId) return;
+        if (!subjectId || hwType === "mock") return;
         try {
             const [textbooks, subjectTopics] = await Promise.all([
                 fetchTextbooksBySubject(subjectId),
@@ -131,17 +150,17 @@ export default function ClassDetailPage() {
             const directOnly = subjectTopics.filter((tp) => !tp.textbookId);
             setHwTextbooks(textbooks);
             setHwDirectTopics(directOnly);
-            // Без учебников тема выбирается сразу; с учебниками — после выбора учебника
+            // Без учебников темы выбираются сразу; с учебниками — после выбора учебника
             if (textbooks.length === 0) setHwTopics(subjectTopics);
         } catch (err) {
             console.error("Error loading subject topics/textbooks:", err);
         }
     };
 
-    // Шаг 2 каскада: выбор учебника (или тем вне учебников)
+    // Выбор учебника (или тем вне учебников) для типа "topics"
     const handleTextbookChange = async (textbookId: string) => {
         setHwTextbookId(textbookId);
-        setHwTopicId("");
+        setHwSelectedTopics([]);
         setHwTopics([]);
         if (!textbookId) return;
         if (textbookId === NO_TEXTBOOK) {
@@ -155,36 +174,62 @@ export default function ClassDetailPage() {
         }
     };
 
+    const toggleHwTopic = (topicId: string) => {
+        setHwSelectedTopics((prev) =>
+            prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]
+        );
+    };
+
     // Моки выбранного предмета; моки без привязки к предмету видны всегда
     const hwFilteredMocks = hwAllMocks.filter((m) => !m.subject || m.subject === hwSubjectId);
     const hwTextbookStepDone = hwTextbooks.length === 0 || hwTextbookId !== "";
+    const hwFormReady =
+        hwSubjectId !== "" && hwDueDate !== "" &&
+        (hwType === "topics"
+            ? hwTextbookStepDone && hwSelectedTopics.length > 0
+            : hwMockId !== "");
 
     const handleAssignHomework = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!cls || !user || !hwSubjectId || !hwTextbookStepDone || !hwTopicId || !hwMockId || !hwDueDate || hwBusy) return;
+        if (!cls || !user || !hwFormReady || hwBusyRef.current) return;
+        hwBusyRef.current = true;
         setHwBusy(true);
         setHwError(null);
         try {
-            const hwId = await assignHomework(cls.id, {
-                topicId: hwTopicId,
-                mockId: hwMockId,
+            const payload = {
+                type: hwType,
+                subjectId: hwSubjectId,
+                ...(hwType === "topics"
+                    ? {
+                          topicIds: hwSelectedTopics,
+                          ...(hwTextbookId && hwTextbookId !== NO_TEXTBOOK ? { textbookId: hwTextbookId } : {}),
+                      }
+                    : { mockId: hwMockId }),
                 dueDate: hwDueDate,
                 createdBy: user.id,
-            });
-            setHomeworks((prev) => [
-                { id: hwId, topicId: hwTopicId, mockId: hwMockId, dueDate: hwDueDate, createdAt: new Date().toISOString(), createdBy: user.id },
-                ...prev,
-            ]);
+            };
+            const hwId = await assignHomework(cls.id, payload);
+            const newHw: Homework = { id: hwId, createdAt: new Date().toISOString(), ...payload };
+            setHomeworks((prev) => [newHw, ...prev]);
             setHwCounts((prev) => ({ ...prev, [hwId]: 0 }));
-            const assignedTopic = hwTopics.find((tp) => tp.id === hwTopicId);
-            if (assignedTopic) setHwTopicNames((prev) => ({ ...prev, [hwTopicId]: assignedTopic.title }));
-            setHwTopicId("");
+            if (hwType === "topics") {
+                setHwTopicNames((prev) => {
+                    const next = { ...prev };
+                    hwSelectedTopics.forEach((tid) => {
+                        const topic = hwTopics.find((tp) => tp.id === tid);
+                        if (topic) next[tid] = topic.title;
+                    });
+                    return next;
+                });
+            }
+            setHwSelectedTopics([]);
             setHwMockId("");
             setHwDueDate("");
         } catch (err) {
             console.error("Error assigning homework:", err);
             setHwError(t("hw.assignError"));
         } finally {
+            hwBusyRef.current = false;
             setHwBusy(false);
         }
     };
@@ -439,13 +484,32 @@ export default function ClassDetailPage() {
                 {/* Assign form */}
                 <form onSubmit={handleAssignHomework} className="mb-5 rounded-2xl border border-border bg-muted/50 p-6 dark:bg-muted/30">
                     <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("hw.assign")}</h3>
-                    {/* Каскад: предмет → (учебник) → тема; мок фильтруется по предмету */}
+
+                    {/* Тип ДЗ: набор тем или мок-тест */}
+                    <div className="mb-4 grid max-w-sm grid-cols-2 gap-1 rounded-2xl border border-border bg-muted p-1">
+                        {(["topics", "mock"] as HomeworkType[]).map((tp) => (
+                            <button
+                                key={tp}
+                                type="button"
+                                onClick={() => handleTypeChange(tp)}
+                                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                                    hwType === tp
+                                        ? "bg-card text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                {tp === "topics" ? <BookOpen size={14} /> : <ClipboardList size={14} />}
+                                {tp === "topics" ? t("hw.typeTopics") : t("hw.typeMock")}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <select
                             value={hwSubjectId}
                             onChange={(e) => void handleSubjectChange(e.target.value)}
                             required
-                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
                         >
                             <option value="">{t("hw.selectSubject")}</option>
                             {hwSubjects.map((s) => (
@@ -453,7 +517,7 @@ export default function ClassDetailPage() {
                             ))}
                         </select>
 
-                        {hwTextbooks.length > 0 && (
+                        {hwType === "topics" && hwTextbooks.length > 0 && (
                             <select
                                 value={hwTextbookId}
                                 onChange={(e) => void handleTextbookChange(e.target.value)}
@@ -470,31 +534,20 @@ export default function ClassDetailPage() {
                             </select>
                         )}
 
-                        <select
-                            value={hwTopicId}
-                            onChange={(e) => setHwTopicId(e.target.value)}
-                            required
-                            disabled={!hwSubjectId || !hwTextbookStepDone}
-                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
-                        >
-                            <option value="">{t("hw.selectTopic")}</option>
-                            {hwTopics.map((tp) => (
-                                <option key={tp.id} value={tp.id}>{tp.title}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            value={hwMockId}
-                            onChange={(e) => setHwMockId(e.target.value)}
-                            required
-                            disabled={!hwSubjectId}
-                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
-                        >
-                            <option value="">{t("hw.selectMock")}</option>
-                            {hwFilteredMocks.map((m) => (
-                                <option key={m.id} value={m.id}>{m.title}</option>
-                            ))}
-                        </select>
+                        {hwType === "mock" && (
+                            <select
+                                value={hwMockId}
+                                onChange={(e) => setHwMockId(e.target.value)}
+                                required
+                                disabled={!hwSubjectId}
+                                className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
+                            >
+                                <option value="">{t("hw.selectMock")}</option>
+                                {hwFilteredMocks.map((m) => (
+                                    <option key={m.id} value={m.id}>{m.title}</option>
+                                ))}
+                            </select>
+                        )}
 
                         <input
                             type="date"
@@ -504,14 +557,54 @@ export default function ClassDetailPage() {
                             required
                             className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
                         />
-                        <button
-                            type="submit"
-                            disabled={hwBusy || !hwSubjectId || !hwTextbookStepDone || !hwTopicId || !hwMockId || !hwDueDate}
-                            className="inline-flex h-12 items-center justify-center rounded-xl bg-foreground px-7 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
-                        >
-                            {hwBusy ? t("hw.assigning") : t("hw.assignBtn")}
-                        </button>
                     </div>
+
+                    {/* Список тем с чекбоксами (тип "topics") */}
+                    {hwType === "topics" && hwSubjectId && hwTextbookStepDone && (
+                        hwTopics.length > 0 ? (
+                            <div className="mt-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                                        {t("hw.selectTopics")}
+                                    </span>
+                                    <span className="text-xs font-bold text-muted-foreground">
+                                        {t("hw.selectedCount", { count: hwSelectedTopics.length })}
+                                    </span>
+                                </div>
+                                <div className="grid max-h-64 grid-cols-1 gap-1 overflow-y-auto rounded-xl border border-border bg-background p-2 sm:grid-cols-2">
+                                    {hwTopics.map((tp) => {
+                                        const checked = hwSelectedTopics.includes(tp.id);
+                                        return (
+                                            <label
+                                                key={tp.id}
+                                                className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                                    checked ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60"
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => toggleHwTopic(tp.id)}
+                                                    className="h-4 w-4 shrink-0 accent-foreground"
+                                                />
+                                                <span className="min-w-0 truncate">{tp.title}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="mt-3 text-sm text-muted-foreground">{t("hw.noTopics")}</p>
+                        )
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={hwBusy || !hwFormReady}
+                        className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-foreground px-7 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+                    >
+                        {hwBusy ? t("hw.assigning") : t("hw.assignBtn")}
+                    </button>
                     {hwError && (
                         <div className="mt-3 text-sm font-medium text-destructive">{hwError}</div>
                     )}
@@ -521,45 +614,77 @@ export default function ClassDetailPage() {
                 {homeworks.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3">
                         {homeworks.map((hw) => {
-                            const topicTitle = hwTopicNames[hw.topicId];
+                            const isTopics = hw.type === "topics";
+                            const topicIds = hw.topicIds ?? [];
                             const mock = hwAllMocks.find((m) => m.id === hw.mockId);
+                            const subjectName = hwSubjects.find((s) => s.id === hw.subjectId)?.name;
                             const count = hwCounts[hw.id];
                             const overdue = isHomeworkOverdue(hw.dueDate);
+                            const expanded = Boolean(hwExpanded[hw.id]);
                             return (
                                 <div
                                     key={hw.id}
-                                    className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center"
+                                    className="rounded-2xl border border-border bg-card p-5"
                                 >
-                                    <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                                            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-                                                <BookOpen size={15} className="shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{topicTitle || hw.topicId}</span>
-                                            </span>
-                                            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-                                                <ClipboardList size={15} className="shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{mock?.title || hw.mockId}</span>
-                                            </span>
+                                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                                    isTopics
+                                                        ? "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400"
+                                                        : "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+                                                }`}>
+                                                    {isTopics ? <BookOpen size={11} /> : <ClipboardList size={11} />}
+                                                    {isTopics ? t("hw.typeTopics") : t("hw.typeMock")}
+                                                </span>
+                                                {subjectName && (
+                                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{subjectName}</span>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 font-semibold text-foreground">
+                                                {isTopics ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setHwExpanded((prev) => ({ ...prev, [hw.id]: !expanded }))}
+                                                        className="inline-flex items-center gap-1.5 hover:text-muted-foreground transition-colors"
+                                                    >
+                                                        {t("hw.topicsCount", { count: topicIds.length })}
+                                                        <ChevronRight size={15} className={`transition-transform ${expanded ? "rotate-90" : ""}`} />
+                                                    </button>
+                                                ) : (
+                                                    <span className="truncate">{mock?.title || hw.mockId}</span>
+                                                )}
+                                            </div>
+                                            <div className={`mt-1 inline-flex items-center gap-1.5 text-xs font-medium ${overdue ? "text-red-500" : "text-muted-foreground"}`}>
+                                                <CalendarDays size={13} />
+                                                {t("hw.due", { date: hw.dueDate })}
+                                            </div>
                                         </div>
-                                        <div className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${overdue ? "text-red-500" : "text-muted-foreground"}`}>
-                                            <CalendarDays size={13} />
-                                            {t("hw.due", { date: hw.dueDate })}
+                                        <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                            <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                                                {count === undefined
+                                                    ? "…"
+                                                    : t("hw.completedCount", { done: count, total: students.length })}
+                                            </span>
+                                            <button
+                                                onClick={() => handleDeleteHomework(hw.id)}
+                                                className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+                                                title={t("common.delete")}
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                        <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-                                            {count === undefined
-                                                ? "…"
-                                                : t("hw.completedCount", { done: count, total: students.length })}
-                                        </span>
-                                        <button
-                                            onClick={() => handleDeleteHomework(hw.id)}
-                                            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
-                                            title={t("common.delete")}
-                                        >
-                                            <Trash2 size={15} />
-                                        </button>
-                                    </div>
+                                    {isTopics && expanded && (
+                                        <ul className="mt-3 space-y-1 border-t border-border pt-3">
+                                            {topicIds.map((tid) => (
+                                                <li key={tid} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                                                    {hwTopicNames[tid] || tid}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             );
                         })}
