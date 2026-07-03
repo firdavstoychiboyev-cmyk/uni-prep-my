@@ -18,7 +18,8 @@ export default function AdminCodesPage() {
     const [codes, setCodes] = useState<CodeRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Храним ключ перевода, а не готовый текст — загрузка не должна зависеть от t
+    const [errorKey, setErrorKey] = useState<string | null>(null);
 
     // Create form
     const [newCode, setNewCode] = useState("");
@@ -32,11 +33,11 @@ export default function AdminCodesPage() {
             setCodes(snap.docs.map((d) => ({ id: d.id, ...(d.data() as AccessCode) })));
         } catch (e) {
             console.error("Error loading access codes:", e);
-            setError(t("adminCodes.loadError"));
+            setErrorKey("adminCodes.loadError");
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, []);
 
     useEffect(() => {
         void load();
@@ -47,12 +48,12 @@ export default function AdminCodesPage() {
         const code = normalizeAccessCode(newCode);
         const org = newOrg.trim().toLowerCase();
         if (!code || !org || busy) return;
-        setError(null);
+        setErrorKey(null);
         setBusy(true);
         try {
             const ref = doc(db, "accessCodes", code);
             if ((await getDoc(ref)).exists()) {
-                setError(t("adminCodes.exists"));
+                setErrorKey("adminCodes.exists");
                 return;
             }
             const data: AccessCode = {
@@ -68,7 +69,7 @@ export default function AdminCodesPage() {
             await load();
         } catch (e) {
             console.error("Error creating access code:", e);
-            setError(t("adminCodes.saveError"));
+            setErrorKey("adminCodes.saveError");
         } finally {
             setBusy(false);
         }
@@ -147,7 +148,7 @@ export default function AdminCodesPage() {
                         {t("adminCodes.create")}
                     </button>
                 </div>
-                {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+                {errorKey && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{t(errorKey)}</p>}
             </form>
 
             {/* Codes table */}
