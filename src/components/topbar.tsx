@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
-import { logOut } from "@/lib/auth-utils";
+import { logOut, updateUserLanguage } from "@/lib/auth-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import OrgBadge from "@/components/org-badge";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -193,7 +193,11 @@ export default function Topbar() {
                     {/* Language toggle */}
                     <div className="hidden md:flex items-center rounded-full p-0.5 bg-muted border border-border">
                         {(["uz", "ru"] as const).map((lang) => (
-                            <button key={lang} onClick={() => setLanguage(lang)}
+                            <button key={lang} onClick={() => {
+                                setLanguage(lang);
+                                // Сохраняем в профиль, иначе AuthProvider вернёт язык профиля при перезагрузке
+                                if (user) updateUserLanguage(user.id, lang).catch(() => {});
+                            }}
                                 className="rounded-full px-2.5 py-1 text-[11px] font-bold transition-all duration-100"
                                 style={{
                                     background: language === lang ? "hsl(var(--foreground))" : "transparent",

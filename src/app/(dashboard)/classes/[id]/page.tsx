@@ -17,7 +17,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 export default function ClassDetailPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [cls, setCls] = useState<Class | null>(null);
     const [students, setStudents] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -83,13 +83,11 @@ export default function ClassDetailPage() {
         let cancelled = false;
         (async () => {
             try {
-                const [subjects, mocks, hws] = await Promise.all([
-                    fetchSubjects(),
+                const [mocks, hws] = await Promise.all([
                     fetchActiveMocks(),
                     fetchClassHomework(cls.id),
                 ]);
                 if (cancelled) return;
-                setHwSubjects(subjects);
                 setHwAllMocks(mocks);
                 setHomeworks(hws);
 
@@ -117,6 +115,24 @@ export default function ClassDetailPage() {
         })();
         return () => { cancelled = true; };
     }, [cls]);
+
+    // Предметы для формы — на текущем языке интерфейса (в subjects раздельные
+    // документы для ru и uz). Смена языка перезагружает список и сбрасывает
+    // каскад: выбранный предмет принадлежит списку другого языка.
+    useEffect(() => {
+        let cancelled = false;
+        fetchSubjects()
+            .then((subjects) => { if (!cancelled) setHwSubjects(subjects); })
+            .catch((err) => console.error("Error loading subjects:", err));
+        setHwSubjectId("");
+        setHwTextbookId("");
+        setHwTextbooks([]);
+        setHwDirectTopics([]);
+        setHwTopics([]);
+        setHwSelectedTopics([]);
+        setHwMockId("");
+        return () => { cancelled = true; };
+    }, [language]);
 
     // Переключение типа ДЗ сбрасывает форму целиком
     const handleTypeChange = (type: HomeworkType) => {

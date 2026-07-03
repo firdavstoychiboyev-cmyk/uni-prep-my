@@ -41,14 +41,16 @@ const mainLinks = (isTeacher: boolean, isRegistan: boolean, t: (k: string) => st
 
 function Sidebar() {
     const { user } = useAuthStore();
-    const { subjects, loaded, setSubjects } = useSubjectsStore();
+    const { subjects, setSubjects } = useSubjectsStore();
     const { isOpen, isCollapsed, close, toggleCollapsed } = useSidebarStore();
     const pathname = usePathname();
     const { t, language } = useTranslation();
 
+    // Перезагружаем и при смене языка: fetchSubjects фильтрует по текущему
+    // языку на момент вызова, иначе список остаётся на старом языке
     useEffect(() => {
-        if (!loaded) fetchSubjects().then(setSubjects);
-    }, [loaded, setSubjects]);
+        fetchSubjects().then(setSubjects).catch(() => {});
+    }, [language, setSubjects]);
 
     useEffect(() => { close(); }, [pathname, close]);
 
