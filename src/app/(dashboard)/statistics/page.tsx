@@ -223,12 +223,22 @@ export default function StatisticsPage() {
                                                 const count = dailyActivity[dateStr] ?? 0;
                                                 const monthNames = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
                                                 const tooltip = count ? `${day} ${monthNames[month]} ${year}: ${count} вопросов` : `${day} ${monthNames[month]} ${year}`;
+                                                // Число дня: на насыщенных ячейках — белым, на слабых — цветом темы
+                                                const dayTextColor = count === 0
+                                                    ? "text-muted-foreground/70"
+                                                    : count > 15
+                                                        ? "text-white"
+                                                        : "text-foreground";
                                                 return (
                                                     <div
                                                         key={dateStr}
                                                         title={tooltip}
-                                                        className={`w-full aspect-square rounded-sm ${cellColor(count)}`}
-                                                    />
+                                                        className={`w-full aspect-square rounded-sm flex items-center justify-center ${cellColor(count)}`}
+                                                    >
+                                                        <span className={`text-[9px] leading-none font-medium tabular-nums ${dayTextColor}`}>
+                                                            {day}
+                                                        </span>
+                                                    </div>
                                                 );
                                             })}
                                         </div>
