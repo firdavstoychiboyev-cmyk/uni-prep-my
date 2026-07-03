@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
+import { useAuthStore } from "@/store/useAuthStore";
+import { saveMockResult } from "@/lib/homework-utils";
 
 interface MockData {
     id: string;
@@ -74,6 +76,16 @@ export default function MockTestPage() {
         };
         load();
     }, [id]);
+
+    // Отметка о завершении мока — по ней считается выполнение домашних заданий
+    const { user } = useAuthStore();
+    useEffect(() => {
+        if (finished && user && id) {
+            saveMockResult(user.id, id as string).catch((e) =>
+                console.error("Error saving mock result:", e)
+            );
+        }
+    }, [finished, user, id]);
 
     useEffect(() => {
         if (!started || finished) {

@@ -39,12 +39,19 @@ service cloud.firestore {
       // ── Sub-collections ───────────────────────────────────────────────────
 
       match /userProgress/{docId} {
-        allow read: if isOwner(uid) || isAdmin();
+        // Teachers read students' topic progress to derive homework completion
+        allow read: if isOwner(uid) || isTeacherOrAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
 
       match /testResults/{docId} {
         allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+
+      match /mockResults/{docId} {
+        // Completion marks for mock tests; teachers read them for homework tracking
+        allow read: if isOwner(uid) || isTeacherOrAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
 
@@ -147,6 +154,24 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isTeacherOrAdmin();
       allow update, delete: if isTeacherOrAdmin();
+
+      // ── Homework (topic + mock assigned by the class teacher) ────────────
+      // Readable by the owning teacher and enrolled students; writable only
+      // by the owning teacher (or admin).
+
+      match /homework/{homeworkId} {
+        function parentClass() {
+          return get(/databases/$(database)/documents/classes/$(classId)).data;
+        }
+        allow read: if isSignedIn() && (
+          parentClass().teacherId == request.auth.uid
+          || request.auth.uid in parentClass().students
+          || isAdmin()
+        );
+        allow create, update, delete: if isSignedIn() && (
+          parentClass().teacherId == request.auth.uid || isAdmin()
+        );
+      }
     }
 
   }

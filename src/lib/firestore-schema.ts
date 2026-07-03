@@ -113,6 +113,26 @@ export interface UserProgress {
   completedAt: string;
 }
 
+/**
+ * Домашнее задание класса: classes/{classId}/homework/{homeworkId}.
+ * Учитель назначает тему + мок-тест со сроком; выполнение выводится из
+ * существующих записей: userProgress/{topicId}.completedAt и mockResults/{mockId}.
+ */
+export interface Homework {
+  id: string;
+  topicId: string;
+  mockId: string;
+  dueDate: string; // ISO-дата (yyyy-mm-dd); срок — конец этого дня
+  createdAt: string;
+  createdBy: string; // uid учителя
+}
+
+/** Отметка о завершении мок-теста: users/{uid}/mockResults/{mockId} */
+export interface MockResult {
+  mockId: string;
+  completedAt: string;
+}
+
 export interface SubjectRating {
   userId: string;
   subjectId: string;

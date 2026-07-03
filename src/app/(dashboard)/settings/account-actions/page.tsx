@@ -32,7 +32,7 @@ export default function SettingsAccountActionsPage() {
             if (!u) return;
 
             // best-effort cleanup: подколлекции удаляются явно — Firestore не удаляет их каскадно
-            const subcollections = ["userProgress", "testResults", "badges", "ratings", "dailyActivity"];
+            const subcollections = ["userProgress", "testResults", "badges", "ratings", "dailyActivity", "mockResults"];
             for (const sub of subcollections) {
                 try {
                     const snap = await getDocs(collection(db, "users", u.uid, sub));

@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Class, User } from "@/lib/firestore-schema";
+import { Class, User, Homework, Topic } from "@/lib/firestore-schema";
 import { SUBJECTS } from "@/lib/constants";
 import { findStudentById, addStudentToClass, deleteStudentFromClass, deleteClass, fetchClassStudents } from "@/lib/class-utils";
-import { Search, UserPlus, Trash2, ChevronRight, X, Eye } from "lucide-react";
+import { fetchClassHomework, assignHomework, deleteHomework, countHomeworkCompletions, fetchActiveMocks, isHomeworkOverdue } from "@/lib/homework-utils";
+import { fetchTopicsBySubject, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Search, UserPlus, Trash2, ChevronRight, X, Eye, BookOpen, ClipboardList, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -22,6 +25,18 @@ export default function ClassDetailPage() {
     const [searchResult, setSearchResult] = useState<User | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { user } = useAuthStore();
+
+    // ── Homework state ──
+    const [homeworks, setHomeworks] = useState<Homework[]>([]);
+    const [hwTopics, setHwTopics] = useState<Topic[]>([]);
+    const [hwMocks, setHwMocks] = useState<{ id: string; title: string }[]>([]);
+    const [hwCounts, setHwCounts] = useState<Record<string, number>>({});
+    const [hwTopicId, setHwTopicId] = useState("");
+    const [hwMockId, setHwMockId] = useState("");
+    const [hwDueDate, setHwDueDate] = useState("");
+    const [hwBusy, setHwBusy] = useState(false);
+    const [hwError, setHwError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,6 +60,83 @@ export default function ClassDetailPage() {
         fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
+
+    // Домашние задания: список + справочники тем/моков + счётчики выполнения.
+    // Зависит от cls: при изменении состава класса счётчики пересчитываются.
+    useEffect(() => {
+        if (!cls) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const [directTopics, textbooks, mocks, hws] = await Promise.all([
+                    fetchTopicsBySubject(cls.subjectId),
+                    fetchTextbooksBySubject(cls.subjectId),
+                    fetchActiveMocks(),
+                    fetchClassHomework(cls.id),
+                ]);
+                // Темы предмета живут в двух местах: напрямую (subjectId) и внутри учебников
+                const textbookTopics = (
+                    await Promise.all(textbooks.map((tb) => fetchTopicsByTextbook(tb.id)))
+                ).flat();
+                if (cancelled) return;
+                const seen = new Set<string>();
+                const topics = [...directTopics, ...textbookTopics].filter((tp) =>
+                    seen.has(tp.id) ? false : (seen.add(tp.id), true)
+                );
+                setHwTopics(topics);
+                setHwMocks(mocks);
+                setHomeworks(hws);
+                const counts: Record<string, number> = {};
+                await Promise.all(
+                    hws.map(async (hw) => {
+                        counts[hw.id] = await countHomeworkCompletions(cls.students, hw.topicId, hw.mockId);
+                    })
+                );
+                if (!cancelled) setHwCounts(counts);
+            } catch (err) {
+                console.error("Error loading homework:", err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [cls]);
+
+    const handleAssignHomework = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!cls || !user || !hwTopicId || !hwMockId || !hwDueDate || hwBusy) return;
+        setHwBusy(true);
+        setHwError(null);
+        try {
+            const hwId = await assignHomework(cls.id, {
+                topicId: hwTopicId,
+                mockId: hwMockId,
+                dueDate: hwDueDate,
+                createdBy: user.id,
+            });
+            setHomeworks((prev) => [
+                { id: hwId, topicId: hwTopicId, mockId: hwMockId, dueDate: hwDueDate, createdAt: new Date().toISOString(), createdBy: user.id },
+                ...prev,
+            ]);
+            setHwCounts((prev) => ({ ...prev, [hwId]: 0 }));
+            setHwTopicId("");
+            setHwMockId("");
+            setHwDueDate("");
+        } catch (err) {
+            console.error("Error assigning homework:", err);
+            setHwError(t("hw.assignError"));
+        } finally {
+            setHwBusy(false);
+        }
+    };
+
+    const handleDeleteHomework = async (hwId: string) => {
+        if (!cls || !confirm(t("hw.deleteConfirm"))) return;
+        try {
+            await deleteHomework(cls.id, hwId);
+            setHomeworks((prev) => prev.filter((h) => h.id !== hwId));
+        } catch {
+            alert(t("hw.deleteError"));
+        }
+    };
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -270,6 +362,116 @@ export default function ClassDetailPage() {
                 ) : (
                     <div className="rounded-2xl border border-border bg-muted/50 px-6 py-16 text-center dark:bg-muted/30">
                         <p className="font-medium text-muted-foreground">{t("cd.noStudents")}</p>
+                    </div>
+                )}
+            </section>
+
+            {/* Homework */}
+            <section>
+                <div className="flex items-center justify-between gap-4 mb-5">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground">{t("hw.title")}</h2>
+                    <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        {homeworks.length}
+                    </span>
+                </div>
+
+                {/* Assign form */}
+                <form onSubmit={handleAssignHomework} className="mb-5 rounded-2xl border border-border bg-muted/50 p-6 dark:bg-muted/30">
+                    <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("hw.assign")}</h3>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_170px_auto]">
+                        <select
+                            value={hwTopicId}
+                            onChange={(e) => setHwTopicId(e.target.value)}
+                            required
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                        >
+                            <option value="">{t("hw.selectTopic")}</option>
+                            {hwTopics.map((tp) => (
+                                <option key={tp.id} value={tp.id}>{tp.title}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={hwMockId}
+                            onChange={(e) => setHwMockId(e.target.value)}
+                            required
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                        >
+                            <option value="">{t("hw.selectMock")}</option>
+                            {hwMocks.map((m) => (
+                                <option key={m.id} value={m.id}>{m.title}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="date"
+                            value={hwDueDate}
+                            onChange={(e) => setHwDueDate(e.target.value)}
+                            min={new Date().toISOString().slice(0, 10)}
+                            required
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25"
+                        />
+                        <button
+                            type="submit"
+                            disabled={hwBusy || !hwTopicId || !hwMockId || !hwDueDate}
+                            className="inline-flex h-12 items-center justify-center rounded-xl bg-foreground px-7 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+                        >
+                            {hwBusy ? t("hw.assigning") : t("hw.assignBtn")}
+                        </button>
+                    </div>
+                    {hwError && (
+                        <div className="mt-3 text-sm font-medium text-destructive">{hwError}</div>
+                    )}
+                </form>
+
+                {/* Homework list */}
+                {homeworks.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3">
+                        {homeworks.map((hw) => {
+                            const topic = hwTopics.find((tp) => tp.id === hw.topicId);
+                            const mock = hwMocks.find((m) => m.id === hw.mockId);
+                            const count = hwCounts[hw.id];
+                            const overdue = isHomeworkOverdue(hw.dueDate);
+                            return (
+                                <div
+                                    key={hw.id}
+                                    className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center"
+                                >
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                                                <BookOpen size={15} className="shrink-0 text-muted-foreground" />
+                                                <span className="truncate">{topic?.title || hw.topicId}</span>
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                                                <ClipboardList size={15} className="shrink-0 text-muted-foreground" />
+                                                <span className="truncate">{mock?.title || hw.mockId}</span>
+                                            </span>
+                                        </div>
+                                        <div className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${overdue ? "text-red-500" : "text-muted-foreground"}`}>
+                                            <CalendarDays size={13} />
+                                            {t("hw.due", { date: hw.dueDate })}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                        <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                                            {count === undefined
+                                                ? "…"
+                                                : t("hw.completedCount", { done: count, total: students.length })}
+                                        </span>
+                                        <button
+                                            onClick={() => handleDeleteHomework(hw.id)}
+                                            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+                                            title={t("common.delete")}
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="rounded-2xl border border-border bg-muted/50 px-6 py-12 text-center dark:bg-muted/30">
+                        <p className="font-medium text-muted-foreground">{t("hw.none")}</p>
                     </div>
                 )}
             </section>
