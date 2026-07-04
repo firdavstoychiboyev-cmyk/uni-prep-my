@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -55,6 +55,25 @@ function Sidebar() {
     const pathname = usePathname();
     const { t, language } = useTranslation();
 
+    // Наведение/фокус временно раскрывают рельс (desktop). Задержка перед
+    // сворачиванием гасит дрожание курсора на краю.
+    const [hovered, setHovered] = useState(false);
+    const [focusWithin, setFocusWithin] = useState(false);
+    const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // isCollapsed=true → рельс с раскрытием по наведению (новый режим по
+    // умолчанию). isCollapsed=false → закреплён открытым (pin). Раскрыт, если
+    // закреплён ИЛИ наведён/в фокусе. `collapsed` — визуальное состояние рельса.
+    const expanded = !isCollapsed || hovered || focusWithin;
+    const collapsed = !expanded;
+
+    const onEnter = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); setHovered(true); };
+    const onLeave = () => {
+        if (leaveTimer.current) clearTimeout(leaveTimer.current);
+        leaveTimer.current = setTimeout(() => setHovered(false), 180);
+    };
+    useEffect(() => () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); }, []);
+
     // Перезагружаем и при смене языка: fetchSubjects фильтрует по текущему
     // языку на момент вызова, иначе список остаётся на старом языке
     useEffect(() => {
@@ -72,40 +91,34 @@ function Sidebar() {
             )}
 
             <aside
+                onMouseEnter={onEnter}
+                onMouseLeave={onLeave}
+                onFocusCapture={() => setFocusWithin(true)}
+                onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocusWithin(false); }}
+                aria-label={t("nav.home")}
                 className={`
                     fixed left-0 top-0 h-screen flex flex-col z-50
                     overflow-y-auto overflow-x-hidden
-                    transition-[width,transform] duration-300 ease-in-out
+                    transition-[width,transform] duration-200 ease-in-out
                     w-64
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
-                    ${isCollapsed ? "md:w-[58px] md:translate-x-0" : "md:w-64 md:translate-x-0"}
+                    ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-64 md:translate-x-0"}
                 `}
                 style={{ background: "#0a0a0a", borderRight: "1px solid #1c1c1c" }}
             >
                 {/* ── Brand ── */}
-                <div className={`shrink-0 h-14 flex items-center justify-between border-b px-4`}
+                <div className={`shrink-0 h-14 flex items-center border-b ${collapsed ? "justify-between px-4 md:justify-center md:px-0" : "justify-between px-4"}`}
                     style={{ borderColor: "#1c1c1c" }}>
-                    <Link href="/home"
-                        className={`flex items-center gap-2.5 ${isCollapsed ? "md:hidden" : ""}`}
-                        onClick={close}>
+                    <Link href="/home" className="flex items-center gap-2.5" onClick={close}>
                         <div
                             className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
                             style={{ background: "linear-gradient(150deg, #38BDF8 0%, #6366F1 55%, #C084FC 100%)" }}>
                             <span style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>K</span>
                         </div>
-                        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: "-.01em" }}>Kulcha</span>
+                        <span className={collapsed ? "md:hidden" : ""} style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: "-.01em" }}>Kulcha</span>
                     </Link>
 
-                    {isCollapsed && (
-                        <Link href="/home" className="hidden md:flex" onClick={close}>
-                            <div className="w-7 h-7 rounded-[8px] flex items-center justify-center"
-                                style={{ background: "linear-gradient(150deg, #38BDF8 0%, #6366F1 55%, #C084FC 100%)" }}>
-                                <span style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>K</span>
-                            </div>
-                        </Link>
-                    )}
-
-                    <div className="flex items-center gap-1">
+                    <div className={`flex items-center gap-1 ${collapsed ? "md:hidden" : ""}`}>
                         <button onClick={close} className="md:hidden p-1.5 rounded-md transition-colors"
                             style={{ color: "#525252" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
@@ -113,11 +126,13 @@ function Sidebar() {
                             aria-label={t("sidebar.closeMenu")}>
                             <X size={16} />
                         </button>
+                        {/* Пин: закрепить открытым (isCollapsed=false) / вернуть рельс */}
                         <button onClick={toggleCollapsed}
-                            className={`hidden md:flex p-1.5 rounded-md transition-colors ${isCollapsed ? "mx-auto" : ""}`}
+                            className="hidden md:flex p-1.5 rounded-md transition-colors"
                             style={{ color: "#525252" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
                             onMouseLeave={e => (e.currentTarget.style.color = "#525252")}
+                            aria-pressed={!isCollapsed}
                             title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}>
                             {isCollapsed ? <PanelLeft size={15} /> : <PanelLeftClose size={15} />}
                         </button>
@@ -133,9 +148,9 @@ function Sidebar() {
                                 <li key={href}>
                                     <Link
                                         href={href}
-                                        title={isCollapsed ? label : undefined}
+                                        title={collapsed ? label : undefined}
                                         className={`flex items-center rounded-md text-[13.5px] font-medium transition-colors duration-100
-                                            ${isCollapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-2" : "gap-3 px-3 py-2"}`}
+                                            ${collapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-2" : "gap-3 px-3 py-2"}`}
                                         style={{
                                             background: active ? "#1f1f1f" : "transparent",
                                             color: active ? "#fff" : "#737373",
@@ -145,7 +160,7 @@ function Sidebar() {
                                     >
                                         <Icon size={17} className="flex-shrink-0"
                                             style={{ color: active ? "#fff" : "#525252" }} />
-                                        <span className={isCollapsed ? "md:hidden" : ""}>{label}</span>
+                                        <span className={collapsed ? "md:hidden" : ""}>{label}</span>
                                     </Link>
                                 </li>
                             );
@@ -154,13 +169,13 @@ function Sidebar() {
                 </nav>
 
                 {/* ── AMALIYOT label ── */}
-                <div className={`text-[10px] font-bold tracking-[.18em] uppercase pt-5 pb-1.5 ${isCollapsed ? "md:hidden px-5" : "px-5"}`}
+                <div className={`text-[10px] font-bold tracking-[.18em] uppercase pt-5 pb-1.5 ${collapsed ? "md:hidden px-5" : "px-5"}`}
                     style={{ color: "#3a3a3a" }}>
                     {language === "uz" ? "AMALIYOT" : "ПРАКТИКА"}
                 </div>
 
                 {/* ── Subject list ── */}
-                <div className={`pb-3 flex-1 ${isCollapsed ? "md:px-2 px-2" : "px-2"}`}>
+                <div className={`pb-3 flex-1 ${collapsed ? "md:px-2 px-2" : "px-2"}`}>
                     {subjects.length > 0 ? (
                         <ul className="flex flex-col gap-0.5">
                             {subjects.map((subject, idx) => {
@@ -174,9 +189,9 @@ function Sidebar() {
                                     <li key={subject.id}>
                                         <Link
                                             href={`/subject/${subject.id}`}
-                                            title={isCollapsed ? subject.name : undefined}
+                                            title={collapsed ? subject.name : undefined}
                                             className={`flex items-center rounded-md text-[13px] font-medium transition-colors duration-100
-                                                ${isCollapsed ? "md:justify-center md:px-0 md:py-2 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
+                                                ${collapsed ? "md:justify-center md:px-0 md:py-2 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                             style={{
                                                 background: active ? "#1f1f1f" : "transparent",
                                                 color: active ? "#fff" : "#737373",
@@ -200,7 +215,7 @@ function Sidebar() {
                                                     />
                                                 </span>
                                             )}
-                                            <span className={`truncate ${isCollapsed ? "md:hidden" : ""}`}>{subject.name}</span>
+                                            <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{subject.name}</span>
                                         </Link>
                                     </li>
                                 );
@@ -221,13 +236,13 @@ function Sidebar() {
                 {/* ── Bottom: user + settings ── */}
                 {user && (
                     <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#1c1c1c" }}>
-                        <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${isCollapsed ? "md:justify-center md:px-0" : ""}`}>
+                        <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${collapsed ? "md:justify-center md:px-0" : ""}`}>
                             <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 text-white"
                                 style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
-                                title={isCollapsed ? `${user.name} ${user.surname || ""}` : undefined}>
+                                title={collapsed ? `${user.name} ${user.surname || ""}` : undefined}>
                                 {user.name[0].toUpperCase()}
                             </div>
-                            <div className={`flex-1 min-w-0 ${isCollapsed ? "md:hidden" : ""}`}>
+                            <div className={`flex-1 min-w-0 ${collapsed ? "md:hidden" : ""}`}>
                                 <p className="text-[13px] font-semibold truncate" style={{ color: "#e0e0e0" }}>
                                     {user.name} {user.surname || ""}
                                 </p>
@@ -239,7 +254,7 @@ function Sidebar() {
                             </div>
                             <Link href="/settings"
                                 title={t("nav.settings")}
-                                className={`flex-shrink-0 p-1 rounded transition-colors ${isCollapsed ? "md:hidden" : ""}`}
+                                className={`flex-shrink-0 p-1 rounded transition-colors ${collapsed ? "md:hidden" : ""}`}
                                 style={{ color: "#525252" }}
                                 onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
                                 onMouseLeave={e => (e.currentTarget.style.color = "#525252")}>

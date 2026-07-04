@@ -32,17 +32,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isLoading) {
         return (
             <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-background">
-                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col z-50 px-2 py-0 bg-card border-r border-border">
-                    <div className="h-14 flex items-center px-4 border-b border-border">
-                        <div className="h-5 w-28 rounded animate-pulse bg-muted" />
+                {/* Скелет соответствует свёрнутому рельсу (режим по умолчанию),
+                    чтобы после загрузки контент не прыгал. */}
+                <aside className="hidden md:flex fixed left-0 top-0 h-screen w-16 flex-col z-50 py-0 bg-card border-r border-border">
+                    <div className="h-14 flex items-center justify-center border-b border-border">
+                        <div className="h-7 w-7 rounded-[8px] animate-pulse bg-muted" />
                     </div>
-                    <div className="pt-2 px-2 flex flex-col gap-0.5">
+                    <div className="pt-2 px-2 flex flex-col items-center gap-1.5">
                         {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-8 rounded-md animate-pulse bg-muted" style={{ animationDelay: `${i * 60}ms` }} />
+                            <div key={i} className="h-8 w-8 rounded-md animate-pulse bg-muted" style={{ animationDelay: `${i * 60}ms` }} />
                         ))}
                     </div>
                 </aside>
-                <main className="md:ml-64 flex h-dvh max-h-dvh min-h-0 flex-col bg-background">
+                <main className="md:ml-16 flex h-dvh max-h-dvh min-h-0 flex-col bg-background">
                     <div className="h-[52px] shrink-0 border-b border-border bg-card" />
                     <div className="flex-1 px-5 py-7 sm:px-8 flex flex-col gap-6">
                         <div className="h-9 w-64 rounded-lg animate-pulse bg-muted" />
@@ -73,7 +75,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-background">
             <Sidebar />
             <NavProgressBar />
-            <main className={`flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-background transition-[margin] duration-300 ease-in-out ${isCollapsed ? "md:ml-[58px]" : "md:ml-64"}`}>
+            {/* Отступ контента следует за pin-состоянием (isCollapsed), а не за
+                наведением — рельс раскрывается ПОВЕРХ контента, без сдвига. */}
+            <main className={`flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-background transition-[margin] duration-200 ease-in-out ${isCollapsed ? "md:ml-16" : "md:ml-64"}`}>
                 <Topbar />
                 <PageWrapper>{children}</PageWrapper>
             </main>
