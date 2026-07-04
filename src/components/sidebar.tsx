@@ -167,9 +167,9 @@ function Sidebar() {
                                 const theme = getSubjectTheme(subject.name, subject.id);
                                 // Известный предмет → его идентичность-цвет (как на карточке);
                                 // неизвестный (neutral) → прежний позиционный цвет.
-                                const dotColor = theme.accent === "neutral"
+                                const dotColor = theme.key === "default"
                                     ? SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length]
-                                    : theme.base;
+                                    : theme.dot;
                                 return (
                                     <li key={subject.id}>
                                         <Link

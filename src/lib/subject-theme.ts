@@ -1,85 +1,78 @@
 import type { SVGProps } from "react";
 import {
-    CompassIcon, GlobeIcon, OpenBookIcon, LeafIcon,
+    CompassIcon, OpenBookIcon, LeafIcon,
     ColumnIcon, AtomIcon, FlaskIcon, BookIcon,
 } from "@/components/subject-glyphs";
+import { IllustrationKey } from "@/components/subject-illustrations";
 
 /**
- * Единый источник цвета и иконки для каждого предмета — используется и
- * карточками (/subjects, /statistics), и точками в сайдбаре, чтобы цветовой
- * язык был общим по всему приложению. Базовый цвет каждого предмета совпадает
- * с точкой в сайдбаре. Меняете палитру здесь — меняется везде.
+ * Единый источник цвета/иконки для каждого предмета (палитра из Claude Design):
+ * градиент from→to, цвет точки в сайдбаре (dot) и ключ большой иллюстрации.
+ * Используется большими карточками /subjects, компактными карточками
+ * /statistics и точками сайдбара — цвет предмета общий во всём приложении.
+ * Меняете палитру здесь — меняется везде.
  */
-export type SubjectAccent =
-    | "blue" | "violet" | "pink" | "emerald" | "amber"
-    | "teal" | "red" | "indigo" | "sky" | "orange" | "neutral";
-
-export interface AccentTokens {
-    /** Идентичность-цвет (hex) — точка в сайдбаре; совпадает с началом градиента */
-    base: string;
-    /** Насыщенный двухтональный градиент — доминирующий фон карточки */
-    gradFrom: string;
-    gradTo: string;
-    /** Тёмный акцент для текста на белой кнопке (контраст на белом) */
-    ink: string;
-}
-
-/**
- * Токены на каждый акцент. Градиент — уверенный, насыщенный (не пастель, но и
- * не неон); тот же вид в светлой и тёмной теме, т.к. карточка сама несёт цвет.
- */
-export const ACCENTS: Record<SubjectAccent, AccentTokens> = {
-    blue:    { base: "#3B82F6", gradFrom: "#3B82F6", gradTo: "#4F46E5", ink: "#1D4ED8" }, // vivid blue → indigo
-    violet:  { base: "#A855F7", gradFrom: "#A855F7", gradTo: "#7C3AED", ink: "#6D28D9" }, // purple → violet
-    pink:    { base: "#EC4899", gradFrom: "#EC4899", gradTo: "#F43F5E", ink: "#BE185D" }, // pink → rose
-    emerald: { base: "#10B981", gradFrom: "#10B981", gradTo: "#0D9488", ink: "#047857" }, // green → teal
-    amber:   { base: "#F59E0B", gradFrom: "#F59E0B", gradTo: "#F97316", ink: "#B45309" }, // amber → orange
-    teal:    { base: "#06B6D4", gradFrom: "#06B6D4", gradTo: "#2563EB", ink: "#0369A1" }, // cyan → blue (physics)
-    red:     { base: "#EF4444", gradFrom: "#EF4444", gradTo: "#F43F5E", ink: "#B91C1C" }, // red → rose
-    indigo:  { base: "#6366F1", gradFrom: "#6366F1", gradTo: "#4338CA", ink: "#4338CA" },
-    sky:     { base: "#0EA5E9", gradFrom: "#0EA5E9", gradTo: "#2563EB", ink: "#0369A1" },
-    orange:  { base: "#F97316", gradFrom: "#FB923C", gradTo: "#EA580C", ink: "#C2410C" },
-    neutral: { base: "#64748B", gradFrom: "#64748B", gradTo: "#475569", ink: "#334155" },
-};
-
 export type SubjectGlyph = (props: SVGProps<SVGSVGElement>) => JSX.Element;
 
-export interface SubjectTheme extends AccentTokens {
-    accent: SubjectAccent;
+interface Palette {
+    gradFrom: string;
+    gradTo: string;
+    /** Цвет точки в сайдбаре (Amaliyot) — совпадает с идентичностью предмета */
+    dot: string;
+    /** Тёмный акцент для текста на белой кнопке компактной карточки */
+    ink: string;
+    /** Компактная глиф-иконка (карточки /statistics, вне больших иллюстраций) */
     Icon: SubjectGlyph;
 }
 
+/** Палитра на каждый предмет — точные значения из макета. */
+export const PALETTES: Record<IllustrationKey, Palette> = {
+    math:      { gradFrom: "#2563eb", gradTo: "#22d3ee", dot: "#3b82f6", ink: "#1d4ed8", Icon: CompassIcon },
+    english:   { gradFrom: "#d946ef", gradTo: "#f472b6", dot: "#ec4899", ink: "#a21caf", Icon: OpenBookIcon },
+    native:    { gradFrom: "#7c3aed", gradTo: "#a78bfa", dot: "#8b5cf6", ink: "#6d28d9", Icon: OpenBookIcon },
+    biology:   { gradFrom: "#059669", gradTo: "#4ade80", dot: "#22c55e", ink: "#047857", Icon: LeafIcon },
+    history:   { gradFrom: "#ea580c", gradTo: "#fbbf24", dot: "#f59e0b", ink: "#b45309", Icon: ColumnIcon },
+    physics:   { gradFrom: "#0891b2", gradTo: "#5eead4", dot: "#06b6d4", ink: "#0369a1", Icon: AtomIcon },
+    chemistry: { gradFrom: "#e11d48", gradTo: "#fb7185", dot: "#f43f5e", ink: "#be123c", Icon: FlaskIcon },
+    default:   { gradFrom: "#64748b", gradTo: "#94a3b8", dot: "#64748b", ink: "#334155", Icon: BookIcon },
+};
+
+export interface SubjectTheme extends Palette {
+    key: IllustrationKey;
+    /** Ключ большой иллюстрации (см. subject-illustrations) */
+    illustration: IllustrationKey;
+    /** Алиас dot для обратной совместимости (сайдбар/старые вызовы) */
+    base: string;
+}
+
 /**
- * Подбор акцента и иконки по названию/ID предмета (ru + uz). Порядок проверок
- * важен: узкие совпадения (ingliz tili, ona tili) идут раньше общих.
+ * Подбор темы по названию/ID предмета (ru + uz). Порядок проверок важен:
+ * узкие совпадения (ingliz tili, ona tili) идут раньше общих.
  */
 export function getSubjectTheme(name: string, id = ""): SubjectTheme {
     const n = name.toLowerCase();
     const has = (...keys: string[]) => keys.some((k) => n.includes(k));
-    let accent: SubjectAccent;
-    let Icon: SubjectGlyph;
 
-    if (id === "math" || has("матем", "matem")) { accent = "blue"; Icon = CompassIcon; }
-    else if (id === "english" || has("англ", "иностран", "ingliz")) { accent = "violet"; Icon = GlobeIcon; }
-    // Родной язык (Ona tili / Русский / Родной язык) — единый «нативный» цвет
-    // во всех языках интерфейса, чтобы предмет не менял цвет между ru/uz.
-    else if (has("ona til", "o'na", "o‘na", "родн", "русск")) { accent = "pink"; Icon = OpenBookIcon; }
-    else if (has("физик", "fizika")) { accent = "teal"; Icon = AtomIcon; }
-    else if (has("хими", "kimyo", "kimyё")) { accent = "red"; Icon = FlaskIcon; }
-    else if (has("биол", "biolog", "естеств", "природ")) { accent = "emerald"; Icon = LeafIcon; }
-    else if (has("истор", "tarix")) { accent = "amber"; Icon = ColumnIcon; }
-    else if (has("географ", "geograf")) { accent = "sky"; Icon = GlobeIcon; }
-    else if (has("литерат", "adabiyot")) { accent = "indigo"; Icon = OpenBookIcon; }
-    else if (has("русск", "язык", "til")) { accent = "indigo"; Icon = OpenBookIcon; }
-    else { accent = "neutral"; Icon = BookIcon; }
+    let key: IllustrationKey;
+    if (id === "math" || has("матем", "matem")) key = "math";
+    else if (id === "english" || has("англ", "иностран", "ingliz")) key = "english";
+    // Родной язык (Ona tili / Русский / Родной) — единый «нативный» цвет в ru/uz
+    else if (has("ona til", "o'na", "o‘na", "родн", "русск")) key = "native";
+    else if (has("физик", "fizika")) key = "physics";
+    else if (has("хими", "kimyo", "kimyё")) key = "chemistry";
+    else if (has("биол", "biolog", "естеств", "природ")) key = "biology";
+    else if (has("истор", "tarix")) key = "history";
+    else if (has("географ", "geograf")) key = "physics"; // близкая палитра
+    else key = "default";
 
-    return { accent, Icon, ...ACCENTS[accent] };
+    const p = PALETTES[key];
+    return { key, illustration: key, base: p.dot, ...p };
 }
 
 /** Точка в сайдбаре: идентичность-цвет предмета (совпадает с карточкой). */
-export const subjectDotColor = (name: string, id = ""): string => getSubjectTheme(name, id).base;
+export const subjectDotColor = (name: string, id = ""): string => getSubjectTheme(name, id).dot;
 
-/** hex → rgba со степенью прозрачности (для мягких градиентов карточек). */
+/** hex → rgba со степенью прозрачности (мягкие подложки, при необходимости). */
 export function rgba(hex: string, alpha: number): string {
     const h = hex.replace("#", "");
     const r = parseInt(h.slice(0, 2), 16);

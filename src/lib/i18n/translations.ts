@@ -122,6 +122,7 @@ export const translations: Record<Language, Record<string, string>> = {
         // ── Dashboard ────────────────────────────────────────────
         "home.availableSubjects": "Доступные предметы",
         "home.subjectsCount": "{count} предметов",
+        "subjects.qCount": "{count} вопросов",
         "home.streak": "Серия дней",
         "home.totalSolved": "Всего решено",
         "home.nextExam": "Следующий экзамен",
@@ -707,6 +708,7 @@ export const translations: Record<Language, Record<string, string>> = {
         // ── Dashboard ────────────────────────────────────────────
         "home.availableSubjects": "Mavjud fanlar",
         "home.subjectsCount": "{count} ta fan",
+        "subjects.qCount": "{count} ta savol",
         "home.streak": "Kun ketma-ketligi",
         "home.totalSolved": "Jami yechilgan",
         "home.nextExam": "Keyingi imtihon",

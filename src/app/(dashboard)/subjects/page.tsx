@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useStatsStore } from "@/store/useStatsStore";
-import SubjectCard from "@/components/subject-card";
+import SubjectGridCard from "@/components/subject-grid-card";
 import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -14,7 +14,6 @@ export default function SubjectsPage() {
     const { user } = useAuthStore();
     const { subjects, loaded: subjectsLoaded, setSubjects } = useSubjectsStore();
     const {
-        subjectProgress,
         loadedForUser,
         setSubjectProgress, setRatings, setLoadedForUser,
     } = useStatsStore();
@@ -66,29 +65,16 @@ export default function SubjectsPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <div key={n} className="h-44 animate-pulse rounded-xl bg-muted" />
+                    <div className="grid grid-cols-1 min-[1180px]:grid-cols-2 gap-5">
+                        {[1, 2, 3, 4].map((n) => (
+                            <div key={n} className="animate-pulse rounded-3xl bg-muted" style={{ minHeight: 224 }} />
                         ))}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {subjects.map((subject) => {
-                            const progress = subjectProgress[subject.id] || {
-                                stars: 0,
-                                medals: { green: 0, grey: 0, bronze: 0 },
-                                progress: 0,
-                            };
-                            return (
-                                <SubjectCard
-                                    key={subject.id}
-                                    subject={subject}
-                                    stars={progress.stars}
-                                    medals={progress.medals}
-                                    progress={progress.progress}
-                                />
-                            );
-                        })}
+                    <div className="grid grid-cols-1 min-[1180px]:grid-cols-2 gap-5">
+                        {subjects.map((subject) => (
+                            <SubjectGridCard key={subject.id} subject={subject} />
+                        ))}
                     </div>
                 )}
             </section>
