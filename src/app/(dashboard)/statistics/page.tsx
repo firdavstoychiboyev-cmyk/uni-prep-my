@@ -16,6 +16,7 @@ import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook, fetchTop
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import SubjectCard from "@/components/subject-card";
+import SubjectFailures from "@/components/subject-failures";
 import {
     Target, Flame, ListChecks, TrendingUp, Trophy,
     CheckCircle2, ChevronRight, BookOpen,
@@ -164,6 +165,9 @@ export default function StatisticsPage() {
                 ))}
                 </div>
             </div>
+
+            {/* Most failing subjects — ranked by wrong-answer count */}
+            {user && <SubjectFailures userId={user.id} />}
 
             {/* Activity heatmap — calendar grid, last 6 months */}
             {(() => {

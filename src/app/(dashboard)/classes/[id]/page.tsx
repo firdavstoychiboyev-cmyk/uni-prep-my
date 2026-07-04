@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import HomeworkProgressView from "@/components/homework-progress";
 import ClassLeaderboard from "@/components/class-leaderboard";
+import SubjectFailures from "@/components/subject-failures";
 
 export default function ClassDetailPage() {
     const { id } = useParams();
@@ -507,6 +508,9 @@ export default function ClassDetailPage() {
 
             {/* Leaderboard */}
             <ClassLeaderboard students={students} />
+
+            {/* Class analytics: most failing subjects */}
+            {cls.students.length > 0 && <SubjectFailures studentIds={cls.students} />}
 
             {/* Homework */}
             <section>
