@@ -31,10 +31,20 @@ service cloud.firestore {
     // ── Users ─────────────────────────────────────────────────────────────────
 
     match /users/{uid} {
+      // Онбординг легитимно выставляет student или teacher; роль admin
+      // самому себе присвоить нельзя (isAdmin() читается из этого же поля,
+      // иначе любой аккаунт мог бы повысить себя до админа)
+      function ownRoleAllowed() {
+        return !("role" in request.resource.data)
+               || request.resource.data.role in ["student", "teacher"];
+      }
+
       // Any signed-in user can read profiles (needed for class management)
       allow read: if isSignedIn();
-      // Users can only write their own profile; admins can write any
-      allow write: if isOwner(uid) || isAdmin();
+      // Users can only write their own profile (without granting themselves
+      // admin); admins can write any
+      allow create, update: if isAdmin() || (isOwner(uid) && ownRoleAllowed());
+      allow delete: if isOwner(uid) || isAdmin();
 
       // ── Sub-collections ───────────────────────────────────────────────────
 

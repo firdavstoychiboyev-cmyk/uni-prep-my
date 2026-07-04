@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
@@ -25,13 +25,22 @@ interface MockData {
 interface QuestionData {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
+    // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
+    type?: string; // "mc" (по умолчанию) | "open"
     explanation?: string;
     imageUrl?: string;
 }
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
 const TOTAL_TIME = 120 * 60;
+
+// Открытые вопросы не автопроверяются и не входят в счёт правильных/неправильных
+const countScore = (qs: QuestionData[], ans: (string | null)[]) => {
+    const gradableTotal = qs.filter(q => q.type !== "open").length;
+    const correct = ans.filter((a, i) => qs[i]?.type !== "open" && a === qs[i]?.correctAnswer).length;
+    return { correct, gradableTotal, openCount: qs.length - gradableTotal };
+};
 
 export default function MockTestPage() {
     const { id } = useParams();
@@ -89,11 +98,11 @@ export default function MockTestPage() {
     const { user } = useAuthStore();
     useEffect(() => {
         if (finished && user && id) {
-            const correct = answers.filter((a, i) => a === questions[i]?.correctAnswer).length;
+            const { correct, gradableTotal } = countScore(questions, answers);
             saveMockResult(user.id, id as string, {
                 answers,
                 correct,
-                total: questions.length,
+                total: gradableTotal,
             }).catch((e) => console.error("Error saving mock result:", e));
         }
     }, [finished, user, id, answers, questions]);
@@ -249,8 +258,7 @@ export default function MockTestPage() {
     // ── Results screen (после завершения и повторный просмотр разбора) ───────
 
     if (finished || reviewMode) {
-        const correct = answers.filter((a, i) => a === questions[i]?.correctAnswer).length;
-        const total = questions.length;
+        const { correct, gradableTotal: total, openCount } = countScore(questions, answers);
         const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         return (
@@ -288,6 +296,11 @@ export default function MockTestPage() {
                         </div>
                     </div>
                 </div>
+                {openCount > 0 && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium -mt-2">
+                        ✍️ {t("mock.results.openNote", { count: openCount })}
+                    </p>
+                )}
                 <div className="flex flex-wrap items-center justify-center gap-3">
                     {reviewMode && (
                         <button
@@ -390,6 +403,33 @@ export default function MockTestPage() {
                             />
                         </div>
 
+                        {q?.type === "open" ? (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                <PenLine className="w-3.5 h-3.5" />
+                                {t("mock.open.badge")}
+                            </div>
+                            <textarea
+                                value={answers[idx] ?? ""}
+                                onChange={e => {
+                                    const v = e.target.value;
+                                    setAnswers(prev => {
+                                        const next = [...prev];
+                                        next[idx] = v.trim() ? v : null;
+                                        return next;
+                                    });
+                                }}
+                                rows={4}
+                                placeholder={t("test.openAnswerPlaceholder")}
+                                className="w-full rounded-2xl border-2 border-border bg-card px-5 py-4 text-foreground focus:outline-none focus:border-blue-500 resize-y"
+                                style={{
+                                    fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
+                                    fontSize: "1rem",
+                                    lineHeight: "1.6",
+                                }}
+                            />
+                        </div>
+                        ) : (
                         <div className="flex flex-col gap-3">
                             {OPTION_KEYS.map(key => {
                                 const val = q?.options?.[key];
@@ -445,6 +485,7 @@ export default function MockTestPage() {
                                 );
                             })}
                         </div>
+                        )}
                     </div>
                 </div>
 

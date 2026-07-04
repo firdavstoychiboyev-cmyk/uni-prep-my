@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -38,6 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: t("admin.questions"), href: "/admin/questions", icon: HelpCircle },
         { name: "Import Excel", href: "/admin/import", icon: FileUp },
         { name: "Mocklar", href: "/admin/mocks", icon: ClipboardList },
+        { name: t("adminMockQ.title"), href: "/admin/mock-questions", icon: ListChecks },
         { name: t("adminCodes.title"), href: "/admin/codes", icon: KeyRound },
     ];
 

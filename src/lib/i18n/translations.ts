@@ -254,6 +254,10 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.openAnswerPlaceholder": "Введите ваш ответ…",
 
         // ── Mock review ──────────────────────────────────────────
+        "mock.open.badge": "Открытый вопрос",
+        "mock.open.selfCheck": "Самопроверка",
+        "mock.open.referenceAnswer": "Образец ответа",
+        "mock.results.openNote": "{count} откр. вопрос(ов) без автопроверки — сравните свой ответ с образцом в разборе ниже",
         "mock.review.title": "Разбор ответов",
         "mock.review.correct": "Правильно",
         "mock.review.incorrect": "Неправильно",
@@ -265,6 +269,30 @@ export const translations: Record<Language, Record<string, string>> = {
         "mock.review.viewResults": "Посмотреть результаты",
         "mock.review.retake": "Пройти заново",
         "mock.review.completed": "Пройден",
+
+        // ── Admin: mock question editor ──────────────────────────
+        "adminMockQ.title": "Вопросы моков",
+        "adminMockQ.subtitle": "Редактирование, добавление и удаление вопросов мок-тестов",
+        "adminMockQ.pickMock": "Выберите мок",
+        "adminMockQ.noQuestions": "В этом моке нет вопросов",
+        "adminMockQ.embeddedUnsupported": "Этот мок хранит вопросы внутри документа (старый формат) — редактор поддерживает только моки с questionIds",
+        "adminMockQ.addQuestion": "Добавить вопрос",
+        "adminMockQ.editQuestion": "Редактировать вопрос",
+        "adminMockQ.newQuestion": "Новый вопрос",
+        "adminMockQ.typeMc": "С вариантами",
+        "adminMockQ.typeOpen": "Открытый",
+        "adminMockQ.qText": "Текст вопроса",
+        "adminMockQ.qType": "Тип вопроса",
+        "adminMockQ.options": "Варианты ответа",
+        "adminMockQ.correctMark": "Верный",
+        "adminMockQ.referenceAnswer": "Образец ответа (для самопроверки ученика)",
+        "adminMockQ.explanationField": "Объяснение (необязательно)",
+        "adminMockQ.statusBroken": "Нет вариантов",
+        "adminMockQ.statusNoAnswer": "Нет образца ответа",
+        "adminMockQ.deleteConfirmTitle": "Удалить вопрос?",
+        "adminMockQ.deleteConfirmText": "Вопрос будет навсегда удалён из мока. Это действие нельзя отменить.",
+        "adminMockQ.saved": "✅ Сохранено",
+        "adminMockQ.errSave": "❌ Ошибка сохранения",
 
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Ваши награды за идеальное прохождение учебников и другие успехи в обучении.",
@@ -743,6 +771,10 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.openAnswerPlaceholder": "Javobingizni kiriting…",
 
         // ── Mock review ──────────────────────────────────────────
+        "mock.open.badge": "Ochiq savol",
+        "mock.open.selfCheck": "O‘z-o‘zini tekshirish",
+        "mock.open.referenceAnswer": "Namunaviy javob",
+        "mock.results.openNote": "{count} ta ochiq savol avtomatik tekshirilmaydi — javobingizni quyidagi tahlildagi namunaviy javob bilan solishtiring",
         "mock.review.title": "Javoblar tahlili",
         "mock.review.correct": "To‘g‘ri",
         "mock.review.incorrect": "Noto‘g‘ri",
@@ -754,6 +786,30 @@ export const translations: Record<Language, Record<string, string>> = {
         "mock.review.viewResults": "Natijalarni ko‘rish",
         "mock.review.retake": "Qayta topshirish",
         "mock.review.completed": "Tugallangan",
+
+        // ── Admin: mock question editor ──────────────────────────
+        "adminMockQ.title": "Mock savollari",
+        "adminMockQ.subtitle": "Mock test savollarini tahrirlash, qo‘shish va o‘chirish",
+        "adminMockQ.pickMock": "Mockni tanlang",
+        "adminMockQ.noQuestions": "Bu mockda savollar yo‘q",
+        "adminMockQ.embeddedUnsupported": "Bu mock savollarni hujjat ichida saqlaydi (eski format) — muharrir faqat questionIds formatini qo‘llab-quvvatlaydi",
+        "adminMockQ.addQuestion": "Savol qo‘shish",
+        "adminMockQ.editQuestion": "Savolni tahrirlash",
+        "adminMockQ.newQuestion": "Yangi savol",
+        "adminMockQ.typeMc": "Variantli",
+        "adminMockQ.typeOpen": "Ochiq",
+        "adminMockQ.qText": "Savol matni",
+        "adminMockQ.qType": "Savol turi",
+        "adminMockQ.options": "Javob variantlari",
+        "adminMockQ.correctMark": "To‘g‘ri",
+        "adminMockQ.referenceAnswer": "Namunaviy javob (o‘quvchi o‘zini tekshirishi uchun)",
+        "adminMockQ.explanationField": "Tushuntirish (ixtiyoriy)",
+        "adminMockQ.statusBroken": "Variantlar yo‘q",
+        "adminMockQ.statusNoAnswer": "Namunaviy javob yo‘q",
+        "adminMockQ.deleteConfirmTitle": "Savol o‘chirilsinmi?",
+        "adminMockQ.deleteConfirmText": "Savol mockdan butunlay o‘chiriladi. Bu amalni bekor qilib bo‘lmaydi.",
+        "adminMockQ.saved": "✅ Saqlandi",
+        "adminMockQ.errSave": "❌ Saqlashda xatolik",
 
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Darsliklarni mukammal o’tganingiz va boshqa muvaffaqiyatlaringiz uchun mukofotlaringiz.",

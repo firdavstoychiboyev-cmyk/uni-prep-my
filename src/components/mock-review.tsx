@@ -1,13 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, PenLine } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 
 export interface ReviewQuestion {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
+    // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
+    type?: string; // "mc" (по умолчанию) | "open"
     explanation?: string;
     imageUrl?: string;
 }
@@ -19,10 +21,12 @@ const BATCH_SIZE = 10;
 
 function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | null; index: number }) {
     const { t } = useTranslation();
-    const isCorrect = answer === q.correctAnswer;
+    // Открытые вопросы не автопроверяются — самопроверка по эталонному ответу
+    const isOpenQ = q.type === "open";
+    const isCorrect = !isOpenQ && answer === q.correctAnswer;
     const hasExplanation = Boolean(q.explanation?.trim());
-    // Для неправильных ответов объяснение раскрыто сразу, для правильных — по клику
-    const [showExplanation, setShowExplanation] = useState(!isCorrect);
+    // Раскрыто сразу для неправильных и открытых, для правильных — по клику
+    const [showExplanation, setShowExplanation] = useState(isOpenQ || !isCorrect);
 
     return (
         <div className="rounded-2xl border border-border bg-card p-5 text-left">
@@ -34,12 +38,14 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
                     {index + 1}
                 </div>
                 <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                    isCorrect
+                    isOpenQ
+                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-900"
+                        : isCorrect
                         ? "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border-green-300 dark:border-green-900"
                         : "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-400 border-red-300 dark:border-red-900"
                 }`}>
-                    {isCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                    {isCorrect ? t("mock.review.correct") : t("mock.review.incorrect")}
+                    {isOpenQ ? <PenLine className="w-3.5 h-3.5" /> : isCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    {isOpenQ ? t("mock.open.selfCheck") : isCorrect ? t("mock.review.correct") : t("mock.review.incorrect")}
                 </div>
             </div>
 
@@ -67,10 +73,35 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
                 />
             </div>
 
-            {answer === null && (
+            {answer === null && !isOpenQ && (
                 <p className="mb-3 text-sm font-semibold text-red-500">{t("mock.review.noAnswer")}</p>
             )}
 
+            {isOpenQ ? (
+            /* Самопроверка: ответ ученика и намунавий (эталонный) ответ рядом */
+            <div className="flex flex-col gap-2">
+                <div className="rounded-xl border border-border bg-muted/40 px-4 py-3">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                        {t("mock.review.yourAnswer")}
+                    </div>
+                    {answer?.trim() ? (
+                        <p className="text-sm text-foreground whitespace-pre-wrap" style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif", lineHeight: "1.6" }}>
+                            {answer}
+                        </p>
+                    ) : (
+                        <p className="text-sm font-semibold text-red-500">{t("mock.review.noAnswer")}</p>
+                    )}
+                </div>
+                <div className="rounded-xl border border-blue-300 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 px-4 py-3">
+                    <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-1">
+                        {t("mock.open.referenceAnswer")}
+                    </div>
+                    <p className="text-sm text-foreground whitespace-pre-wrap" style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif", lineHeight: "1.6" }}>
+                        {q.correctAnswer}
+                    </p>
+                </div>
+            </div>
+            ) : (
             <div className="flex flex-col gap-2">
                 {OPTION_KEYS.map(key => {
                     const val = q.options?.[key];
@@ -137,6 +168,7 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
                     );
                 })}
             </div>
+            )}
 
             {hasExplanation && (
                 <div className="mt-4">
