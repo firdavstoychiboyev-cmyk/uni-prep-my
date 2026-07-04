@@ -8,6 +8,7 @@ import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { fetchSubjects } from "@/lib/data-fetching";
 import { getSubjectTheme } from "@/lib/subject-theme";
+import { ILLUSTRATIONS, BADGE_VIEWBOX } from "@/components/subject-illustrations";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
     LayoutDashboard,
@@ -165,11 +166,10 @@ function Sidebar() {
                             {subjects.map((subject, idx) => {
                                 const active = pathname === `/subject/${subject.id}`;
                                 const theme = getSubjectTheme(subject.name, subject.id);
-                                // Известный предмет → его идентичность-цвет (как на карточке);
-                                // неизвестный (neutral) → прежний позиционный цвет.
-                                const dotColor = theme.key === "default"
-                                    ? SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length]
-                                    : theme.dot;
+                                const Illustration = ILLUSTRATIONS[theme.illustration];
+                                // Известный предмет → бейдж с иллюстрацией; неизвестный
+                                // (neutral) → прежняя точка позиционного цвета.
+                                const dotColor = SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length];
                                 return (
                                     <li key={subject.id}>
                                         <Link
@@ -184,8 +184,22 @@ function Sidebar() {
                                             onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#141414"; }}
                                             onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                                         >
-                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                                style={{ background: dotColor }} />
+                                            {theme.key === "default" ? (
+                                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                                    style={{ background: dotColor }} />
+                                            ) : (
+                                                <span
+                                                    className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-md ring-1 ring-white/10"
+                                                    style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }}
+                                                >
+                                                    <Illustration
+                                                        viewBox={BADGE_VIEWBOX[theme.illustration]}
+                                                        width={20}
+                                                        height={20}
+                                                        preserveAspectRatio="xMidYMid slice"
+                                                    />
+                                                </span>
+                                            )}
                                             <span className={`truncate ${isCollapsed ? "md:hidden" : ""}`}>{subject.name}</span>
                                         </Link>
                                     </li>
