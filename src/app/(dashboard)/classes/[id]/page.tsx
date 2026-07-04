@@ -16,6 +16,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import HomeworkProgressView from "@/components/homework-progress";
 import ClassLeaderboard from "@/components/class-leaderboard";
 import SubjectFailures from "@/components/subject-failures";
+import RushScheduler from "@/components/rush-scheduler";
 
 export default function ClassDetailPage() {
     const { id } = useParams();
@@ -511,6 +512,9 @@ export default function ClassDetailPage() {
 
             {/* Class analytics: most failing subjects */}
             {cls.students.length > 0 && <SubjectFailures studentIds={cls.students} />}
+
+            {/* Schedule a Rush exam for this group */}
+            {user && <RushScheduler classId={cls.id} user={user} />}
 
             {/* Homework */}
             <section>

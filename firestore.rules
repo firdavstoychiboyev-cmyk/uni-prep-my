@@ -158,6 +158,38 @@ service cloud.firestore {
     }
 
 
+    // ── Rush sessions (DTM-style exam) ────────────────────────────────────────
+    // Readable by any signed-in user (students discover sessions for their
+    // groups; teachers/admins manage). A student may create/own a MANUAL solo
+    // session (creatorRole "student", createdBy == self) and update only their
+    // own; teachers/admins create scheduled group sessions.
+
+    match /rushSessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid && (
+        (request.resource.data.creatorRole == "student")
+        || (request.resource.data.creatorRole in ["teacher", "admin"] && isTeacherOrAdmin())
+      );
+      allow update, delete: if isSignedIn() && (resource.data.createdBy == request.auth.uid || isTeacherOrAdmin());
+    }
+
+    // ── Rush attempts ─────────────────────────────────────────────────────────
+    // TRADEOFF (flagged): signed-in read is allowed so per-session ranking and
+    // the μ/σ reference population can be computed on the client (no Cloud
+    // Functions). This exposes peers' answers/scores within a session — acceptable
+    // for an exam leaderboard, but revisit if answers must stay private. A student
+    // may only create/update their OWN attempt.
+
+    match /rushAttempts/{attemptId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.studentId == request.auth.uid
+                    && request.resource.data.studentId == resource.data.studentId
+                    && request.resource.data.sessionId == resource.data.sessionId;
+      allow delete: if isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin());
+    }
+
+
     // ── Classes (teachers and admins manage, students read their own) ─────────
 
     match /classes/{classId} {

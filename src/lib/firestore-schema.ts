@@ -157,6 +157,57 @@ export interface SubjectRating {
   lastUpdated: string;
 }
 
+/**
+ * Rush-сессия (DTM-имитация): rushSessions/{id}. Один предмет, ровно 55
+ * (или меньше, если пул мал) фиксированных вопросов. Два способа появления:
+ *  - "manual"  — ученик стартует сам; startedAt/expiresAt на самой сессии;
+ *  - "scheduled" — учитель/админ назначает группе окно доступности
+ *                  (scheduledFor..windowEnd); персональный отсчёт у каждого
+ *                  ученика хранится на RushAttempt.
+ */
+export type RushStatus = "scheduled" | "active" | "completed";
+export type RushCreatorRole = "student" | "teacher" | "admin";
+
+export interface RushSession {
+  id: string;
+  subjectId: string;
+  title?: string;
+  questionIds: string[];        // фиксированные 55 (или меньше — флаг в rush-utils)
+  sourceMockId?: string;        // ингестированный мок, из которого взяты вопросы
+  status: RushStatus;
+  createdBy: string;            // uid
+  creatorRole: RushCreatorRole;
+  language?: Language;
+  createdAt: string;
+  // Manual solo: личный отсчёт живёт здесь
+  startedAt?: string;
+  expiresAt?: string;
+  // Scheduled group: окно доступности
+  groupId?: string;             // classes/{id}
+  scheduledFor?: string;        // ISO — когда сессия открывается
+  windowEnd?: string;           // ISO — до когда можно начать
+}
+
+/** Попытка ученика по сессии: rushAttempts/{id}. */
+export interface RushAttempt {
+  id: string;
+  sessionId: string;
+  studentId: string;
+  subjectId: string;
+  answers: (string | null)[];   // по порядку questionIds
+  startedAt: string;            // персональный старт (источник таймера)
+  expiresAt: string;            // startedAt + 120 мин
+  submittedAt?: string;         // пусто, пока не сдано
+  autoSubmitted?: boolean;      // сдано по истечении таймера
+  // Результаты скоринга (см. lib/scoring/rushScoring.ts)
+  rawScore?: number;
+  zScore?: number;
+  tScore?: number;
+  grade?: string;
+  gradeType?: "standard" | "specialty";
+  specialtyBall?: number;
+}
+
 export interface Class {
   id: string;
   teacherId: string;

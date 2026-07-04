@@ -22,6 +22,7 @@ import {
     ClipboardList,
     Landmark,
     Target,
+    Zap,
 } from "lucide-react";
 
 const SUBJECT_DOT_COLORS = [
@@ -35,6 +36,7 @@ const mainLinks = (isTeacher: boolean, isStudent: boolean, isRegistan: boolean, 
     { label: t("nav.statistics"), href: "/statistics", icon: BarChart3 },
     { label: t("nav.achievements"), href: "/achievements", icon: Award },
     ...(isStudent ? [{ label: t("nav.mistakes"), href: "/mistakes", icon: Target }] : []),
+    { label: t("nav.rush"), href: "/rush", icon: Zap },
     { label: t("nav.mocks"), href: "/mocks", icon: ClipboardList },
     { label: t("nav.subjects"), href: "/subjects", icon: BookOpen },
     ...(isRegistan ? [{ label: "Registan", href: "/registan", icon: Landmark }] : []),
