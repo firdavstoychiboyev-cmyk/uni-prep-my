@@ -388,11 +388,17 @@ export default function TestPage() {
             const allProgSnap = await getDocs(collection(db, "users", user.id, "userProgress"));
             const progByTopicId = new Map<string, ProgData>();
             let totalCorrect = 0;
+            let totalErrorsAll = 0;
             allProgSnap.forEach((d) => {
                 const data = d.data() as ProgData;
                 progByTopicId.set(d.id, data);
                 totalCorrect += data.solvedQuestions ?? 0;
+                totalErrorsAll += data.errors ?? 0;
             });
+            // Общая точность по всем темам — для главной и рейтинга класса
+            const overallAccuracy = totalCorrect + totalErrorsAll > 0
+                ? Math.round((totalCorrect / (totalCorrect + totalErrorsAll)) * 100)
+                : 0;
 
             // Stars + badges per unique textbook.
             // Also accumulate subject-level stats for Sniper achievement checking.
@@ -470,7 +476,12 @@ export default function TestPage() {
                 // Серия продолжается только при занятиях каждый день
                 streakDays = diffDays === 1 ? streakDays + 1 : 1;
             }
-            await setDoc(userDocRef, { streakDays, lastActiveDate: today }, { merge: true });
+            // Денормализуем агрегаты на документ пользователя: их читает главная
+            // и рейтинг класса (userProgress одноклассникам недоступен по правилам)
+            await setDoc(userDocRef, {
+                streakDays, lastActiveDate: today,
+                totalCorrect, accuracy: overallAccuracy,
+            }, { merge: true });
 
             // Дневная активность — точный счётчик по дням для теплокарты статистики
             await setDoc(doc(db, "users", user.id, "dailyActivity", today), {

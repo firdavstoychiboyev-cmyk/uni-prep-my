@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { Play, BarChart2, GraduationCap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import HomeworkSection from "@/components/homework-section";
+import ClassLeaderboardSection from "@/components/class-leaderboard-section";
 
 const TOP_UNIVERSITIES = [
     { id: "jidu",    name: "JIDU",      fullName: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", grant: 189.0, color: "#3B82F6" },
@@ -145,6 +146,9 @@ export default function HomePage() {
 
             {/* ── Homework (students with class assignments only) ── */}
             <HomeworkSection />
+
+            {/* ── Class leaderboard (students enrolled in a class only) ── */}
+            <ClassLeaderboardSection />
 
             {/* ── Stats row ── */}
             <div>

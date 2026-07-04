@@ -14,6 +14,7 @@ import { Search, UserPlus, Trash2, ChevronRight, X, Eye, BookOpen, ClipboardList
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import HomeworkProgressView from "@/components/homework-progress";
+import ClassLeaderboard from "@/components/class-leaderboard";
 
 export default function ClassDetailPage() {
     const { id } = useParams();
@@ -503,6 +504,9 @@ export default function ClassDetailPage() {
                     </div>
                 )}
             </section>
+
+            {/* Leaderboard */}
+            <ClassLeaderboard students={students} />
 
             {/* Homework */}
             <section>
