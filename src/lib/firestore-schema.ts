@@ -137,6 +137,10 @@ export interface Homework {
 export interface MockResult {
   mockId: string;
   completedAt: string;
+  /** Ответы ученика по порядку вопросов мока (null — без ответа); нужны для экрана разбора */
+  answers?: (string | null)[];
+  correct?: number;
+  total?: number;
 }
 
 export interface SubjectRating {

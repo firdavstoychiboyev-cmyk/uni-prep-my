@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { Clock, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
+import { Clock, BookOpen, ChevronRight, ClipboardList, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { MockResult } from "@/lib/firestore-schema";
 
 interface Mock {
     id: string;
@@ -18,10 +21,14 @@ interface Mock {
 type MockCategory = "milliy_sertifikat" | "dtm" | "all";
 
 export default function MocksPage() {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
+    const router = useRouter();
+    const { user } = useAuthStore();
     const [mocks, setMocks] = useState<Mock[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState<MockCategory>("all");
+    // Результаты пройденных моков — бейдж со счётом и ссылка на разбор
+    const [results, setResults] = useState<Record<string, MockResult>>({});
 
     useEffect(() => {
         const load = async () => {
@@ -36,6 +43,17 @@ export default function MocksPage() {
         };
         load();
     }, [language]);
+
+    useEffect(() => {
+        if (!user) return;
+        getDocs(collection(db, "users", user.id, "mockResults"))
+            .then(snap => {
+                const map: Record<string, MockResult> = {};
+                snap.docs.forEach(d => { map[d.id] = d.data() as MockResult; });
+                setResults(map);
+            })
+            .catch(() => {});
+    }, [user]);
 
     const filtered = activeCategory === "all" ? mocks : mocks.filter(m => m.category === activeCategory);
 
@@ -105,6 +123,28 @@ export default function MocksPage() {
                                 </div>
                                 <h3 className="font-bold text-[16px] text-foreground mb-1">{mock.title}</h3>
                                 <p className="text-[13px] mb-4 text-muted-foreground">{mock.description}</p>
+                                {results[mock.id] && (
+                                    <div className="flex items-center justify-between gap-2 mb-3">
+                                        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-green-600 dark:text-green-400">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            {typeof results[mock.id].correct === "number"
+                                                ? `${results[mock.id].correct} / ${results[mock.id].total}`
+                                                : t("mock.review.completed")}
+                                        </span>
+                                        {results[mock.id].answers && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    router.push(`/mocks/${mock.id}?review=1`);
+                                                }}
+                                                className="text-[12px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                            >
+                                                {t("mock.review.viewResults")}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-4 text-[12px] mt-auto text-muted-foreground">
                                     <div className="flex items-center gap-1.5">
                                         <BookOpen className="w-3.5 h-3.5" />

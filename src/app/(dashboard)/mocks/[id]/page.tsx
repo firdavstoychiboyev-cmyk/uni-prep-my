@@ -3,11 +3,13 @@ import { useEffect, useState, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
+import MockReview from "@/components/mock-review";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveMockResult } from "@/lib/homework-utils";
+import { MockResult } from "@/lib/firestore-schema";
 
 interface MockData {
     id: string;
@@ -24,6 +26,7 @@ interface QuestionData {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
     correctAnswer: string;
+    explanation?: string;
     imageUrl?: string;
 }
 
@@ -33,7 +36,7 @@ const TOTAL_TIME = 120 * 60;
 export default function MockTestPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
 
     const [mock, setMock] = useState<MockData | null>(null);
     const [questions, setQuestions] = useState<QuestionData[]>([]);
@@ -52,6 +55,10 @@ export default function MockTestPage() {
 
     const [showGrid, setShowGrid] = useState(false);
     const [showFinishDialog, setShowFinishDialog] = useState(false);
+
+    // Сохранённый ранее результат мока — для повторного просмотра разбора
+    const [savedResult, setSavedResult] = useState<MockResult | null>(null);
+    const [reviewMode, setReviewMode] = useState(false);
 
     useEffect(() => {
         const load = async () => {
@@ -77,15 +84,43 @@ export default function MockTestPage() {
         load();
     }, [id]);
 
-    // Отметка о завершении мока — по ней считается выполнение домашних заданий
+    // Отметка о завершении мока — по ней считается выполнение домашних заданий;
+    // ответы и счёт сохраняются для повторного просмотра разбора
     const { user } = useAuthStore();
     useEffect(() => {
         if (finished && user && id) {
-            saveMockResult(user.id, id as string).catch((e) =>
-                console.error("Error saving mock result:", e)
-            );
+            const correct = answers.filter((a, i) => a === questions[i]?.correctAnswer).length;
+            saveMockResult(user.id, id as string, {
+                answers,
+                correct,
+                total: questions.length,
+            }).catch((e) => console.error("Error saving mock result:", e));
         }
-    }, [finished, user, id]);
+    }, [finished, user, id, answers, questions]);
+
+    // Загрузка сохранённого результата для кнопки «Посмотреть результаты»
+    useEffect(() => {
+        if (!user || !id) return;
+        getDoc(doc(db, "users", user.id, "mockResults", id as string))
+            .then(snap => { if (snap.exists()) setSavedResult(snap.data() as MockResult); })
+            .catch(() => {});
+    }, [user, id]);
+
+    const openReview = (saved: MockResult) => {
+        if (!saved.answers) return;
+        setAnswers(saved.answers);
+        setReviewMode(true);
+    };
+
+    // Открытие разбора по ссылке /mocks/{id}?review=1 (со списка моков)
+    useEffect(() => {
+        if (started || finished || reviewMode) return;
+        if (!savedResult?.answers || questions.length === 0) return;
+        if (new URLSearchParams(window.location.search).get("review") === "1") {
+            setAnswers(savedResult.answers);
+            setReviewMode(true);
+        }
+    }, [savedResult, questions.length, started, finished, reviewMode]);
 
     useEffect(() => {
         if (!started || finished) {
@@ -150,7 +185,7 @@ export default function MockTestPage() {
 
     // ── Intro screen ──────────────────────────────────────────────────────────
 
-    if (!started) return (
+    if (!started && !reviewMode) return (
         <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
             <div className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-950">
                 <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
@@ -198,12 +233,22 @@ export default function MockTestPage() {
                 <Play className="w-5 h-5" />
                 {language === "uz" ? "Boshlash" : "Начать"}
             </button>
+            {savedResult?.answers && questions.length > 0 && (
+                <button
+                    onClick={() => openReview(savedResult)}
+                    className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                    <History className="w-4 h-4" />
+                    {t("mock.review.viewResults")}
+                    {typeof savedResult.correct === "number" && ` (${savedResult.correct} / ${savedResult.total})`}
+                </button>
+            )}
         </div>
     );
 
-    // ── Results screen ────────────────────────────────────────────────────────
+    // ── Results screen (после завершения и повторный просмотр разбора) ───────
 
-    if (finished) {
+    if (finished || reviewMode) {
         const correct = answers.filter((a, i) => a === questions[i]?.correctAnswer).length;
         const total = questions.length;
         const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -212,7 +257,7 @@ export default function MockTestPage() {
             <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
                 <div className="text-6xl">🏆</div>
                 <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
-                    {language === "uz" ? "Mock tugadi!" : "Мок завершён!"}
+                    {reviewMode ? mock.title : (language === "uz" ? "Mock tugadi!" : "Мок завершён!")}
                 </h1>
                 <div className="text-6xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
                     {correct} / {total}
@@ -243,12 +288,39 @@ export default function MockTestPage() {
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={() => router.push("/mocks")}
-                    className="px-8 py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors"
-                >
-                    {language === "uz" ? "Mocklarga qaytish" : "К списку моков"}
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    {reviewMode && (
+                        <button
+                            onClick={() => {
+                                setReviewMode(false);
+                                setAnswers(questions.map(() => null));
+                                setEliminated(questions.map(() => []));
+                                setIdx(0);
+                                setTimeLeft(TOTAL_TIME);
+                            }}
+                            className="px-8 py-4 rounded-full border border-border text-foreground font-bold hover:bg-muted transition-colors"
+                        >
+                            {t("mock.review.retake")}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => router.push("/mocks")}
+                        className="px-8 py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors"
+                    >
+                        {language === "uz" ? "Mocklarga qaytish" : "К списку моков"}
+                    </button>
+                </div>
+
+                {/* Detailed per-question review */}
+                <div className="w-full mt-6 text-left">
+                    <h2
+                        className="text-xl font-black text-foreground mb-4"
+                        style={{ fontFamily: "var(--font-montserrat)" }}
+                    >
+                        {t("mock.review.title")}
+                    </h2>
+                    <MockReview questions={questions} answers={answers} />
+                </div>
             </div>
         );
     }

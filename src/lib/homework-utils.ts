@@ -127,10 +127,14 @@ export const fetchActiveMocks = async (): Promise<MockOption[]> => {
 };
 
 /** Отметка о завершении мок-теста (вызывается со страницы мока) */
-export const saveMockResult = (userId: string, mockId: string) =>
+export const saveMockResult = (
+    userId: string,
+    mockId: string,
+    review?: { answers: (string | null)[]; correct: number; total: number }
+) =>
     setDoc(
         doc(db, "users", userId, "mockResults", mockId),
-        { mockId, completedAt: new Date().toISOString() },
+        { mockId, completedAt: new Date().toISOString(), ...(review ?? {}) },
         { merge: true }
     );
 

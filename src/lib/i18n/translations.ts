@@ -253,6 +253,19 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.saveError": "Не удалось сохранить результат. Проверьте соединение и попробуйте снова.",
         "test.openAnswerPlaceholder": "Введите ваш ответ…",
 
+        // ── Mock review ──────────────────────────────────────────
+        "mock.review.title": "Разбор ответов",
+        "mock.review.correct": "Правильно",
+        "mock.review.incorrect": "Неправильно",
+        "mock.review.yourAnswer": "Ваш ответ",
+        "mock.review.correctAnswer": "Правильный ответ",
+        "mock.review.explanation": "Объяснение",
+        "mock.review.noAnswer": "Нет ответа",
+        "mock.review.showMore": "Показать ещё",
+        "mock.review.viewResults": "Посмотреть результаты",
+        "mock.review.retake": "Пройти заново",
+        "mock.review.completed": "Пройден",
+
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Ваши награды за идеальное прохождение учебников и другие успехи в обучении.",
         "ach.recently": "Недавно",
@@ -728,6 +741,19 @@ export const translations: Record<Language, Record<string, string>> = {
         "test.goToTopics": "Mavzularga o‘tish",
         "test.saveError": "Natijani saqlab bo’lmadi. Aloqani tekshirib, qayta urinib ko’ring.",
         "test.openAnswerPlaceholder": "Javobingizni kiriting…",
+
+        // ── Mock review ──────────────────────────────────────────
+        "mock.review.title": "Javoblar tahlili",
+        "mock.review.correct": "To‘g‘ri",
+        "mock.review.incorrect": "Noto‘g‘ri",
+        "mock.review.yourAnswer": "Sizning javobingiz",
+        "mock.review.correctAnswer": "To‘g‘ri javob",
+        "mock.review.explanation": "Tushuntirish",
+        "mock.review.noAnswer": "Javob berilmagan",
+        "mock.review.showMore": "Yana ko‘rsatish",
+        "mock.review.viewResults": "Natijalarni ko‘rish",
+        "mock.review.retake": "Qayta topshirish",
+        "mock.review.completed": "Tugallangan",
 
         // ── Achievements ─────────────────────────────────────────
         "ach.subtitle": "Darsliklarni mukammal o’tganingiz va boshqa muvaffaqiyatlaringiz uchun mukofotlaringiz.",
