@@ -15,28 +15,31 @@ export type SubjectAccent =
     | "teal" | "red" | "indigo" | "sky" | "orange" | "neutral";
 
 export interface AccentTokens {
-    /** Идентичность-цвет (hex) — тот же, что точка в сайдбаре; основа градиента */
+    /** Идентичность-цвет (hex) — точка в сайдбаре; совпадает с началом градиента */
     base: string;
-    /** Бейдж иконки: фон и цвет штриха (со светлым/тёмным вариантами) */
-    iconBg: string;
-    iconText: string;
-    /** Цвет текста/иконки на белой пилюле-кнопке */
-    buttonText: string;
+    /** Насыщенный двухтональный градиент — доминирующий фон карточки */
+    gradFrom: string;
+    gradTo: string;
+    /** Тёмный акцент для текста на белой кнопке (контраст на белом) */
+    ink: string;
 }
 
-/** Токены на каждый акцент. Классы Tailwind заданы литералами — иначе JIT их не соберёт. */
+/**
+ * Токены на каждый акцент. Градиент — уверенный, насыщенный (не пастель, но и
+ * не неон); тот же вид в светлой и тёмной теме, т.к. карточка сама несёт цвет.
+ */
 export const ACCENTS: Record<SubjectAccent, AccentTokens> = {
-    blue:    { base: "#3B82F6", iconBg: "bg-blue-100 dark:bg-blue-500/15",    iconText: "text-blue-600 dark:text-blue-300",    buttonText: "text-blue-600 dark:text-blue-300" },
-    violet:  { base: "#8B5CF6", iconBg: "bg-violet-100 dark:bg-violet-500/15", iconText: "text-violet-600 dark:text-violet-300", buttonText: "text-violet-600 dark:text-violet-300" },
-    pink:    { base: "#EC4899", iconBg: "bg-pink-100 dark:bg-pink-500/15",    iconText: "text-pink-600 dark:text-pink-300",    buttonText: "text-pink-600 dark:text-pink-300" },
-    emerald: { base: "#10B981", iconBg: "bg-emerald-100 dark:bg-emerald-500/15", iconText: "text-emerald-600 dark:text-emerald-300", buttonText: "text-emerald-600 dark:text-emerald-300" },
-    amber:   { base: "#F59E0B", iconBg: "bg-amber-100 dark:bg-amber-500/15",  iconText: "text-amber-600 dark:text-amber-300",  buttonText: "text-amber-600 dark:text-amber-300" },
-    teal:    { base: "#14B8A6", iconBg: "bg-teal-100 dark:bg-teal-500/15",    iconText: "text-teal-600 dark:text-teal-300",    buttonText: "text-teal-600 dark:text-teal-300" },
-    red:     { base: "#EF4444", iconBg: "bg-red-100 dark:bg-red-500/15",      iconText: "text-red-600 dark:text-red-300",      buttonText: "text-red-600 dark:text-red-300" },
-    indigo:  { base: "#6366F1", iconBg: "bg-indigo-100 dark:bg-indigo-500/15", iconText: "text-indigo-600 dark:text-indigo-300", buttonText: "text-indigo-600 dark:text-indigo-300" },
-    sky:     { base: "#0EA5E9", iconBg: "bg-sky-100 dark:bg-sky-500/15",      iconText: "text-sky-600 dark:text-sky-300",      buttonText: "text-sky-600 dark:text-sky-300" },
-    orange:  { base: "#F97316", iconBg: "bg-orange-100 dark:bg-orange-500/15", iconText: "text-orange-600 dark:text-orange-300", buttonText: "text-orange-600 dark:text-orange-300" },
-    neutral: { base: "#737373", iconBg: "bg-muted",                            iconText: "text-muted-foreground",               buttonText: "text-foreground" },
+    blue:    { base: "#3B82F6", gradFrom: "#3B82F6", gradTo: "#4F46E5", ink: "#1D4ED8" }, // vivid blue → indigo
+    violet:  { base: "#A855F7", gradFrom: "#A855F7", gradTo: "#7C3AED", ink: "#6D28D9" }, // purple → violet
+    pink:    { base: "#EC4899", gradFrom: "#EC4899", gradTo: "#F43F5E", ink: "#BE185D" }, // pink → rose
+    emerald: { base: "#10B981", gradFrom: "#10B981", gradTo: "#0D9488", ink: "#047857" }, // green → teal
+    amber:   { base: "#F59E0B", gradFrom: "#F59E0B", gradTo: "#F97316", ink: "#B45309" }, // amber → orange
+    teal:    { base: "#06B6D4", gradFrom: "#06B6D4", gradTo: "#2563EB", ink: "#0369A1" }, // cyan → blue (physics)
+    red:     { base: "#EF4444", gradFrom: "#EF4444", gradTo: "#F43F5E", ink: "#B91C1C" }, // red → rose
+    indigo:  { base: "#6366F1", gradFrom: "#6366F1", gradTo: "#4338CA", ink: "#4338CA" },
+    sky:     { base: "#0EA5E9", gradFrom: "#0EA5E9", gradTo: "#2563EB", ink: "#0369A1" },
+    orange:  { base: "#F97316", gradFrom: "#FB923C", gradTo: "#EA580C", ink: "#C2410C" },
+    neutral: { base: "#64748B", gradFrom: "#64748B", gradTo: "#475569", ink: "#334155" },
 };
 
 export type SubjectGlyph = (props: SVGProps<SVGSVGElement>) => JSX.Element;
