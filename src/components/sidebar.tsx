@@ -21,6 +21,7 @@ import {
     PanelLeft,
     ClipboardList,
     Landmark,
+    Target,
 } from "lucide-react";
 
 const SUBJECT_DOT_COLORS = [
@@ -28,11 +29,12 @@ const SUBJECT_DOT_COLORS = [
     "#F59E0B", "#14B8A6", "#EF4444", "#6366F1",
 ];
 
-const mainLinks = (isTeacher: boolean, isRegistan: boolean, t: (k: string) => string) => [
+const mainLinks = (isTeacher: boolean, isStudent: boolean, isRegistan: boolean, t: (k: string) => string) => [
     { label: t("nav.home"), href: "/home", icon: LayoutDashboard },
     ...(isTeacher ? [{ label: t("nav.classes"), href: "/classes", icon: GraduationCap }] : []),
     { label: t("nav.statistics"), href: "/statistics", icon: BarChart3 },
     { label: t("nav.achievements"), href: "/achievements", icon: Award },
+    ...(isStudent ? [{ label: t("nav.mistakes"), href: "/mistakes", icon: Target }] : []),
     { label: t("nav.mocks"), href: "/mocks", icon: ClipboardList },
     { label: t("nav.subjects"), href: "/subjects", icon: BookOpen },
     ...(isRegistan ? [{ label: "Registan", href: "/registan", icon: Landmark }] : []),
@@ -54,7 +56,7 @@ function Sidebar() {
 
     useEffect(() => { close(); }, [pathname, close]);
 
-    const links = mainLinks(user?.role === "teacher", user?.organization === "registan", t);
+    const links = mainLinks(user?.role === "teacher", user?.role === "student", user?.organization === "registan", t);
 
     return (
         <>

@@ -114,6 +114,13 @@ export default function HomePage() {
                             {language === "uz" ? "Statistika" : "Статистика"}
                             <ArrowRight size={14} />
                         </Link>
+                        {user?.role === "student" && (
+                            <Link href="/mistakes"
+                                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                                {t("nav.mistakes")}
+                                <ArrowRight size={14} />
+                            </Link>
+                        )}
                     </div>
                 </div>
 
