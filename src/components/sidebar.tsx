@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { fetchSubjects } from "@/lib/data-fetching";
+import { getSubjectTheme } from "@/lib/subject-theme";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
     LayoutDashboard,
@@ -25,6 +26,9 @@ import {
     Zap,
 } from "lucide-react";
 
+// Fallback-палитра для предметов без темы (getSubjectTheme → neutral):
+// по позиции, как раньше. Известные предметы берут цвет из subject-theme,
+// поэтому точка в сайдбаре и карточка предмета совпадают.
 const SUBJECT_DOT_COLORS = [
     "#3B82F6", "#8B5CF6", "#EC4899", "#10B981",
     "#F59E0B", "#14B8A6", "#EF4444", "#6366F1",
@@ -160,7 +164,12 @@ function Sidebar() {
                         <ul className="flex flex-col gap-0.5">
                             {subjects.map((subject, idx) => {
                                 const active = pathname === `/subject/${subject.id}`;
-                                const dotColor = SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length];
+                                const theme = getSubjectTheme(subject.name, subject.id);
+                                // Известный предмет → его идентичность-цвет (как на карточке);
+                                // неизвестный (neutral) → прежний позиционный цвет.
+                                const dotColor = theme.accent === "neutral"
+                                    ? SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length]
+                                    : theme.base;
                                 return (
                                     <li key={subject.id}>
                                         <Link
