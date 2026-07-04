@@ -10,7 +10,7 @@ import {
     orderBy
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Homework } from "./firestore-schema";
+import { Homework, User } from "./firestore-schema";
 
 /**
  * Уй вазифаси (домашние задания класса): classes/{classId}/homework/{id}.
@@ -93,16 +93,37 @@ export const fetchStudentHomeworkStatus = async (
     return { done, topicsDone, mockDone: false };
 };
 
-/** Сколько учеников класса выполнили ДЗ целиком */
-export const countHomeworkCompletions = async (
-    studentIds: string[],
+/** Сводка выполнения одного ДЗ по классу для учительского экрана */
+export interface HomeworkProgress {
+    total: number;      // всего учеников в классе
+    completed: number;  // выполнили целиком
+    /** Процент выполнения, целое 0–100 */
+    percent: number;
+    /** Ученики, ещё НЕ выполнившие задание (для списка «не сдали») */
+    notCompleted: User[];
+}
+
+/**
+ * Прогресс выполнения ДЗ: всего назначено, сколько выполнили, процент и
+ * список невыполнивших. Выполнение выводится из существующих записей
+ * ученика (те же сигналы, что и [[fetchStudentHomeworkStatus]]), отдельной
+ * коллекции сдач нет. Принимает уже загруженные профили класса, чтобы
+ * список невыполнивших сразу содержал имена без дополнительных чтений.
+ */
+export const fetchHomeworkProgress = async (
+    students: User[],
     hw: Homework
-): Promise<number> => {
-    if (studentIds.length === 0) return 0;
+): Promise<HomeworkProgress> => {
+    if (students.length === 0) {
+        return { total: 0, completed: 0, percent: 0, notCompleted: [] };
+    }
     const statuses = await Promise.all(
-        studentIds.map((sid) => fetchStudentHomeworkStatus(sid, hw))
+        students.map((s) => fetchStudentHomeworkStatus(s.id, hw))
     );
-    return statuses.filter((s) => s.done).length;
+    const notCompleted = students.filter((_, i) => !statuses[i].done);
+    const completed = students.length - notCompleted.length;
+    const percent = Math.round((completed / students.length) * 100);
+    return { total: students.length, completed, percent, notCompleted };
 };
 
 export interface MockOption {

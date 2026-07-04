@@ -7,12 +7,13 @@ import { db } from "@/lib/firebase";
 import { Class, User, Homework, HomeworkType, Topic, Subject, Textbook } from "@/lib/firestore-schema";
 import { SUBJECTS } from "@/lib/constants";
 import { findStudentById, addStudentToClass, deleteStudentFromClass, deleteClass, fetchClassStudents } from "@/lib/class-utils";
-import { fetchClassHomework, assignHomework, deleteHomework, countHomeworkCompletions, fetchActiveMocks, isHomeworkOverdue, MockOption } from "@/lib/homework-utils";
+import { fetchClassHomework, assignHomework, deleteHomework, fetchHomeworkProgress, fetchActiveMocks, isHomeworkOverdue, MockOption, HomeworkProgress } from "@/lib/homework-utils";
 import { fetchSubjects, fetchTopicById, fetchTopicsBySubject, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Search, UserPlus, Trash2, ChevronRight, X, Eye, BookOpen, ClipboardList, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import HomeworkProgressView from "@/components/homework-progress";
 
 export default function ClassDetailPage() {
     const { id } = useParams();
@@ -29,7 +30,7 @@ export default function ClassDetailPage() {
 
     // ── Homework state ──
     const [homeworks, setHomeworks] = useState<Homework[]>([]);
-    const [hwCounts, setHwCounts] = useState<Record<string, number>>({});
+    const [hwProgress, setHwProgress] = useState<Record<string, HomeworkProgress>>({});
     const [hwTopicNames, setHwTopicNames] = useState<Record<string, string>>({});
     const [hwAllMocks, setHwAllMocks] = useState<MockOption[]>([]);
     // Форма: тип ДЗ ("topics" | "mock"), затем каскад предмет → (учебник) → темы, либо предмет → мок
@@ -101,20 +102,36 @@ export default function ClassDetailPage() {
                     })
                 );
                 if (!cancelled) setHwTopicNames(names);
-
-                const counts: Record<string, number> = {};
-                await Promise.all(
-                    hws.map(async (hw) => {
-                        counts[hw.id] = await countHomeworkCompletions(cls.students, hw);
-                    })
-                );
-                if (!cancelled) setHwCounts(counts);
             } catch (err) {
                 console.error("Error loading homework:", err);
             }
         })();
         return () => { cancelled = true; };
     }, [cls]);
+
+    // Прогресс выполнения ДЗ: считается по загруженным профилям класса (нужны
+    // имена для списка невыполнивших), поэтому пересчитывается при изменении
+    // списка заданий или состава класса.
+    useEffect(() => {
+        if (homeworks.length === 0 || students.length === 0) {
+            setHwProgress({});
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const entries = await Promise.all(
+                    homeworks.map(async (hw) =>
+                        [hw.id, await fetchHomeworkProgress(students, hw)] as const
+                    )
+                );
+                if (!cancelled) setHwProgress(Object.fromEntries(entries));
+            } catch (err) {
+                console.error("Error computing homework progress:", err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [homeworks, students]);
 
     // Предметы для формы — на текущем языке интерфейса (в subjects раздельные
     // документы для ru и uz). Смена языка перезагружает список и сбрасывает
@@ -227,7 +244,6 @@ export default function ClassDetailPage() {
             const hwId = await assignHomework(cls.id, payload);
             const newHw: Homework = { id: hwId, createdAt: new Date().toISOString(), ...payload };
             setHomeworks((prev) => [newHw, ...prev]);
-            setHwCounts((prev) => ({ ...prev, [hwId]: 0 }));
             if (hwType === "topics") {
                 setHwTopicNames((prev) => {
                     const next = { ...prev };
@@ -634,7 +650,6 @@ export default function ClassDetailPage() {
                             const topicIds = hw.topicIds ?? [];
                             const mock = hwAllMocks.find((m) => m.id === hw.mockId);
                             const subjectName = hwSubjects.find((s) => s.id === hw.subjectId)?.name;
-                            const count = hwCounts[hw.id];
                             const overdue = isHomeworkOverdue(hw.dueDate);
                             const expanded = Boolean(hwExpanded[hw.id]);
                             return (
@@ -676,15 +691,11 @@ export default function ClassDetailPage() {
                                                 {t("hw.due", { date: hw.dueDate })}
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                            <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-                                                {count === undefined
-                                                    ? "…"
-                                                    : t("hw.completedCount", { done: count, total: students.length })}
-                                            </span>
+                                        <div className="flex items-start justify-between gap-3 sm:justify-end">
+                                            <HomeworkProgressView progress={hwProgress[hw.id]} />
                                             <button
                                                 onClick={() => handleDeleteHomework(hw.id)}
-                                                className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+                                                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
                                                 title={t("common.delete")}
                                             >
                                                 <Trash2 size={15} />
