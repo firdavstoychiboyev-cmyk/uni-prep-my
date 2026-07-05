@@ -161,6 +161,52 @@ export interface SubjectRating {
 }
 
 /**
+ * Вступительный тест (Qabul testi / Вступительный тест) — отдельная сущность
+ * от Rush/DTM-моков, для приёма по классу+предмету. Настраивается админом
+ * (Registan-админом/супер-админом) на пару grade+subject. Вопросы берутся из
+ * существующего пула (mock как набор questionIds) — своей БД вопросов нет.
+ *
+ * ФЛАГ: у учеников нет поля grade/sinf, поэтому список классов формируется из
+ * опубликованных тестов, а ученик выбирает свой класс сам.
+ */
+export type EntranceTestStatus = "draft" | "published";
+// Тип вопросов: в приложении используются "mc" (multiple choice) и "open".
+export type EntranceQuestionType = "mc" | "open" | "mixed";
+
+export interface EntranceTest {
+  id: string;
+  grade: string;                 // "5", "6", …
+  subjectId: string;
+  questionCount: number;
+  questionType: EntranceQuestionType;
+  timeLimitMinutes: number;
+  /** Источник вопросов — mocks/{id} (пул questionIds); не отдельная БД */
+  questionPoolRef: string;
+  status: EntranceTestStatus;
+  createdBy: string;
+  language?: Language;
+  createdAt: string;
+  title?: string;
+}
+
+/** Попытка вступительного теста: entranceTestAttempts/{id}. */
+export interface EntranceTestAttempt {
+  id: string;
+  testId: string;
+  studentId: string;
+  subjectId: string;
+  grade: string;
+  answers: (string | null)[];
+  startedAt: string;
+  expiresAt: string;
+  submittedAt?: string;
+  score?: number;                // верных MC-ответов
+  total?: number;                // сколько заданий подлежит автопроверке
+  /** Сколько раз ученик выходил из полноэкранного режима (анти-чит) */
+  fullscreenExitCount?: number;
+}
+
+/**
  * Rush-сессия (DTM-имитация): rushSessions/{id}. Один предмет, ровно 55
  * (или меньше, если пул мал) фиксированных вопросов. Два способа появления:
  *  - "manual"  — ученик стартует сам; startedAt/expiresAt на самой сессии;

@@ -26,6 +26,7 @@ export const REGISTAN_ADMIN_ROUTES: readonly string[] = [
     "/admin/analytics",
     "/admin/codes",
     "/admin/rush",
+    "/admin/entrance",
 ];
 
 /** Может ли Registan-админ открыть данный путь админки. */

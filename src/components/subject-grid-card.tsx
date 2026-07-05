@@ -13,24 +13,35 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
  * Тёмная тема — базовый вид (карточка сама несёт цвет), отдельного варианта
  * не нужно, как и в остальном приложении.
  */
-export default function SubjectGridCard({ subject }: { subject: Subject }) {
+/**
+ * Большая карточка предмета. По умолчанию — ссылка на /subject/{id}
+ * (страница Fanlar). Можно переиспользовать как селектор: передать onSelect
+ * (тогда рендерится кнопкой), свой subtitle и текст кнопки (cta).
+ */
+export default function SubjectGridCard({
+    subject, onSelect, subtitle, cta,
+}: {
+    subject: Subject;
+    onSelect?: () => void;
+    subtitle?: string;
+    cta?: string;
+}) {
     const { t, language } = useTranslation();
     const { gradFrom, gradTo, illustration } = getSubjectTheme(subject.name, subject.id);
     const Illustration = ILLUSTRATIONS[illustration];
     const qCount = subject.questionCount ?? 0;
 
-    return (
-        <Link
-            href={`/subject/${subject.id}`}
-            className="group relative block overflow-hidden transition-transform duration-200 hover:-translate-y-0.5"
-            style={{
-                borderRadius: 24,
-                padding: 34,
-                minHeight: 224,
-                background: `linear-gradient(135deg, ${gradFrom} 0%, ${gradTo} 100%)`,
-                boxShadow: `0 22px 44px -18px rgba(0,0,0,.7), 0 10px 24px -14px ${gradFrom}`,
-            }}
-        >
+    const cardClass = "group relative block w-full text-left overflow-hidden transition-transform duration-200 hover:-translate-y-0.5";
+    const cardStyle: React.CSSProperties = {
+        borderRadius: 24,
+        padding: 34,
+        minHeight: 224,
+        background: `linear-gradient(135deg, ${gradFrom} 0%, ${gradTo} 100%)`,
+        boxShadow: `0 22px 44px -18px rgba(0,0,0,.7), 0 10px 24px -14px ${gradFrom}`,
+    };
+
+    const inner = (
+        <>
             {/* 1. Дымка/сияние — чистая декорация */}
             <div
                 aria-hidden
@@ -58,9 +69,9 @@ export default function SubjectGridCard({ subject }: { subject: Subject }) {
                 <h3 className="text-white" style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-.02em" }}>
                     {subject.name}
                 </h3>
-                {qCount > 0 && (
+                {(subtitle ?? (qCount > 0 ? t("subjects.qCount", { count: qCount }) : "")) && (
                     <p className="mt-2 font-semibold text-white/85" style={{ fontSize: 15 }}>
-                        {t("subjects.qCount", { count: qCount })}
+                        {subtitle ?? t("subjects.qCount", { count: qCount })}
                     </p>
                 )}
                 <span
@@ -73,10 +84,16 @@ export default function SubjectGridCard({ subject }: { subject: Subject }) {
                         boxShadow: "0 6px 16px -6px rgba(0,0,0,.4)",
                     }}
                 >
-                    {language === "uz" ? "Ochish" : "Открыть"}
+                    {cta ?? (language === "uz" ? "Ochish" : "Открыть")}
                     <span aria-hidden>→</span>
                 </span>
             </div>
-        </Link>
+        </>
+    );
+
+    return onSelect ? (
+        <button type="button" onClick={onSelect} className={cardClass} style={cardStyle}>{inner}</button>
+    ) : (
+        <Link href={`/subject/${subject.id}`} className={cardClass} style={cardStyle}>{inner}</Link>
     );
 }

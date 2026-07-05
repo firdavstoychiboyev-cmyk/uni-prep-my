@@ -212,6 +212,25 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin());
     }
 
+    // ── Entrance tests (Qabul testi) — конфигурируют админы/Registan-админы ────
+    // Читают все вошедшие (ученик видит опубликованные). Пишут только
+    // супер-админ или Registan-админ (глобального контента это не касается —
+    // сам пул вопросов лежит в mocks/questions под обычными admin-правилами).
+
+    match /entranceTests/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isRegistanAdmin();
+    }
+
+    match /entranceTestAttempts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.studentId == request.auth.uid
+                    && request.resource.data.studentId == resource.data.studentId
+                    && request.resource.data.testId == resource.data.testId;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
+    }
+
 
     // ── Classes (teachers and admins manage, students read their own) ─────────
 

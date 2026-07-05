@@ -45,6 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: t("admin.teachers"), href: "/admin/teachers", icon: Users },
         { name: t("admin.analytics"), href: "/admin/analytics", icon: BarChart3 },
         { name: t("adminRush.title"), href: "/admin/rush", icon: Zap },
+        { name: t("adminEntrance.title"), href: "/admin/entrance", icon: GraduationCap },
         { name: t("nav.subjects"), href: "/admin/subjects", icon: BookOpen },
         { name: t("subject.textbooks"), href: "/admin/textbooks", icon: Library },
         { name: t("stats.topics"), href: "/admin/topics", icon: ListTree },
