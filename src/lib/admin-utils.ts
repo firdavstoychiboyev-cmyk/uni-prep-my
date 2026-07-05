@@ -13,30 +13,99 @@ import {
     increment
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { User } from "./firestore-schema";
+import { AdminScope, REGISTAN_ORG } from "../store/useAdminScopeStore";
+
+/** Пользователи организации Registan (одно чтение, без composite-индекса). */
+export const fetchRegistanUsers = async (): Promise<User[]> => {
+    const snap = await getDocs(query(collection(db, "users"), where("organization", "==", REGISTAN_ORG)));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as User);
+};
 
 /**
- * Получение статистики для дашборда
+ * Пользователи для списков «Ученики»/«Учителя» с учётом scope.
+ *   all       → все пользователи роли (по платформе);
+ *   registan  → только отмеченные организацией Registan.
+ * Роль/организация фильтруются по разным полям, поэтому одну сторону берём
+ * запросом, другую — на клиенте (без composite-индекса).
  */
-export const fetchAdminStats = async () => {
+export const fetchAdminUsers = async (
+    role: "student" | "teacher",
+    scope: AdminScope
+): Promise<User[]> => {
     try {
-        const subjectsCount = await getCountFromServer(collection(db, "subjects"));
-        const textbooksCount = await getCountFromServer(collection(db, "textbooks"));
-        const topicsCount = await getCountFromServer(collection(db, "topics"));
-        const questionsCount = await getCountFromServer(collection(db, "questions"));
-        const studentsCount = await getCountFromServer(query(collection(db, "users"), where("role", "==", "student")));
-        const teachersCount = await getCountFromServer(query(collection(db, "users"), where("role", "==", "teacher")));
+        if (scope === "registan") {
+            const users = await fetchRegistanUsers();
+            return users.filter((u) => u.role === role);
+        }
+        const snap = await getDocs(query(collection(db, "users"), where("role", "==", role)));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as User);
+    } catch (error) {
+        console.error("Error fetching admin users:", error);
+        return [];
+    }
+};
+
+/** ID учеников в текущем scope — для аналитики (слабые предметы и т.п.). */
+export const fetchScopedStudentIds = async (scope: AdminScope): Promise<string[]> =>
+    (await fetchAdminUsers("student", scope)).map((u) => u.id);
+
+export interface AdminStats {
+    subjects: number;
+    textbooks: number;
+    topics: number;
+    questions: number;
+    students: number;
+    teachers: number;
+    /** Контент (fanlar/savollar…) общий для всех — не фильтруется по scope */
+    contentShared: boolean;
+}
+
+/**
+ * Статистика дашборда с учётом scope.
+ *
+ * ВАЖНО (флаг): контент (subjects/textbooks/topics/questions/mocks) НЕ имеет
+ * привязки к организации — он общий для всей платформы. Поэтому в scope
+ * "registan" по-Registan фильтруются только счётчики учеников/учителей, а
+ * счётчики контента остаются платформенными (contentShared=true). Если
+ * Registan должен иметь СВОЙ отдельный контент — нужна новая привязка в схеме.
+ */
+export const fetchAdminStats = async (scope: AdminScope = "all"): Promise<AdminStats> => {
+    try {
+        const [subjectsCount, textbooksCount, topicsCount, questionsCount] = await Promise.all([
+            getCountFromServer(collection(db, "subjects")),
+            getCountFromServer(collection(db, "textbooks")),
+            getCountFromServer(collection(db, "topics")),
+            getCountFromServer(collection(db, "questions")),
+        ]);
+
+        let students: number;
+        let teachers: number;
+        if (scope === "registan") {
+            const users = await fetchRegistanUsers();
+            students = users.filter((u) => u.role === "student").length;
+            teachers = users.filter((u) => u.role === "teacher").length;
+        } else {
+            const [s, t] = await Promise.all([
+                getCountFromServer(query(collection(db, "users"), where("role", "==", "student"))),
+                getCountFromServer(query(collection(db, "users"), where("role", "==", "teacher"))),
+            ]);
+            students = s.data().count;
+            teachers = t.data().count;
+        }
 
         return {
             subjects: subjectsCount.data().count,
             textbooks: textbooksCount.data().count,
             topics: topicsCount.data().count,
             questions: questionsCount.data().count,
-            students: studentsCount.data().count,
-            teachers: teachersCount.data().count,
+            students,
+            teachers,
+            contentShared: scope === "registan",
         };
     } catch (error) {
         console.error("Error fetching admin stats:", error);
-        return { subjects: 0, textbooks: 0, topics: 0, questions: 0, students: 0, teachers: 0 };
+        return { subjects: 0, textbooks: 0, topics: 0, questions: 0, students: 0, teachers: 0, contentShared: false };
     }
 };
 

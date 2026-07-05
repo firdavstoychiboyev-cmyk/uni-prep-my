@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import AdminScopeToggle from "@/components/admin-scope-toggle";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
@@ -32,6 +33,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const menuItems = [
         { name: t("admin.dashboard"), href: "/admin", icon: LayoutDashboard },
+        { name: t("admin.students"), href: "/admin/students", icon: GraduationCap },
+        { name: t("admin.teachers"), href: "/admin/teachers", icon: Users },
+        { name: t("admin.analytics"), href: "/admin/analytics", icon: BarChart3 },
         { name: t("nav.subjects"), href: "/admin/subjects", icon: BookOpen },
         { name: t("subject.textbooks"), href: "/admin/textbooks", icon: Library },
         { name: t("stats.topics"), href: "/admin/topics", icon: ListTree },
@@ -51,6 +55,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         A
                     </div>
                     <span className="font-semibold tracking-tight text-foreground">{t("admin.panel")}</span>
+                </div>
+
+                {/* Область данных: вся платформа / только Registan */}
+                <div className="border-b border-border px-4 py-4">
+                    <AdminScopeToggle />
                 </div>
 
                 <nav className="mt-4 flex-1 space-y-1 p-4">
@@ -87,6 +96,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex-1 min-w-0 flex flex-col">
                 {/* Mobile horizontal tab bar */}
                 <div className="md:hidden border-b border-border bg-card shrink-0">
+                    <div className="px-3 pt-2">
+                        <AdminScopeToggle compact />
+                    </div>
                     <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
                         {menuItems.map((item) => {
                             const isActive = pathname === item.href;
