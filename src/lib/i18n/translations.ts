@@ -378,6 +378,8 @@ export const translations: Record<Language, Record<string, string>> = {
         "profile.percentTopics": "% пройденных тем",
         "role.teacher": "Учитель",
         "role.student": "Ученик",
+        "role.admin": "Админ",
+        "role.registanAdmin": "Registan админ",
 
         // ── Auth prompts (anonymous users) ───────────────────────
         "authPrompt.statistics": "Войдите, чтобы посмотреть свою статистику",
@@ -496,6 +498,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "adminUsers.shortId": "ID",
         "adminUsers.email": "Email",
         "adminUsers.org": "Организация",
+        "adminUsers.role": "Роль",
+        "adminRush.title": "Rush (Registan)",
+        "adminRush.subtitle": "Запланировать Rush-сессию для группы Registan.",
+        "adminRush.pickGroup": "Группа Registan",
+        "adminRush.noGroups": "Группы Registan не найдены",
         "adminUsers.count": "Всего: {count}",
         "adminUsers.empty": "Пользователи не найдены",
         "adminAnalytics.subtitle": "Слабые предметы по числу ошибок — по выбранной области.",
@@ -978,6 +985,8 @@ export const translations: Record<Language, Record<string, string>> = {
         "profile.percentTopics": "o‘tilgan mavzular %",
         "role.teacher": "O‘qituvchi",
         "role.student": "O‘quvchi",
+        "role.admin": "Admin",
+        "role.registanAdmin": "Registan admin",
 
         // ── Auth prompts (anonymous users) ───────────────────────
         "authPrompt.statistics": "Statistikangizni ko‘rish uchun tizimga kiring",
@@ -1096,6 +1105,11 @@ export const translations: Record<Language, Record<string, string>> = {
         "adminUsers.shortId": "ID",
         "adminUsers.email": "Email",
         "adminUsers.org": "Tashkilot",
+        "adminUsers.role": "Rol",
+        "adminRush.title": "Rush (Registan)",
+        "adminRush.subtitle": "Registan guruhi uchun Rush sessiyasini rejalashtiring.",
+        "adminRush.pickGroup": "Registan guruhi",
+        "adminRush.noGroups": "Registan guruhlari topilmadi",
         "adminUsers.count": "Jami: {count}",
         "adminUsers.empty": "Foydalanuvchilar topilmadi",
         "adminAnalytics.subtitle": "Xatolar soni bo‘yicha zaif fanlar — tanlangan soha bo‘yicha.",

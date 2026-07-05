@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3 } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3, Zap } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import AdminScopeToggle from "@/components/admin-scope-toggle";
+import { isAnyAdmin, isRegistanAdmin, registanAdminCanAccess, REGISTAN_ADMIN_ROUTES } from "@/lib/roles";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
@@ -15,13 +16,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const { t } = useTranslation();
 
+    // Доступ: супер-админ или Registan-админ. Registan-админа выкидываем с
+    // запрещённых разделов админки обратно на дашборд панели.
     useEffect(() => {
-        if (!isLoading && (!user || user.role !== "admin")) {
+        if (isLoading) return;
+        if (!user || !isAnyAdmin(user)) {
             router.push("/home");
+            return;
         }
-    }, [user, isLoading, router]);
+        if (isRegistanAdmin(user) && !registanAdminCanAccess(pathname)) {
+            router.push("/admin");
+        }
+    }, [user, isLoading, router, pathname]);
 
-    if (isLoading || !user || user.role !== "admin") {
+    if (isLoading || !user || !isAnyAdmin(user)) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-transparent">
                 <div className="h-1 w-8 overflow-hidden rounded-full bg-muted">
@@ -31,11 +39,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    const menuItems = [
+    const allMenuItems = [
         { name: t("admin.dashboard"), href: "/admin", icon: LayoutDashboard },
         { name: t("admin.students"), href: "/admin/students", icon: GraduationCap },
         { name: t("admin.teachers"), href: "/admin/teachers", icon: Users },
         { name: t("admin.analytics"), href: "/admin/analytics", icon: BarChart3 },
+        { name: t("adminRush.title"), href: "/admin/rush", icon: Zap },
         { name: t("nav.subjects"), href: "/admin/subjects", icon: BookOpen },
         { name: t("subject.textbooks"), href: "/admin/textbooks", icon: Library },
         { name: t("stats.topics"), href: "/admin/topics", icon: ListTree },
@@ -45,6 +54,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: t("adminMockQ.title"), href: "/admin/mock-questions", icon: ListChecks },
         { name: t("adminCodes.title"), href: "/admin/codes", icon: KeyRound },
     ];
+    // Registan-админ видит только разрешённые разделы; супер-админ — все.
+    const menuItems = isRegistanAdmin(user)
+        ? allMenuItems.filter((m) => REGISTAN_ADMIN_ROUTES.includes(m.href))
+        : allMenuItems;
 
     return (
         <div className="flex min-h-screen bg-transparent">

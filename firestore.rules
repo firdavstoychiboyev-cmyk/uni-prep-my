@@ -23,6 +23,12 @@ service cloud.firestore {
       return isSignedIn() && userRole() == "admin";
     }
 
+    // Ограниченный админ организации Registan (роль в профиле). НЕ входит в
+    // isAdmin()/isTeacherOrAdmin() — глобальный контент ему недоступен.
+    function isRegistanAdmin() {
+      return isSignedIn() && userRole() == "registanAdmin";
+    }
+
     function isTeacherOrAdmin() {
       return isSignedIn() && userRole() in ["teacher", "admin"];
     }
@@ -36,7 +42,10 @@ service cloud.firestore {
       // иначе любой аккаунт мог бы повысить себя до админа)
       function ownRoleAllowed() {
         return !("role" in request.resource.data)
-               || request.resource.data.role in ["student", "teacher"];
+               || request.resource.data.role in ["student", "teacher"]
+               // не даём ПОВЫСИТЬ роль самому себе, но разрешаем сохранить
+               // текущую (напр. registanAdmin обновляет свой профиль)
+               || request.resource.data.role == resource.data.role;
       }
 
       // Any signed-in user can read profiles (needed for class management)
@@ -114,11 +123,23 @@ service cloud.firestore {
     // (the atomic use-count bump inside the signup batch), and only while the
     // code is active and under its maxUses limit.
 
+    // Registan-админ управляет ТОЛЬКО кодами organization=="registan":
+    //  - list разрешён лишь при запросе, где каждый документ registan (иначе
+    //    правило на не-registan документе провалит выборку — data-layer scope);
+    //  - create/delete/toggle только для registan-кодов.
+    function isRegistanCode() {
+      return resource.data.organization == "registan";
+    }
     match /accessCodes/{code} {
       allow get: if true;
-      allow list: if isAdmin();
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
+      allow list: if isAdmin() || (isRegistanAdmin() && isRegistanCode());
+      allow create: if isAdmin()
+        || (isRegistanAdmin() && request.resource.data.organization == "registan");
+      allow delete: if isAdmin() || (isRegistanAdmin() && isRegistanCode());
+      allow update: if isAdmin()
+        || (isRegistanAdmin() && isRegistanCode()
+            && request.resource.data.organization == "registan")
+        || (
         isSignedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usesCount"])
         && request.resource.data.usesCount == resource.data.usesCount + 1
@@ -169,6 +190,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid && (
         (request.resource.data.creatorRole == "student")
         || (request.resource.data.creatorRole in ["teacher", "admin"] && isTeacherOrAdmin())
+        // Registan-админ планирует групповые Rush-сессии
+        || (request.resource.data.creatorRole == "admin" && isRegistanAdmin())
       );
       allow update, delete: if isSignedIn() && (resource.data.createdBy == request.auth.uid || isTeacherOrAdmin());
     }

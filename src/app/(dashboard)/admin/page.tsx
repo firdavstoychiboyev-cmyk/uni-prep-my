@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { fetchAdminStats, AdminStats } from "@/lib/admin-utils";
-import { useAdminScopeStore } from "@/store/useAdminScopeStore";
+import { useAdminScope } from "@/store/useAdminScopeStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { isRegistanAdmin } from "@/lib/roles";
 import {
     Users,
     GraduationCap,
@@ -18,7 +20,10 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AdminDashboard() {
     const { t } = useTranslation();
-    const { scope } = useAdminScopeStore();
+    const { scope } = useAdminScope();
+    const { user } = useAuthStore();
+    // Registan-админу не показываем ярлыки управления глобальным контентом
+    const showContentMgmt = !isRegistanAdmin(user);
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -95,6 +100,7 @@ export default function AdminDashboard() {
                 )}
             </section>
 
+            {showContentMgmt && (
             <section className="rounded-2xl border border-border bg-card p-8">
                 <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">{t("admin.contentMgmt")}</h2>
                 <p className="max-w-2xl text-sm italic leading-relaxed text-muted-foreground">
@@ -156,6 +162,7 @@ export default function AdminDashboard() {
                     </a>
                 </div>
             </section>
+            )}
         </div>
     );
 }

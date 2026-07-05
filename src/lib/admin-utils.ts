@@ -16,6 +16,13 @@ import { db } from "./firebase";
 import { User } from "./firestore-schema";
 import { AdminScope, REGISTAN_ORG } from "../store/useAdminScopeStore";
 
+/**
+ * Смена роли пользователя супер-админом (в т.ч. промо в "registanAdmin").
+ * По правилам Firestore записать чужую роль может только супер-админ (isAdmin).
+ */
+export const setUserRole = (userId: string, role: import("./firestore-schema").UserRole) =>
+    updateDoc(doc(db, "users", userId), { role, updatedAt: new Date().toISOString() });
+
 /** Пользователи организации Registan (одно чтение, без composite-индекса). */
 export const fetchRegistanUsers = async (): Promise<User[]> => {
     const snap = await getDocs(query(collection(db, "users"), where("organization", "==", REGISTAN_ORG)));
@@ -33,12 +40,16 @@ export const fetchAdminUsers = async (
     role: "student" | "teacher",
     scope: AdminScope
 ): Promise<User[]> => {
+    // В списке учеников показываем и Registan-админов (их промоутят из учеников),
+    // чтобы супер-админ мог их видеть и понижать роль обратно.
+    const roles = role === "student" ? ["student", "registanAdmin"] : ["teacher"];
+    const matches = (r?: string) => roles.includes(r ?? "");
     try {
         if (scope === "registan") {
             const users = await fetchRegistanUsers();
-            return users.filter((u) => u.role === role);
+            return users.filter((u) => matches(u.role));
         }
-        const snap = await getDocs(query(collection(db, "users"), where("role", "==", role)));
+        const snap = await getDocs(query(collection(db, "users"), where("role", "in", roles)));
         return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as User);
     } catch (error) {
         console.error("Error fetching admin users:", error);
@@ -46,9 +57,9 @@ export const fetchAdminUsers = async (
     }
 };
 
-/** ID учеников в текущем scope — для аналитики (слабые предметы и т.п.). */
+/** ID учеников в текущем scope — для аналитики (только настоящие ученики). */
 export const fetchScopedStudentIds = async (scope: AdminScope): Promise<string[]> =>
-    (await fetchAdminUsers("student", scope)).map((u) => u.id);
+    (await fetchAdminUsers("student", scope)).filter((u) => u.role === "student").map((u) => u.id);
 
 export interface AdminStats {
     subjects: number;

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Landmark } from "lucide-react";
-import { fetchAdminUsers } from "@/lib/admin-utils";
-import { useAdminScopeStore, REGISTAN_ORG } from "@/store/useAdminScopeStore";
-import { User } from "@/lib/firestore-schema";
+import { Landmark, Loader2 } from "lucide-react";
+import { fetchAdminUsers, setUserRole } from "@/lib/admin-utils";
+import { useAdminScope, REGISTAN_ORG } from "@/store/useAdminScopeStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { isSuperAdmin, ASSIGNABLE_ROLES } from "@/lib/roles";
+import { User, UserRole } from "@/lib/firestore-schema";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /**
@@ -13,8 +15,23 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
  */
 export default function AdminUsersList({ role, titleKey }: { role: "student" | "teacher"; titleKey: string }) {
     const { t } = useTranslation();
-    const { scope } = useAdminScopeStore();
+    const { scope } = useAdminScope();
+    const { user: me } = useAuthStore();
+    const canManageRoles = isSuperAdmin(me); // роли меняет ТОЛЬКО супер-админ
     const [users, setUsers] = useState<User[] | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
+
+    const changeRole = async (id: string, role: UserRole) => {
+        setSavingId(id);
+        try {
+            await setUserRole(id, role);
+            setUsers((prev) => prev?.map((u) => (u.id === id ? { ...u, role } : u)) ?? prev);
+        } catch (e) {
+            console.error("Error setting role:", e);
+        } finally {
+            setSavingId(null);
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -59,6 +76,7 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
                                     <th className="px-3 py-3">{t("adminUsers.shortId")}</th>
                                     <th className="px-3 py-3">{t("adminUsers.email")}</th>
                                     <th className="px-3 py-3">{t("adminUsers.org")}</th>
+                                    <th className="px-3 py-3">{t("adminUsers.role")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -81,6 +99,27 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-muted-foreground/60">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            {canManageRoles ? (
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={u.role}
+                                                        disabled={savingId === u.id}
+                                                        onChange={(e) => changeRole(u.id, e.target.value as UserRole)}
+                                                        className="h-8 rounded-lg border border-border bg-background px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
+                                                    >
+                                                        {ASSIGNABLE_ROLES.map((r) => (
+                                                            <option key={r} value={r}>{t(`role.${r}`)}</option>
+                                                        ))}
+                                                    </select>
+                                                    {savingId === u.id && <Loader2 size={13} className="animate-spin text-muted-foreground" />}
+                                                </div>
+                                            ) : (
+                                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${u.role === "registanAdmin" ? "bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300" : "bg-muted text-muted-foreground"}`}>
+                                                    {t(`role.${u.role}`)}
+                                                </span>
                                             )}
                                         </td>
                                     </tr>

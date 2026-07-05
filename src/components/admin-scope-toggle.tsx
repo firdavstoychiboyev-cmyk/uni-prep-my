@@ -1,16 +1,25 @@
 "use client";
 
 import { Landmark, Globe } from "lucide-react";
-import { useAdminScopeStore, AdminScope } from "@/store/useAdminScopeStore";
+import { useAdminScope, AdminScope } from "@/store/useAdminScopeStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /**
  * Переключатель области данных админ-панели: «Barchasi» / «Faqat Registan».
- * Меняет scope во всех списках, счётчиках и аналитике панели.
+ * Меняет scope во всех списках, счётчиках и аналитике панели. Для Registan-
+ * админа область заперта — показываем статичный бейдж вместо переключателя.
  */
 export default function AdminScopeToggle({ compact = false }: { compact?: boolean }) {
     const { t } = useTranslation();
-    const { scope, setScope } = useAdminScopeStore();
+    const { scope, setScope, locked } = useAdminScope();
+
+    if (locked) {
+        return (
+            <div className={`flex items-center gap-1.5 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300 ${compact ? "" : "w-full justify-center"}`}>
+                <Landmark size={13} /> {t("adminScope.registan")}
+            </div>
+        );
+    }
 
     const options: { value: AdminScope; label: string; icon: typeof Globe }[] = [
         { value: "all", label: t("adminScope.all"), icon: Globe },

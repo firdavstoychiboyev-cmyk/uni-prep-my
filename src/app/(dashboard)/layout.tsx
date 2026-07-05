@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { isRegistanAdmin } from "@/lib/roles";
 
 // Routes that are meaningless without an account — everything else is open to anonymous browsing.
 // /statistics и /achievements открыты: они показывают inline-приглашение войти вместо редиректа.
@@ -28,6 +29,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.push(`/login?returnTo=${returnTo}`);
         }
     }, [user, isLoading, isProtected, router]);
+
+    // Registan-админ живёт только в своей панели: со «студенческих» разделов
+    // (главная, предметы, моки и т.д.) отправляем его в /admin. Свои /admin,
+    // /settings, /profile оставляем доступными.
+    useEffect(() => {
+        if (isLoading || !user || !isRegistanAdmin(user)) return;
+        const allowedPrefixes = ["/admin", "/settings", "/profile"];
+        const allowed = allowedPrefixes.some((p) => pathname === p || pathname?.startsWith(`${p}/`));
+        if (!allowed) router.replace("/admin");
+    }, [user, isLoading, pathname, router]);
 
     if (isLoading) {
         return (

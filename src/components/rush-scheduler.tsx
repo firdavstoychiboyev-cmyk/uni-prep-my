@@ -44,7 +44,7 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                 scheduledFor: new Date(scheduledFor).toISOString(),
                 windowEnd: windowEnd ? new Date(windowEnd).toISOString() : undefined,
                 createdBy: user.id,
-                creatorRole: user.role === "admin" ? "admin" : "teacher",
+                creatorRole: (user.role === "admin" || user.role === "registanAdmin") ? "admin" : "teacher",
                 language: (user.language ?? "ru") as Language,
                 title: subjects.find((s) => s.id === subjectId)?.name,
             });

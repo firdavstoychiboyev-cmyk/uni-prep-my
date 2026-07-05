@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Landmark } from "lucide-react";
 import { fetchScopedStudentIds } from "@/lib/admin-utils";
-import { useAdminScopeStore } from "@/store/useAdminScopeStore";
+import { useAdminScope } from "@/store/useAdminScopeStore";
 import SubjectFailures from "@/components/subject-failures";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -14,7 +14,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
  */
 export default function AdminAnalyticsPage() {
     const { t } = useTranslation();
-    const { scope } = useAdminScopeStore();
+    const { scope } = useAdminScope();
     const [studentIds, setStudentIds] = useState<string[] | null>(null);
 
     useEffect(() => {

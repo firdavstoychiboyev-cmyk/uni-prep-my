@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { collection, doc, getDocs, orderBy, query, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, doc, getDocs, orderBy, query, where, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { AccessCode } from "@/lib/firestore-schema";
 import { normalizeAccessCode } from "@/lib/auth-utils";
 import { KeyRound, Plus, Trash2, RefreshCw, Power } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useAdminScope, REGISTAN_ORG } from "@/store/useAdminScopeStore";
 
 type CodeRow = AccessCode & { id: string };
 
@@ -15,6 +16,9 @@ const randomCode = (org: string) =>
 
 export default function AdminCodesPage() {
     const { t } = useTranslation();
+    // В scope "registan" (в т.ч. всегда для Registan-админа) — только Registan-коды
+    const { scope } = useAdminScope();
+    const registanOnly = scope === "registan";
     const [codes, setCodes] = useState<CodeRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -29,24 +33,35 @@ export default function AdminCodesPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const snap = await getDocs(query(collection(db, "accessCodes"), orderBy("createdAt", "desc")));
-            setCodes(snap.docs.map((d) => ({ id: d.id, ...(d.data() as AccessCode) })));
+            // Registan: узкий запрос по организации (и правила это требуют).
+            const snap = registanOnly
+                ? await getDocs(query(collection(db, "accessCodes"), where("organization", "==", REGISTAN_ORG)))
+                : await getDocs(query(collection(db, "accessCodes"), orderBy("createdAt", "desc")));
+            const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as AccessCode) }));
+            if (registanOnly) rows.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+            setCodes(rows);
         } catch (e) {
             console.error("Error loading access codes:", e);
             setErrorKey("adminCodes.loadError");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [registanOnly]);
 
     useEffect(() => {
         void load();
     }, [load]);
 
+    // В Registan-области организация кода жёстко зафиксирована
+    useEffect(() => {
+        if (registanOnly) setNewOrg(REGISTAN_ORG);
+    }, [registanOnly]);
+
     const create = async (e: React.FormEvent) => {
         e.preventDefault();
         const code = normalizeAccessCode(newCode);
-        const org = newOrg.trim().toLowerCase();
+        // В Registan-области org нельзя переопределить
+        const org = registanOnly ? REGISTAN_ORG : newOrg.trim().toLowerCase();
         if (!code || !org || busy) return;
         setErrorKey(null);
         setBusy(true);
@@ -129,7 +144,9 @@ export default function AdminCodesPage() {
                         value={newOrg}
                         onChange={(e) => setNewOrg(e.target.value)}
                         placeholder="registan"
-                        className="h-11 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10"
+                        disabled={registanOnly}
+                        title={registanOnly ? t("adminScope.registan") : undefined}
+                        className="h-11 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10 disabled:opacity-60"
                         required
                     />
                     <input
