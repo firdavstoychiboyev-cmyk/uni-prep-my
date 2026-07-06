@@ -8,6 +8,7 @@ import {
     EntranceQuestionSource, EntranceSet, Language,
 } from "./firestore-schema";
 import { fetchRushQuestions, RushQuestion } from "./rush-utils";
+import { fetchTopicsBySubject, fetchQuestionsByTopic } from "./data-fetching";
 
 export type EntranceQuestion = RushQuestion;
 
@@ -27,18 +28,34 @@ const sample = <T>(arr: T[], n: number): T[] => {
 // ── General question bank ─────────────────────────────────────────────────────
 
 /**
- * Общий предметный банк: вопросы с subjectId == X (mock/DTM-контент). Практика
- * тегируется topicId, а не subjectId — см. ФЛАГ в PR. Фильтр по типу и языку.
+ * Общий предметный банк предмета = ВСЕ вопросы предмета, независимо от класса
+ * (класс только помечает тест, но не ограничивает пул). Вопросы предмета бывают
+ * двух видов тегирования:
+ *   • практика/импорт — тег topicId (subjectId на вопросе НЕТ); достаём через
+ *     темы предмета (topics.subjectId == X) → questions.topicId;
+ *   • mock/entrance-XLSX — тег subjectId прямо на вопросе.
+ * Раньше банк читался только по subjectId, поэтому предметы с практическим
+ * контентом (напр. Tarix, ~535 вопросов) давали 0 → ложное «недостаточно
+ * вопросов». Теперь объединяем оба источника и дедупим по id.
  */
 export const fetchGeneralBankQuestions = async (
     subjectId: string,
     questionType: EntranceQuestionType,
     language: Language
 ): Promise<RushQuestion[]> => {
-    const snap = await getDocs(query(collection(db, "questions"), where("subjectId", "==", subjectId)));
-    return snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }) as RushQuestion & { language?: string })
-        .filter((q) => (q.language ?? "ru") === language && matchesType(q.type, questionType));
+    // 1) Вопросы через темы предмета (topicId-тегированные)
+    const topics = await fetchTopicsBySubject(subjectId, language);
+    const perTopic = await Promise.all(topics.map((tp) => fetchQuestionsByTopic(tp.id, language)));
+
+    // 2) Вопросы, тегированные напрямую subjectId (mock/entrance-XLSX)
+    const directSnap = await getDocs(query(collection(db, "questions"), where("subjectId", "==", subjectId)));
+    const direct = directSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as RushQuestion & { language?: string });
+
+    const byId = new Map<string, RushQuestion & { language?: string }>();
+    for (const q of [...perTopic.flat() as (RushQuestion & { language?: string })[], ...direct]) {
+        if ((q.language ?? "ru") === language && matchesType(q.type, questionType)) byId.set(q.id, q);
+    }
+    return Array.from(byId.values());
 };
 
 // ── Dedicated entrance sets ───────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import SubjectCard from "@/components/subject-card";
 import SubjectFailures from "@/components/subject-failures";
+import ActivityHeatmap from "@/components/activity-heatmap";
 import {
     Target, Flame, ListChecks, TrendingUp, Trophy,
     CheckCircle2, ChevronRight, BookOpen,
@@ -170,99 +171,7 @@ export default function StatisticsPage() {
             {user && <SubjectFailures userId={user.id} />}
 
             {/* Activity heatmap — calendar grid, last 6 months */}
-            {(() => {
-                const MONTH_RU = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-                const DAY_RU = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-
-                const months = Array.from({ length: 6 }, (_, i) => {
-                    const d = new Date();
-                    d.setDate(1);
-                    d.setMonth(d.getMonth() - 5 + i);
-                    return { year: d.getFullYear(), month: d.getMonth() };
-                });
-
-                const cellColor = (count: number) => {
-                    if (!count) return "bg-muted";
-                    if (count <= 5) return "bg-[hsl(var(--brand-blue))]/35";
-                    if (count <= 15) return "bg-[hsl(var(--brand-blue))]/60";
-                    if (count <= 30) return "bg-[hsl(var(--brand-blue))]/85";
-                    return "bg-[hsl(var(--brand-blue))]";
-                };
-
-                return (
-                    <div className="rounded-xl p-5 sm:p-6 bg-card border border-border">
-                        <div className="flex items-center justify-between gap-3 mb-5">
-                            <div className="flex items-center gap-3">
-                                <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                    <div className="font-bold text-foreground text-[15px]">{t("stats.activity")}</div>
-                                    <div className="text-[12px] text-muted-foreground">Всего решено: <span className="font-semibold text-foreground">{globalStats?.totalSolved ?? 0}</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {months.map(({ year, month }) => {
-                                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                                // Monday-based week offset (0=Mon … 6=Sun)
-                                const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
-
-                                return (
-                                    <div key={`${year}-${month}`}>
-                                        <div className="text-xs font-semibold text-foreground mb-2">
-                                            {MONTH_RU[month]} {year}
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-[3px] mb-1">
-                                            {DAY_RU.map((d) => (
-                                                <div key={d} className="text-[9px] text-muted-foreground text-center">{d}</div>
-                                            ))}
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-[3px]">
-                                            {Array.from({ length: firstDow }).map((_, i) => (
-                                                <div key={`empty-${i}`} />
-                                            ))}
-                                            {Array.from({ length: daysInMonth }, (_, d) => {
-                                                const day = d + 1;
-                                                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                                                const count = dailyActivity[dateStr] ?? 0;
-                                                const monthNames = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-                                                const tooltip = count ? `${day} ${monthNames[month]} ${year}: ${count} вопросов` : `${day} ${monthNames[month]} ${year}`;
-                                                // Число дня: на насыщенных ячейках — белым, на слабых — цветом темы
-                                                const dayTextColor = count === 0
-                                                    ? "text-muted-foreground/70"
-                                                    : count > 15
-                                                        ? "text-white"
-                                                        : "text-foreground";
-                                                return (
-                                                    <div
-                                                        key={dateStr}
-                                                        title={tooltip}
-                                                        className={`w-full aspect-square rounded-sm flex items-center justify-center ${cellColor(count)}`}
-                                                    >
-                                                        <span className={`text-[9px] leading-none font-medium tabular-nums ${dayTextColor}`}>
-                                                            {day}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="mt-5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span>Меньше</span>
-                            <span className="w-3 h-3 rounded-sm bg-muted border border-border" />
-                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/35" />
-                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/60" />
-                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]/85" />
-                            <span className="w-3 h-3 rounded-sm bg-[hsl(var(--brand-blue))]" />
-                            <span>Больше</span>
-                        </div>
-                    </div>
-                );
-            })()}
+            <ActivityHeatmap dailyActivity={dailyActivity} totalSolved={globalStats?.totalSolved ?? 0} />
 
             {/* Per-subject detailed cards */}
             <section>

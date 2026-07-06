@@ -34,38 +34,10 @@ function accuracyColor(accuracy: number): string {
     return "text-red-500 dark:text-red-400";
 }
 
-function TopicProgressStats({ prog }: { prog: UserProgress | undefined }) {
-    const { t } = useTranslation();
-    if (!prog) return null;
-    const total = prog.solvedQuestions ?? 0;
-    const marked = prog.markedQuestions ?? 0;
-    const hasCompleted = Boolean(prog.completedAt || prog.medal);
-    if (!hasCompleted && total === 0 && marked === 0) return null;
-
-    const hasNewFields = prog.correctFirstCount !== undefined || prog.correctRetryCount !== undefined;
-    const correctFirst = hasNewFields ? (prog.correctFirstCount ?? 0) : total;
-
-    return (
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            <span
-                className={`inline-flex items-center gap-1 ${correctFirst > 0 ? "text-emerald-600" : "text-muted-foreground"}`}
-                title={t("subject.correctFirst")}
-            >
-                <span className={`flex h-5 w-5 items-center justify-center rounded-full shadow-sm ${
-                    correctFirst > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
-                }`}>
-                    <Check className="h-3 w-3 stroke-[3]" aria-hidden />
-                </span>
-                <span className="text-sm font-semibold tabular-nums">{correctFirst}</span>
-            </span>
-            {marked > 0 && (
-                <span className="inline-flex items-center gap-1 text-amber-600" title={t("subject.markedInTest")}>
-                    <Bookmark className="h-4 w-4 shrink-0 fill-amber-400 text-amber-600" aria-hidden />
-                    <span className="text-sm font-semibold tabular-nums">{marked}</span>
-                </span>
-            )}
-        </div>
-    );
+function accuracyDot(accuracy: number): string {
+    if (accuracy >= 80) return "bg-emerald-500";
+    if (accuracy >= 50) return "bg-amber-500";
+    return "bg-red-500";
 }
 
 type TopicGroup = {
@@ -481,7 +453,7 @@ export default function SubjectPage() {
     const hasTopics = flatTopics.length > 0;
 
     return (
-        <div className="flex flex-col gap-6 pb-28 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mx-auto w-full max-w-4xl flex flex-col gap-7 pb-28 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
                 <Link href="/home" className="hover:text-foreground transition-colors duration-200">
@@ -493,8 +465,10 @@ export default function SubjectPage() {
 
             {/* Title */}
             <div>
-                <h1 className="text-[24px] sm:text-[28px] font-extrabold text-foreground" style={{ letterSpacing: "-.02em" }}>{subject.name}</h1>
-                <p className="text-[13px] mt-1 text-muted-foreground">{t("subject.questionBank")}</p>
+                <h1 className="text-[30px] sm:text-[38px] font-extrabold text-foreground leading-[1.05]" style={{ letterSpacing: "-.025em" }}>{subject.name}</h1>
+                <p className="text-[14px] sm:text-[15px] mt-1.5 text-muted-foreground font-medium">
+                    {totalQuestions} {pluralQuestions(totalQuestions, language)} · {t("subject.questionBank")}
+                </p>
             </div>
 
             {/* Toolbar row 1: Filters toggle + toggles */}
@@ -576,42 +550,33 @@ export default function SubjectPage() {
                 </div>
             )}
 
-            {/* Subject header card */}
-            <div className="relative overflow-hidden rounded-xl p-6 sm:p-7 transition-all duration-300 bg-card border border-border">
-                <div className="relative flex items-start gap-4">
-                    <TopicCheckbox
-                        checked={hasTopics && selectedIds.size === flatTopics.length}
-                        onChange={selectAll}
-                        disabled={!hasTopics}
-                    />
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-4">
+            {/* Overall progress — unboxed summary */}
+            {hasTopics && (
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-end justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <TopicCheckbox
+                                checked={selectedIds.size === flatTopics.length}
+                                onChange={selectAll}
+                                disabled={!hasTopics}
+                            />
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{subject.name}</h2>
-                                <p className="mt-0.5 text-[13px] text-muted-foreground">
-                                    {totalQuestions} {pluralQuestions(totalQuestions, language)}
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/70">{t("subject.overallProgress")}</p>
+                                <p className="text-[15px] font-semibold text-foreground tabular-nums">
+                                    {completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}
                                 </p>
                             </div>
-                            {completedTopicsCount > 0 && (
-                                <div className="shrink-0 text-right">
-                                    <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground">{subjectCompletionPct}%</span>
-                                    <p className="text-[12px] mt-0.5 text-muted-foreground">{completedTopicsCount} / {flatTopics.length} {t("subject.topicsWord")}</p>
-                                </div>
-                            )}
                         </div>
-                        {hasTopics && completedTopicsCount > 0 && (
-                            <div className="mt-4">
-                                <div className="h-1 w-full rounded-full overflow-hidden bg-muted">
-                                    <div
-                                        className="h-full rounded-full transition-all duration-700 bg-foreground"
-                                        style={{ width: `${subjectCompletionPct}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                        <span className="text-3xl sm:text-4xl font-extrabold tabular-nums text-foreground leading-none">{subjectCompletionPct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full overflow-hidden bg-muted">
+                        <div
+                            className="h-full rounded-full transition-all duration-700 bg-foreground"
+                            style={{ width: `${subjectCompletionPct}%` }}
+                        />
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Topic tree */}
             {!hasGroups ? (
@@ -632,178 +597,143 @@ export default function SubjectPage() {
             ) : (() => {
                 const directGroup = displayGroups.find(g => g.textbookId === null);
                 const textbookGroups = displayGroups.filter(g => g.textbookId !== null);
-                const hasTwo = directGroup && textbookGroups.length > 0;
+                const orderedGroups: TopicGroup[] = [
+                    ...(directGroup ? [{ ...directGroup, textbookTitle: t("subject.generalTopics") }] : []),
+                    ...textbookGroups,
+                ];
 
-                const renderTopicList = (group: TopicGroup) => (
-                    <ul className="space-y-0">
-                        {group.topics.map((topic) => {
-                            const q = topic.totalQuestions || 0;
-                            const selected = selectedIds.has(topic.id);
-                            const isSaved = savedTopics.has(topic.id);
-                            const prog = progressMap[topic.id];
-                            const isCompleted = prog && prog.medal && prog.medal !== "none";
-                            const topicPct = q > 0
-                                ? Math.min(100, Math.round(((prog?.correctFirstCount ?? prog?.solvedQuestions ?? 0) / q) * 100))
-                                : 0;
-                            return (
-                                <li key={topic.id}>
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
-                                                if (multiSelect) toggleTopic(topic.id);
-                                                else startTest(`/test/${topic.id}`);
-                                            }
-                                        }}
-                                        onClick={() => {
-                                            if (multiSelect) toggleTopic(topic.id);
-                                            else startTest(`/test/${topic.id}`);
-                                        }}
-                                        className={`flex cursor-pointer items-center gap-3 py-3 px-2 -mx-2 rounded-xl transition-colors duration-200 ${
-                                            selected ? "bg-[hsl(var(--brand-blue-soft))]/50 dark:bg-[hsl(var(--brand-blue))]/15" : "hover:bg-muted/60 dark:hover:bg-white/5"
-                                        }`}
-                                    >
-                                        <TopicCheckbox
-                                            checked={selected}
-                                            onChange={() => toggleTopic(topic.id)}
-                                            stopPropagation
-                                        />
-                                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                                            {/* Title + progress bar */}
-                                            <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                                                <span className="truncate text-sm font-medium text-foreground leading-tight">
-                                                    {topic.title}
+                const renderTopicRow = (topic: Topic) => {
+                    const q = topic.totalQuestions || 0;
+                    const selected = selectedIds.has(topic.id);
+                    const isSaved = savedTopics.has(topic.id);
+                    const prog = progressMap[topic.id];
+                    const isCompleted = Boolean(prog && prog.medal && prog.medal !== "none");
+                    const solved = prog?.correctFirstCount ?? prog?.solvedQuestions ?? 0;
+                    const topicPct = q > 0 ? Math.min(100, Math.round((solved / q) * 100)) : 0;
+                    const acc = prog?.accuracy;
+                    const showAcc = prog !== undefined && typeof acc === "number" && (acc > 0 || isCompleted);
+                    return (
+                        <li key={topic.id}>
+                            <div
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        if (multiSelect) toggleTopic(topic.id);
+                                        else startTest(`/test/${topic.id}`);
+                                    }
+                                }}
+                                onClick={() => {
+                                    if (multiSelect) toggleTopic(topic.id);
+                                    else startTest(`/test/${topic.id}`);
+                                }}
+                                className={`group flex cursor-pointer items-center gap-3.5 py-4 px-3 -mx-3 rounded-2xl transition-colors duration-200 ${
+                                    selected ? "bg-[hsl(var(--brand-blue-soft))]/50 dark:bg-[hsl(var(--brand-blue))]/15" : "hover:bg-muted/60 dark:hover:bg-white/5"
+                                }`}
+                            >
+                                <TopicCheckbox
+                                    checked={selected}
+                                    onChange={() => toggleTopic(topic.id)}
+                                    stopPropagation
+                                />
+                                <div className="min-w-0 flex-1 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="truncate text-[15px] font-semibold text-foreground leading-snug">
+                                            {topic.title}
+                                        </span>
+                                        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3.5">
+                                            {/* Accuracy dot + % */}
+                                            {showAcc && (
+                                                <span className="hidden sm:inline-flex items-center gap-1.5" title={t("subject.colAccuracy")}>
+                                                    <span className={`h-2 w-2 rounded-full ${accuracyDot(acc!)}`} />
+                                                    <span className={`text-[13px] font-semibold tabular-nums ${accuracyColor(acc!)}`}>{Math.round(acc!)}%</span>
                                                 </span>
-                                                {q > 0 && (
-                                                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${
-                                                                isCompleted ? "bg-emerald-500 dark:bg-emerald-400" : "bg-[hsl(var(--brand-blue))] opacity-70"
-                                                            }`}
-                                                            style={{ width: `${topicPct}%` }}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {/* Right indicators */}
-                                            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                                                <TopicProgressStats prog={prog} />
-                                                {/* Medal + accuracy — desktop only */}
-                                                {isCompleted && (
-                                                    <div className="hidden sm:flex items-center gap-1">
-                                                        <Trophy
-                                                            size={12}
-                                                            className={medalColor(prog!.medal as Medal)}
-                                                        />
-                                                        {prog!.accuracy > 0 && (
-                                                            <span className={`text-xs font-semibold tabular-nums ${accuracyColor(prog!.accuracy)}`}>
-                                                                {Math.round(prog!.accuracy)}%
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {/* Medal icon only — mobile */}
-                                                {isCompleted && (
-                                                    <Trophy
-                                                        size={12}
-                                                        className={`sm:hidden ${medalColor(prog!.medal as Medal)}`}
-                                                    />
-                                                )}
-                                                <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap hidden sm:block">
-                                                    {q} {pluralQuestionsShort(q, language)}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap sm:hidden">
-                                                    {q}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => toggleSaved(topic.id, e)}
-                                                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                                                        isSaved
-                                                            ? "text-[hsl(var(--brand-blue))] hover:bg-[hsl(var(--brand-blue-soft))]"
-                                                            : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
-                                                    }`}
-                                                    title={isSaved ? t("subject.unsave") : t("subject.saveTopic")}
-                                                >
-                                                    {isSaved
-                                                        ? <BookmarkCheck className="w-4 h-4" />
-                                                        : <Bookmark className="w-4 h-4" />
-                                                    }
-                                                </button>
-                                            </div>
+                                            )}
+                                            {/* Progress fraction */}
+                                            <span className="text-[13px] font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+                                                {q > 0 ? `${solved}/${q}` : "—"}
+                                            </span>
+                                            {isCompleted && <Trophy size={14} className={medalColor(prog!.medal as Medal)} />}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => toggleSaved(topic.id, e)}
+                                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                                                    isSaved
+                                                        ? "text-[hsl(var(--brand-blue))] hover:bg-[hsl(var(--brand-blue-soft))]"
+                                                        : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
+                                                }`}
+                                                title={isSaved ? t("subject.unsave") : t("subject.saveTopic")}
+                                            >
+                                                {isSaved
+                                                    ? <BookmarkCheck className="w-4 h-4" />
+                                                    : <Bookmark className="w-4 h-4" />
+                                                }
+                                            </button>
                                         </div>
                                     </div>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                );
+                                    {/* Progress bar — always present */}
+                                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                isCompleted ? "bg-emerald-500 dark:bg-emerald-400" : "bg-[hsl(var(--brand-blue))] opacity-70"
+                                            }`}
+                                            style={{ width: `${topicPct}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    );
+                };
 
                 return (
-                    <div className="bg-card border border-border rounded-[2rem] shadow-sm overflow-hidden">
-                        <div className={hasTwo ? "grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] items-stretch" : "flex flex-col"}>
-                            {/* Left Column: Учебники */}
-                            <div className={`p-6 sm:p-8 ${hasTwo ? "lg:border-r border-border" : "border-b border-border"}`}>
-                                <h3 className="text-[17px] font-bold text-foreground mb-4">{t("subject.textbooks")}</h3>
-                                <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
-                                
-                                {textbookGroups.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {textbookGroups.map((group) => {
-                                            const groupKey = group.textbookId as string;
-                                            const isCollapsed = collapsedGroups.has(groupKey);
-                                            return (
-                                                <div key={groupKey} className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleGroupCollapse(groupKey)}
-                                                        className="flex w-full items-center justify-between gap-3 px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-                                                    >
-                                                        <span className="text-sm font-bold text-foreground tracking-tight leading-snug">{group.textbookTitle}</span>
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <span className="text-xs text-muted-foreground font-medium tabular-nums">{t("subject.topicsCount", { count: group.topics.length })}</span>
-                                                            <ChevronDown
-                                                                size={16}
-                                                                className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
-                                                            />
-                                                        </div>
-                                                    </button>
-                                                    {!isCollapsed && (
-                                                        <div className="px-5 py-3 bg-card border-t border-border">
-                                                            {group.topics.length > 0 ? renderTopicList(group) : (
-                                                                <p className="text-sm text-muted-foreground py-4 italic font-medium text-center">
-                                                                    {t("subject.topicsComingSoon")}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground py-12 text-center italic">{t("subject.noTextbooks")}</p>
-                                )}
-                            </div>
-
-                            {/* Right Column: Темы для изучения */}
-                            <div className="p-6 sm:p-8 bg-muted/5">
-                                <h3 className="text-[17px] font-bold text-foreground mb-4">{t("subject.topicsToStudy")}</h3>
-                                <div className="h-px bg-border -mx-8 mb-6" /> {/* Divider line below header */}
-
-                                {directGroup ? (() => {
-                                    return (
-                                        <div className="space-y-4">
-                                            {renderTopicList(directGroup)}
-                                        </div>
-                                    );
-                                })() : (
-                                    <p className="text-sm text-muted-foreground py-12 text-center italic">{t("subject.noExtraTopics")}</p>
-                                )}
-                            </div>
+                    <div className="flex flex-col gap-9">
+                        {/* Column headers */}
+                        <div className="flex items-center justify-between px-3 pb-2 border-b border-border text-[11px] font-bold uppercase tracking-wide text-muted-foreground/60">
+                            <span>{t("subject.colTopic")}</span>
+                            <span className="hidden sm:block">{t("subject.colAccuracy")} · {t("subject.colProgress")}</span>
                         </div>
+
+                        {orderedGroups.map((group) => {
+                            const isTextbook = group.textbookId !== null;
+                            const groupKey = (group.textbookId as string) ?? "__general__";
+                            const isCollapsed = isTextbook && collapsedGroups.has(groupKey);
+                            return (
+                                <section key={groupKey}>
+                                    {isTextbook ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleGroupCollapse(groupKey)}
+                                            className="flex w-full items-center justify-between gap-3 mb-2 text-left"
+                                        >
+                                            <h2 className="text-[19px] sm:text-[21px] font-bold text-foreground tracking-tight">{group.textbookTitle}</h2>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="text-[13px] text-muted-foreground font-medium tabular-nums">{t("subject.topicsCount", { count: group.topics.length })}</span>
+                                                <ChevronDown
+                                                    size={18}
+                                                    className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}
+                                                />
+                                            </div>
+                                        </button>
+                                    ) : (
+                                        <div className="flex items-center justify-between gap-3 mb-2">
+                                            <h2 className="text-[19px] sm:text-[21px] font-bold text-foreground tracking-tight">{group.textbookTitle}</h2>
+                                            <span className="text-[13px] text-muted-foreground font-medium tabular-nums">{t("subject.topicsCount", { count: group.topics.length })}</span>
+                                        </div>
+                                    )}
+                                    {!isCollapsed && (
+                                        group.topics.length > 0 ? (
+                                            <ul className="flex flex-col divide-y divide-border/50">
+                                                {group.topics.map(renderTopicRow)}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground py-6 italic font-medium">{t("subject.topicsComingSoon")}</p>
+                                        )
+                                    )}
+                                </section>
+                            );
+                        })}
                     </div>
                 );
             })()}
@@ -818,7 +748,9 @@ export default function SubjectPage() {
                         disabled={selectedIds.size === 0}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-8 py-3.5 text-sm font-bold text-background shadow-lg transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
                     >
-                        {t("subject.startPractice", { count: selectedIds.size })}
+                        {selectedIds.size === 0
+                            ? t("subject.selectToPractice")
+                            : t("subject.startPracticeN", { count: selectedIds.size })}
                         <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
@@ -834,8 +766,4 @@ function pluralQuestions(n: number, language: string) {
     if (m10 === 1) return "вопрос";
     if (m10 >= 2 && m10 <= 4) return "вопроса";
     return "вопросов";
-}
-
-function pluralQuestionsShort(n: number, language: string) {
-    return pluralQuestions(n, language);
 }
