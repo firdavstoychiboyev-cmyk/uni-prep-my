@@ -105,11 +105,11 @@ function Sidebar() {
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-64 md:translate-x-0"}
                 `}
-                style={{ background: "#4f7942", borderRight: "1px solid #3f6234" }}
+                style={{ background: "#2C4A3E", borderRight: "1px solid rgba(255,255,255,0.10)" }}
             >
                 {/* ── Brand ── */}
                 <div className={`shrink-0 h-14 flex items-center border-b ${collapsed ? "justify-between px-4 md:justify-center md:px-0" : "justify-between px-4"}`}
-                    style={{ borderColor: "#3f6234" }}>
+                    style={{ borderColor: "rgba(255,255,255,0.10)" }}>
                     <Link href="/home" className="flex items-center gap-2.5" onClick={close}>
                         <div
                             className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
@@ -150,8 +150,8 @@ function Sidebar() {
                                     <Link
                                         href={href}
                                         title={collapsed ? label : undefined}
-                                        className={`flex items-center rounded-md text-[13.5px] font-medium transition-colors duration-100
-                                            ${collapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-2" : "gap-3 px-3 py-2"}`}
+                                        className={`flex items-center rounded-md text-[14.5px] font-semibold transition-colors duration-100
+                                            ${collapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                         style={{
                                             background: active ? "rgba(255,255,255,0.16)" : "transparent",
                                             color: active ? "#fff" : "rgba(255,255,255,0.78)",
@@ -191,7 +191,7 @@ function Sidebar() {
                                         <Link
                                             href={`/subject/${subject.id}`}
                                             title={collapsed ? subject.name : undefined}
-                                            className={`flex items-center rounded-md text-[13px] font-medium transition-colors duration-100
+                                            className={`flex items-center rounded-md text-[14px] font-semibold transition-colors duration-100
                                                 ${collapsed ? "md:justify-center md:px-0 md:py-2 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                             style={{
                                                 background: active ? "rgba(255,255,255,0.16)" : "transparent",
@@ -236,7 +236,7 @@ function Sidebar() {
 
                 {/* ── Bottom: user + settings ── */}
                 {user && (
-                    <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#3f6234" }}>
+                    <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
                         <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${collapsed ? "md:justify-center md:px-0" : ""}`}>
                             <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 text-white"
                                 style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
@@ -244,7 +244,7 @@ function Sidebar() {
                                 {user.name[0].toUpperCase()}
                             </div>
                             <div className={`flex-1 min-w-0 ${collapsed ? "md:hidden" : ""}`}>
-                                <p className="text-[13px] font-semibold truncate" style={{ color: "#ffffff" }}>
+                                <p className="text-[14px] font-bold truncate" style={{ color: "#ffffff" }}>
                                     {user.name} {user.surname || ""}
                                 </p>
                                 {user.organization === "registan" && (
