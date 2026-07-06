@@ -35,6 +35,14 @@ const SUBJECT_DOT_COLORS = [
     "#F59E0B", "#14B8A6", "#EF4444", "#6366F1",
 ];
 
+// Единая типографическая шкала для подписей сайдбара (стиль OnePrep — крупнее и
+// увереннее, чем раньше). Один токен на главное меню, список предметов и имя
+// профиля, чтобы вес/размер не разъезжались. Заголовки секций («AMALIYOT») его
+// НЕ используют — они намеренно остаются мелким лёгким лейблом ради иерархии.
+const NAV_LABEL = "text-[15px] font-semibold tracking-[-0.006em]";
+// Более заметный, но не белый цвет неактивного пункта (был 0.78).
+const NAV_INACTIVE = "rgba(255,255,255,0.86)";
+
 const mainLinks = (isTeacher: boolean, isStudent: boolean, isRegistan: boolean, t: (k: string) => string) => [
     { label: t("nav.home"), href: "/home", icon: LayoutDashboard },
     ...(isTeacher ? [{ label: t("nav.classes"), href: "/classes", icon: GraduationCap }] : []),
@@ -81,6 +89,18 @@ function Sidebar() {
         fetchSubjects().then(setSubjects).catch(() => {});
     }, [language, setSubjects]);
 
+    // Мобильный ящик (isOpen) — ОТДЕЛЬНЫЙ от десктопного hover путь. Закрывается
+    // четырьмя способами: крестик и тап по подложке (onClick={close} в разметке),
+    // навигация (эффект ниже) и Esc (этот эффект). Ни один из них не завязан на
+    // hovered/focusWithin, поэтому мобилка не зависит от hover-состояния, а фикс
+    // здесь не трогает десктопную анимацию раскрытия рельса.
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [isOpen, close]);
+
     useEffect(() => { close(); }, [pathname, close]);
 
     const links = mainLinks(user?.role === "teacher", user?.role === "student", user?.organization === "registan", t);
@@ -109,12 +129,26 @@ function Sidebar() {
                     // Полностью непрозрачный оверлей поверх контента.
                     background: "#2C4A3E",
                     borderRight: "1px solid rgba(255,255,255,0.10)",
-                    // НЕ анимируем width: это layout-свойство, и его покадровая
-                    // анимация на GPU оставляла следы перерисовки — контент под
-                    // сайдбаром «двоился»/рвался (напр. «Xayrli kun,» → «li kun,»).
-                    // Теперь рельс раскрывается мгновенно (один чистый repaint),
-                    // без промежуточных кадров, где мог бы возникнуть артефакт.
-                    // (mobile-drawer по-прежнему выезжает через transform.)
+                    // РЕАЛЬНАЯ причина «двоения»/разрыва контента при раскрытии:
+                    // <aside> с position:fixed делит КОРНЕВОЙ композитный слой со
+                    // скроллящимся <main>. Когда ширина рельса меняется 64→256px,
+                    // браузер не помечает вновь перекрытую полосу «грязной» и не
+                    // перерисовывает её — на экране остаются устаревшие пиксели
+                    // контента («Xayrli kun,» → «li kun,», «vs»). Снятие анимации
+                    // width (прошлая попытка) не помогло: артефакт возникает и на
+                    // мгновенном скачке ширины.
+                    //
+                    // Фикс: промоутим сайдбар в СОБСТВЕННЫЙ GPU-слой — тогда он
+                    // композитится поверх контента цельно, без перерисовки общей
+                    // области. Важно: используем will-change:transform (ПОДСКАЗКА,
+                    // создающая слой), а НЕ transform:translateZ(0). Инлайн-transform
+                    // переопределил бы tailwind-классы translate-x, которыми ездит
+                    // мобильный ящик, — именно из-за этого прошлый фикс сломал
+                    // закрытие drawer на мобиле и был откачен. will-change ничего
+                    // не переопределяет, поэтому mobile-drawer работает как прежде.
+                    willChange: "transform",
+                    backfaceVisibility: "hidden",
+                    isolation: "isolate",
                 }}
             >
                 {/* ── Brand ── */}
@@ -160,11 +194,11 @@ function Sidebar() {
                                     <Link
                                         href={href}
                                         title={collapsed ? label : undefined}
-                                        className={`flex items-center rounded-md text-[14.5px] font-semibold transition-colors duration-100
+                                        className={`flex items-center rounded-md ${NAV_LABEL} transition-colors duration-100
                                             ${collapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                         style={{
                                             background: active ? "rgba(255,255,255,0.16)" : "transparent",
-                                            color: active ? "#fff" : "rgba(255,255,255,0.78)",
+                                            color: active ? "#fff" : NAV_INACTIVE,
                                         }}
                                         onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
                                         onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
@@ -201,11 +235,11 @@ function Sidebar() {
                                         <Link
                                             href={`/subject/${subject.id}`}
                                             title={collapsed ? subject.name : undefined}
-                                            className={`flex items-center rounded-md text-[14px] font-semibold transition-colors duration-100
+                                            className={`flex items-center rounded-md ${NAV_LABEL} transition-colors duration-100
                                                 ${collapsed ? "md:justify-center md:px-0 md:py-2 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                             style={{
                                                 background: active ? "rgba(255,255,255,0.16)" : "transparent",
-                                                color: active ? "#fff" : "rgba(255,255,255,0.78)",
+                                                color: active ? "#fff" : NAV_INACTIVE,
                                             }}
                                             onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
                                             onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
@@ -254,7 +288,7 @@ function Sidebar() {
                                 {user.name[0].toUpperCase()}
                             </div>
                             <div className={`flex-1 min-w-0 ${collapsed ? "md:hidden" : ""}`}>
-                                <p className="text-[14px] font-bold truncate" style={{ color: "#ffffff" }}>
+                                <p className="text-[15px] font-bold truncate tracking-[-0.006em]" style={{ color: "#ffffff" }}>
                                     {user.name} {user.surname || ""}
                                 </p>
                                 {user.organization === "registan" && (
