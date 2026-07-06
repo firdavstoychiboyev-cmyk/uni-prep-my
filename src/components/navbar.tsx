@@ -118,7 +118,8 @@ export default function Navbar() {
 
             {/* Slide-in Panel */}
             <div
-                className={`fixed top-0 right-0 z-[210] h-full w-[min(85vw,360px)] bg-black/80 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] lg:hidden ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
+                className={`fixed top-0 right-0 z-[210] h-full w-[min(85vw,360px)] bg-black/80 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-transform duration-300 lg:hidden ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
+                style={{ transitionTimingFunction: "cubic-bezier(0.23,1,0.32,1)" }}
             >
                 {/* Panel Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">

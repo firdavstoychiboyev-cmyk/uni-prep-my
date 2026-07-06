@@ -132,12 +132,12 @@ function Sidebar() {
     // CSS class for a newly-revealed label element.
     const fc = () =>
         animating
-            ? "animate-in fade-in-0 slide-in-from-left-2 duration-[130ms]"
+            ? "animate-in fade-in-0 slide-in-from-left-2 duration-300"
             : collapsed ? "md:hidden" : "";
 
     // Inline animationDelay for stagger (only when animating).
     const fd = (i: number): React.CSSProperties =>
-        animating ? { animationDelay: `${i * 15}ms` } : {};
+        animating ? { animationDelay: `${i * 25}ms` } : {};
 
     // Pre-compute stagger base indices for each section.
     // 0        → brand wordmark + close/pin buttons (treated as one row)
@@ -168,7 +168,6 @@ function Sidebar() {
                 className={`
                     fixed left-0 top-0 h-screen flex flex-col z-50
                     overflow-y-auto overflow-x-hidden
-                    transition-transform duration-200 ease-in-out
                     w-[296px]
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-[296px] md:translate-x-0"}
@@ -176,10 +175,11 @@ function Sidebar() {
                 style={{
                     background: C.rail,
                     borderRight: `1px solid ${C.border}`,
-                    // GPU layer — prevents compositing artifacts where stale content
-                    // pixels bleed through during the width snap (see sidebar history).
-                    // will-change:transform (hint only) avoids overriding the tailwind
-                    // translate-x classes that drive the mobile drawer.
+                    // Inline transition so we can set different durations for width
+                    // (hover-expand, 500ms) and transform (mobile drawer slide, 300ms).
+                    // Tailwind can only apply one duration per element, so this must
+                    // live here rather than as Tailwind utility classes.
+                    transition: "width 500ms ease-in-out, transform 300ms ease-in-out",
                     willChange: "transform",
                     backfaceVisibility: "hidden",
                     isolation: "isolate",
