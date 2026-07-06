@@ -105,11 +105,11 @@ function Sidebar() {
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-64 md:translate-x-0"}
                 `}
-                style={{ background: "#0a0a0a", borderRight: "1px solid #1c1c1c" }}
+                style={{ background: "#4f7942", borderRight: "1px solid #3f6234" }}
             >
                 {/* ── Brand ── */}
                 <div className={`shrink-0 h-14 flex items-center border-b ${collapsed ? "justify-between px-4 md:justify-center md:px-0" : "justify-between px-4"}`}
-                    style={{ borderColor: "#1c1c1c" }}>
+                    style={{ borderColor: "#3f6234" }}>
                     <Link href="/home" className="flex items-center gap-2.5" onClick={close}>
                         <div
                             className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
@@ -121,18 +121,18 @@ function Sidebar() {
 
                     <div className={`flex items-center gap-1 ${collapsed ? "md:hidden" : ""}`}>
                         <button onClick={close} className="md:hidden p-1.5 rounded-md transition-colors"
-                            style={{ color: "#525252" }}
+                            style={{ color: "rgba(255,255,255,0.66)" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "#525252")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.66)")}
                             aria-label={t("sidebar.closeMenu")}>
                             <X size={16} />
                         </button>
                         {/* Пин: закрепить открытым (isCollapsed=false) / вернуть рельс */}
                         <button onClick={toggleCollapsed}
                             className="hidden md:flex p-1.5 rounded-md transition-colors"
-                            style={{ color: "#525252" }}
+                            style={{ color: "rgba(255,255,255,0.66)" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "#525252")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.66)")}
                             aria-pressed={!isCollapsed}
                             title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}>
                             {isCollapsed ? <PanelLeft size={15} /> : <PanelLeftClose size={15} />}
@@ -153,14 +153,14 @@ function Sidebar() {
                                         className={`flex items-center rounded-md text-[13.5px] font-medium transition-colors duration-100
                                             ${collapsed ? "md:justify-center md:px-0 md:py-2.5 gap-3 px-3 py-2" : "gap-3 px-3 py-2"}`}
                                         style={{
-                                            background: active ? "#1f1f1f" : "transparent",
-                                            color: active ? "#fff" : "#737373",
+                                            background: active ? "rgba(255,255,255,0.16)" : "transparent",
+                                            color: active ? "#fff" : "rgba(255,255,255,0.78)",
                                         }}
-                                        onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#141414"; }}
+                                        onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
                                         onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                                     >
                                         <Icon size={17} className="flex-shrink-0"
-                                            style={{ color: active ? "#fff" : "#525252" }} />
+                                            style={{ color: active ? "#fff" : "rgba(255,255,255,0.66)" }} />
                                         <span className={collapsed ? "md:hidden" : ""}>{label}</span>
                                     </Link>
                                 </li>
@@ -171,7 +171,7 @@ function Sidebar() {
 
                 {/* ── AMALIYOT label ── */}
                 <div className={`text-[10px] font-bold tracking-[.18em] uppercase pt-5 pb-1.5 ${collapsed ? "md:hidden px-5" : "px-5"}`}
-                    style={{ color: "#3a3a3a" }}>
+                    style={{ color: "rgba(255,255,255,0.5)" }}>
                     {language === "uz" ? "AMALIYOT" : "ПРАКТИКА"}
                 </div>
 
@@ -194,10 +194,10 @@ function Sidebar() {
                                             className={`flex items-center rounded-md text-[13px] font-medium transition-colors duration-100
                                                 ${collapsed ? "md:justify-center md:px-0 md:py-2 gap-3 px-3 py-1.5" : "gap-3 px-3 py-1.5"}`}
                                             style={{
-                                                background: active ? "#1f1f1f" : "transparent",
-                                                color: active ? "#fff" : "#737373",
+                                                background: active ? "rgba(255,255,255,0.16)" : "transparent",
+                                                color: active ? "#fff" : "rgba(255,255,255,0.78)",
                                             }}
-                                            onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#141414"; }}
+                                            onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
                                             onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                                         >
                                             {theme.key === "default" ? (
@@ -227,7 +227,7 @@ function Sidebar() {
                             {[...Array(5)].map((_, i) => (
                                 <li key={i} className="px-3 py-2">
                                     <div className="h-3 rounded animate-pulse"
-                                        style={{ width: `${55 + i * 9}%`, background: "#1a1a1a", animationDelay: `${i * 60}ms` }} />
+                                        style={{ width: `${55 + i * 9}%`, background: "rgba(255,255,255,0.14)", animationDelay: `${i * 60}ms` }} />
                                 </li>
                             ))}
                         </ul>
@@ -236,7 +236,7 @@ function Sidebar() {
 
                 {/* ── Bottom: user + settings ── */}
                 {user && (
-                    <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#1c1c1c" }}>
+                    <div className="shrink-0 border-t px-2 py-3" style={{ borderColor: "#3f6234" }}>
                         <div className={`flex items-center gap-3 px-2 py-2 rounded-md ${collapsed ? "md:justify-center md:px-0" : ""}`}>
                             <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 text-white"
                                 style={{ background: "linear-gradient(150deg, #38BDF8, #6366F1)" }}
@@ -244,7 +244,7 @@ function Sidebar() {
                                 {user.name[0].toUpperCase()}
                             </div>
                             <div className={`flex-1 min-w-0 ${collapsed ? "md:hidden" : ""}`}>
-                                <p className="text-[13px] font-semibold truncate" style={{ color: "#e0e0e0" }}>
+                                <p className="text-[13px] font-semibold truncate" style={{ color: "#ffffff" }}>
                                     {user.name} {user.surname || ""}
                                 </p>
                                 {user.organization === "registan" && (
@@ -256,9 +256,9 @@ function Sidebar() {
                             <Link href="/settings"
                                 title={t("nav.settings")}
                                 className={`flex-shrink-0 p-1 rounded transition-colors ${collapsed ? "md:hidden" : ""}`}
-                                style={{ color: "#525252" }}
+                                style={{ color: "rgba(255,255,255,0.66)" }}
                                 onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                                onMouseLeave={e => (e.currentTarget.style.color = "#525252")}>
+                                onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.66)")}>
                                 <Settings size={15} />
                             </Link>
                         </div>
