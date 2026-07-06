@@ -170,12 +170,24 @@ service cloud.firestore {
 
     match /questions/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      // Registan-админ может ТОЛЬКО создавать вопросы вступительных наборов
+      // (isEntranceQuestion). Редактировать/удалять глобальный контент — нельзя.
+      allow create: if isAdmin()
+        || (isRegistanAdmin() && request.resource.data.isEntranceQuestion == true);
+      allow update, delete: if isAdmin();
     }
 
     match /mocks/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // ── Dedicated entrance-test question sets (отдельная коллекция) ────────────
+    // Не попадают в списки Mocklar/Rush. Читают все вошедшие; пишут админы и
+    // Registan-админы.
+    match /entranceSets/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isRegistanAdmin();
     }
 
 

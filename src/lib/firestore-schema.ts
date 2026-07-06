@@ -172,6 +172,8 @@ export interface SubjectRating {
 export type EntranceTestStatus = "draft" | "published";
 // Тип вопросов: в приложении используются "mc" (multiple choice) и "open".
 export type EntranceQuestionType = "mc" | "open" | "mixed";
+// Источник вопросов: общий предметный банк или отдельный загруженный набор.
+export type EntranceQuestionSource = "general" | "dedicated";
 
 export interface EntranceTest {
   id: string;
@@ -180,13 +182,40 @@ export interface EntranceTest {
   questionCount: number;
   questionType: EntranceQuestionType;
   timeLimitMinutes: number;
-  /** Источник вопросов — mocks/{id} (пул questionIds); не отдельная БД */
-  questionPoolRef: string;
+  questionSource: EntranceQuestionSource;
+  /** Для source "dedicated" — ссылка на entranceSets/{id} */
+  dedicatedSetId?: string;
+  /**
+   * Зафиксированный набор вопросов, выбранный при СОЗДАНИИ теста (и general, и
+   * dedicated), чтобы все ученики видели один и тот же набор — воспроизводимо,
+   * без ре-рандомизации на каждую попытку (по аналогии с Rush).
+   */
+  questionIds?: string[];
+  /** Легаси-поле: mocks/{id} как пул (для тестов, созданных до сорсинга). */
+  questionPoolRef?: string;
   status: EntranceTestStatus;
   createdBy: string;
   language?: Language;
   createdAt: string;
   title?: string;
+}
+
+/**
+ * Отдельный (dedicated) набор вопросов вступительного теста: entranceSets/{id}.
+ * Загружается тем же XLSX-механизмом, что и Mocklar, но живёт в своей коллекции
+ * и помечен grade+subject — не попадает в списки Mocklar/Rush. Сами вопросы —
+ * в общей коллекции questions с флагом isEntranceQuestion.
+ */
+export interface EntranceSet {
+  id: string;
+  title: string;
+  grade: string;
+  subjectId: string;
+  questionIds: string[];
+  questionCount: number;
+  language?: Language;
+  createdBy: string;
+  createdAt: string;
 }
 
 /** Попытка вступительного теста: entranceTestAttempts/{id}. */

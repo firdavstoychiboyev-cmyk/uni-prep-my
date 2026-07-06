@@ -1,31 +1,162 @@
 import {
-    collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+    collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch,
     query, where, serverTimestamp, limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
-    EntranceTest, EntranceTestAttempt, EntranceTestStatus, EntranceQuestionType, Language,
+    EntranceTest, EntranceTestAttempt, EntranceTestStatus, EntranceQuestionType,
+    EntranceQuestionSource, EntranceSet, Language,
 } from "./firestore-schema";
 import { fetchRushQuestions, RushQuestion } from "./rush-utils";
 
 export type EntranceQuestion = RushQuestion;
 
+const matchesType = (t: string | undefined, want: EntranceQuestionType) =>
+    want === "open" ? t === "open" : want === "mc" ? t !== "open" : true;
+
+/** Фиксация Fisher–Yates: случайная выборка один раз при создании теста. */
+const sample = <T>(arr: T[], n: number): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, n);
+};
+
+// ── General question bank ─────────────────────────────────────────────────────
+
+/**
+ * Общий предметный банк: вопросы с subjectId == X (mock/DTM-контент). Практика
+ * тегируется topicId, а не subjectId — см. ФЛАГ в PR. Фильтр по типу и языку.
+ */
+export const fetchGeneralBankQuestions = async (
+    subjectId: string,
+    questionType: EntranceQuestionType,
+    language: Language
+): Promise<RushQuestion[]> => {
+    const snap = await getDocs(query(collection(db, "questions"), where("subjectId", "==", subjectId)));
+    return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as RushQuestion & { language?: string })
+        .filter((q) => (q.language ?? "ru") === language && matchesType(q.type, questionType));
+};
+
+// ── Dedicated entrance sets ───────────────────────────────────────────────────
+
+export const fetchEntranceSets = async (
+    grade: string,
+    subjectId: string,
+    language: Language
+): Promise<EntranceSet[]> => {
+    const snap = await getDocs(query(
+        collection(db, "entranceSets"),
+        where("grade", "==", grade),
+        where("subjectId", "==", subjectId),
+    ));
+    return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as EntranceSet)
+        .filter((s) => (s.language ?? "ru") === language)
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+};
+
+/**
+ * Загрузка отдельного набора из XLSX — тем же механизмом, что и Mocklar
+ * (лист «Вопросы», те же колонки). Вопросы пишутся в общую коллекцию questions
+ * с флагом isEntranceQuestion + grade + subjectId; набор — в entranceSets.
+ */
+export const uploadEntranceSet = async (
+    file: File,
+    meta: { title: string; grade: string; subjectId: string; language: Language; createdBy: string }
+): Promise<{ setId: string; count: number }> => {
+    const XLSX = await import("xlsx");
+    const workbook = XLSX.read(await file.arrayBuffer());
+    const sheet = workbook.Sheets["Вопросы"] ?? workbook.Sheets[workbook.SheetNames[0]];
+    const rows = (XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[])
+        .filter((r) => String(r["Текст вопроса"] ?? "").trim());
+
+    const questionIds: string[] = [];
+    let batch = writeBatch(db);
+    let n = 0;
+    for (const row of rows) {
+        const ref = doc(collection(db, "questions"));
+        questionIds.push(ref.id);
+        batch.set(ref, {
+            text: String(row["Текст вопроса"] ?? "").trim(),
+            options: {
+                a: String(row["Вариант A"] ?? "").trim(),
+                b: String(row["Вариант B"] ?? "").trim(),
+                c: String(row["Вариант C"] ?? "").trim(),
+                d: String(row["Вариант D"] ?? "").trim(),
+            },
+            correctAnswer: String(row["Правильный ответ (a/b/c/d)"] ?? "").trim().toLowerCase() || "a",
+            type: String(row["Тип (mc/open)"] ?? "mc").trim() || "mc",
+            difficulty: String(row["Сложность"] ?? "medium").trim() || "medium",
+            explanation: String(row["Объяснение (необязательно)"] ?? "").trim(),
+            subjectId: meta.subjectId,
+            grade: meta.grade,
+            language: meta.language,
+            isEntranceQuestion: true,
+            createdAt: new Date(),
+        });
+        if (++n === 400) { await batch.commit(); batch = writeBatch(db); n = 0; }
+    }
+    if (n > 0) await batch.commit();
+
+    const setRef = await addDoc(collection(db, "entranceSets"), {
+        title: meta.title,
+        grade: meta.grade,
+        subjectId: meta.subjectId,
+        questionIds,
+        questionCount: questionIds.length,
+        language: meta.language,
+        createdBy: meta.createdBy,
+        createdAt: new Date().toISOString(),
+    });
+    return { setId: setRef.id, count: questionIds.length };
+};
+
 // ── Admin CRUD ───────────────────────────────────────────────────────────────
 
+/**
+ * Создание теста. Набор вопросов ФИКСИРУЕТСЯ здесь (одинаков для всех учеников):
+ *  - general  → случайная выборка questionCount из предметного банка;
+ *  - dedicated→ из questionIds выбранного набора, отфильтрованных по типу.
+ */
 export const createEntranceTest = async (data: {
     grade: string;
     subjectId: string;
     questionCount: number;
     questionType: EntranceQuestionType;
     timeLimitMinutes: number;
-    questionPoolRef: string;
+    questionSource: EntranceQuestionSource;
+    dedicatedSetId?: string;
     status: EntranceTestStatus;
     createdBy: string;
     language: Language;
     title?: string;
 }): Promise<string> => {
+    let questionIds: string[] = [];
+    if (data.questionSource === "general") {
+        const pool = await fetchGeneralBankQuestions(data.subjectId, data.questionType, data.language);
+        questionIds = sample(pool, data.questionCount).map((q) => q.id);
+    } else if (data.dedicatedSetId) {
+        const setSnap = await getDoc(doc(db, "entranceSets", data.dedicatedSetId));
+        const ids = (setSnap.exists() ? (setSnap.data().questionIds as string[]) : []) ?? [];
+        const qs = await fetchRushQuestions(ids);
+        questionIds = qs.filter((q) => matchesType(q.type, data.questionType)).slice(0, data.questionCount).map((q) => q.id);
+    }
     const ref = await addDoc(collection(db, "entranceTests"), {
-        ...data,
+        grade: data.grade,
+        subjectId: data.subjectId,
+        questionCount: data.questionCount,
+        questionType: data.questionType,
+        timeLimitMinutes: data.timeLimitMinutes,
+        questionSource: data.questionSource,
+        dedicatedSetId: data.dedicatedSetId ?? null,
+        questionIds,
+        status: data.status,
+        createdBy: data.createdBy,
+        language: data.language,
         title: data.title ?? null,
         createdAt: new Date().toISOString(),
         serverCreatedAt: serverTimestamp(),
@@ -75,19 +206,20 @@ export const fetchEntranceTest = async (id: string): Promise<EntranceTest | null
 // ── Questions ────────────────────────────────────────────────────────────────
 
 /**
- * Вопросы теста: берём пул из mocks/{questionPoolRef}, фильтруем по типу
- * (mc → без open; open → только open; mixed → все) и отрезаем questionCount.
+ * Вопросы теста. Приоритет — зафиксированный при создании набор questionIds
+ * (одинаков для всех учеников). Легаси-путь (старые тесты) — пул mock по
+ * questionPoolRef с фильтром по типу.
  */
 export const buildEntranceQuestions = async (test: EntranceTest): Promise<EntranceQuestion[]> => {
+    if (test.questionIds && test.questionIds.length > 0) {
+        return fetchRushQuestions(test.questionIds);
+    }
+    if (!test.questionPoolRef) return [];
     const mockSnap = await getDoc(doc(db, "mocks", test.questionPoolRef));
     const ids: string[] = (mockSnap.exists() ? (mockSnap.data().questionIds as string[]) : []) ?? [];
     if (ids.length === 0) return [];
     const all = await fetchRushQuestions(ids);
-    const filtered = all.filter((q) => {
-        if (test.questionType === "open") return q.type === "open";
-        if (test.questionType === "mc") return q.type !== "open";
-        return true; // mixed
-    });
+    const filtered = all.filter((q) => matchesType(q.type, test.questionType));
     return filtered.slice(0, test.questionCount);
 };
 
