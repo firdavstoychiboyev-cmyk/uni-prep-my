@@ -129,8 +129,8 @@ function Sidebar() {
     // the sidebar stays visible for 180ms anyway.
     const animating = !isOpen && isCollapsed && (hovered || focusWithin);
 
-    // CSS class for a newly-revealed label element (index i, 0-based top→bottom).
-    const fc = (_i: number) =>
+    // CSS class for a newly-revealed label element.
+    const fc = () =>
         animating
             ? "animate-in fade-in-0 slide-in-from-left-2 duration-[130ms]"
             : collapsed ? "md:hidden" : "";
@@ -203,7 +203,7 @@ function Sidebar() {
                         />
                         {/* Wordmark — fades in on expand */}
                         <span
-                            className={fc(SI_BRAND)}
+                            className={fc()}
                             style={{
                                 color: C.textWhite, fontWeight: 800, fontSize: 21,
                                 letterSpacing: "-0.02em",
@@ -216,7 +216,7 @@ function Sidebar() {
 
                     {/* Close (mobile) / pin (desktop) — fades in with brand row */}
                     <div
-                        className={`flex-shrink-0 flex items-center gap-1 ${fc(SI_BRAND)}`}
+                        className={`flex-shrink-0 flex items-center gap-1 ${fc()}`}
                         style={fd(SI_BRAND)}
                     >
                         <button
@@ -280,7 +280,7 @@ function Sidebar() {
 
                                         {/* Label — fades/slides in on expand */}
                                         <span
-                                            className={`flex-1 min-w-0 ${fc(si)}`}
+                                            className={`flex-1 min-w-0 ${fc()}`}
                                             style={fd(si)}
                                         >
                                             {label}
@@ -289,7 +289,7 @@ function Sidebar() {
                                         {/* Pill — fades in with its label */}
                                         {pill && (
                                             <span
-                                                className={`flex-shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${fc(si)}`}
+                                                className={`flex-shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${fc()}`}
                                                 style={{ background: pill.bg, color: pill.color, ...fd(si) }}
                                             >
                                                 {pill.label}
@@ -304,7 +304,7 @@ function Sidebar() {
 
                 {/* ── AMALIYOT / ПРАКТИКА section label ── */}
                 <div
-                    className={`pt-5 pb-1.5 uppercase ${fc(SI_SECTION)} ${collapsed ? "px-4" : "px-4"}`}
+                    className={`pt-5 pb-1.5 uppercase ${fc()} ${collapsed ? "px-4" : "px-4"}`}
                     style={{
                         color: C.textMuted, fontSize: 11.5, fontWeight: 800,
                         letterSpacing: "0.09em",
@@ -367,7 +367,7 @@ function Sidebar() {
 
                                             {/* Subject name — fades/slides in on expand */}
                                             <span
-                                                className={`truncate ${fc(si)}`}
+                                                className={`truncate ${fc()}`}
                                                 style={fd(si)}
                                             >
                                                 {subject.name}
@@ -414,7 +414,7 @@ function Sidebar() {
 
                             {/* Name + plan — fades/slides in on expand */}
                             <div
-                                className={`flex-1 min-w-0 ${fc(SI_FOOTER)}`}
+                                className={`flex-1 min-w-0 ${fc()}`}
                                 style={fd(SI_FOOTER)}
                             >
                                 <p className="text-[14px] font-bold truncate" style={{ color: C.textWhite }}>
@@ -433,7 +433,7 @@ function Sidebar() {
                             <Link
                                 href="/settings"
                                 title={t("nav.settings")}
-                                className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${fc(SI_FOOTER)}`}
+                                className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${fc()}`}
                                 style={{ color: C.textMuted, ...fd(SI_FOOTER) }}
                                 onMouseEnter={e => (e.currentTarget.style.color = C.textWhite)}
                                 onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
