@@ -207,12 +207,12 @@ export default function HomePage() {
                         return (
                             <div key={uni.id}
                                 onClick={() => handleSelectUni(uni.id)}
-                                className="rounded-xl p-4 cursor-pointer transition-all duration-150 hover:border-foreground/20"
-                                style={{
-                                    background: "hsl(var(--card))",
-                                    border: `1px solid ${isDream ? uni.color : "hsl(var(--border))"}`,
-                                    boxShadow: isDream ? `inset 0 0 0 1px ${uni.color}` : undefined,
-                                }}>
+                                // Same surface token as every other dashboard card (bg-card + border-border).
+                                // Selected "dream" uni keeps a distinct coloured border/ring accent.
+                                className={`rounded-xl p-4 cursor-pointer transition-all duration-150 bg-card ${
+                                    isDream ? "" : "border border-border hover:border-foreground/20"
+                                }`}
+                                style={isDream ? { border: `1px solid ${uni.color}`, boxShadow: `inset 0 0 0 1px ${uni.color}` } : undefined}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
                                         style={{ background: `${uni.color}22`, color: uni.color }}>
