@@ -49,7 +49,7 @@ export default function AdminEntrancePage() {
         if (source !== "general" || !subjectId) { setGeneralAvail(null); return; }
         let cancelled = false;
         setGeneralAvail(null);
-        fetchGeneralBankQuestions(subjectId, qType, lang)
+        fetchGeneralBankQuestions(subjectId, qType)
             .then((qs) => { if (!cancelled) setGeneralAvail(qs.length); })
             .catch(() => { if (!cancelled) setGeneralAvail(0); });
         return () => { cancelled = true; };

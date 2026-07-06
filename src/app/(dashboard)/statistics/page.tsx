@@ -156,10 +156,10 @@ export default function StatisticsPage() {
                     { title: t("stats.medals"), value: String(totalMedals), icon: Trophy },
                     { title: t("stats.streak"), value: streakDays === null ? "—" : String(streakDays), icon: Flame },
                 ].map(({ title, value, icon: Icon }, i) => (
-                    <div key={title} className={`p-5 sm:p-6 ${i !== 0 ? "border-l border-border" : ""}`}>
-                        <div className="text-[11px] font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{title}</div>
+                    <div key={title} className={`p-4 sm:p-5 ${i !== 0 ? "border-l border-border" : ""}`}>
+                        <div className="text-stat-label font-semibold mb-2.5 uppercase text-muted-foreground">{title}</div>
                         <div className="flex items-end justify-between gap-2">
-                            <div className="text-[34px] font-extrabold tabular-nums text-foreground" style={{ letterSpacing: "-.02em" }}>{value}</div>
+                            <div className="text-stat font-extrabold tabular-nums text-foreground">{value}</div>
                             <Icon className="w-4 h-4 mb-2 text-muted-foreground/40" />
                         </div>
                     </div>

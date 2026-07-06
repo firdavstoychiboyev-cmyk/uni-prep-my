@@ -8,7 +8,6 @@ import {
     EntranceQuestionSource, EntranceSet, Language,
 } from "./firestore-schema";
 import { fetchRushQuestions, RushQuestion } from "./rush-utils";
-import { fetchTopicsBySubject, fetchQuestionsByTopic } from "./data-fetching";
 
 export type EntranceQuestion = RushQuestion;
 
@@ -34,26 +33,34 @@ const sample = <T>(arr: T[], n: number): T[] => {
  *   • практика/импорт — тег topicId (subjectId на вопросе НЕТ); достаём через
  *     темы предмета (topics.subjectId == X) → questions.topicId;
  *   • mock/entrance-XLSX — тег subjectId прямо на вопросе.
- * Раньше банк читался только по subjectId, поэтому предметы с практическим
- * контентом (напр. Tarix, ~535 вопросов) давали 0 → ложное «недостаточно
- * вопросов». Теперь объединяем оба источника и дедупим по id.
+ *
+ * ЯЗЫК НЕ ФИЛЬТРУЕМ. Документы предметов раздельные по языку (uz-док и ru-док —
+ * это разные записи с разными id), поэтому темы и вопросы под конкретным
+ * subjectId уже принадлежат языку этого предмета. Раньше банк дополнительно
+ * фильтровался по language, который админка передавала из user.language, а не
+ * из UI-стора: для uz-предмета Tarix (id z5rbueVFQvlmwUNGlwsJ, 18 uz-тем, 535
+ * uz-вопросов) с language="ru" оставалось 0 тем → 0 вопросов → ложное
+ * «недостаточно вопросов». Убрали языковой фильтр — считаем строго по subjectId.
  */
 export const fetchGeneralBankQuestions = async (
     subjectId: string,
-    questionType: EntranceQuestionType,
-    language: Language
+    questionType: EntranceQuestionType
 ): Promise<RushQuestion[]> => {
-    // 1) Вопросы через темы предмета (topicId-тегированные)
-    const topics = await fetchTopicsBySubject(subjectId, language);
-    const perTopic = await Promise.all(topics.map((tp) => fetchQuestionsByTopic(tp.id, language)));
+    // 1) Темы предмета → их вопросы (topicId-тегированные: практика/импорт)
+    const topicSnap = await getDocs(query(collection(db, "topics"), where("subjectId", "==", subjectId)));
+    const perTopic = await Promise.all(
+        topicSnap.docs.map((td) => getDocs(query(collection(db, "questions"), where("topicId", "==", td.id))))
+    );
 
     // 2) Вопросы, тегированные напрямую subjectId (mock/entrance-XLSX)
     const directSnap = await getDocs(query(collection(db, "questions"), where("subjectId", "==", subjectId)));
-    const direct = directSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as RushQuestion & { language?: string });
 
-    const byId = new Map<string, RushQuestion & { language?: string }>();
-    for (const q of [...perTopic.flat() as (RushQuestion & { language?: string })[], ...direct]) {
-        if ((q.language ?? "ru") === language && matchesType(q.type, questionType)) byId.set(q.id, q);
+    const byId = new Map<string, RushQuestion>();
+    for (const snap of [...perTopic, directSnap]) {
+        for (const d of snap.docs) {
+            const q = { id: d.id, ...d.data() } as RushQuestion;
+            if (matchesType(q.type, questionType)) byId.set(q.id, q);
+        }
     }
     return Array.from(byId.values());
 };
@@ -154,7 +161,7 @@ export const createEntranceTest = async (data: {
 }): Promise<string> => {
     let questionIds: string[] = [];
     if (data.questionSource === "general") {
-        const pool = await fetchGeneralBankQuestions(data.subjectId, data.questionType, data.language);
+        const pool = await fetchGeneralBankQuestions(data.subjectId, data.questionType);
         questionIds = sample(pool, data.questionCount).map((q) => q.id);
     } else if (data.dedicatedSetId) {
         const setSnap = await getDoc(doc(db, "entranceSets", data.dedicatedSetId));

@@ -57,9 +57,19 @@ const config: Config = {
 				sm: 'calc(var(--radius) - 4px)',
 				// Более мягкие углы карточек/панелей (глобально). Вложенные
 				// элементы обычно rounded-lg/rounded-full — остаются меньше.
-				xl: '1rem',        // 16px (было 12px)
-				'2xl': '1.375rem', // 22px (было 16px)
-				'3xl': '1.75rem'   // 28px (было 24px)
+				// +~15% в этом проходе: 16→18, 22→25, 28→32.
+				xl: '1.125rem',    // 18px (было 16px)
+				'2xl': '1.5625rem', // 25px (было 22px)
+				'3xl': '2rem'      // 32px (было 28px)
+			},
+			// Общая типографская шкала для карточек — один токен на приложение,
+			// чтобы «крупные цифры / читаемые подписи» были единообразны.
+			fontSize: {
+				'stat': ['2.5rem', { lineHeight: '1', letterSpacing: '-0.02em' }],        // крупная цифра статы (40px)
+				'stat-sm': ['2rem', { lineHeight: '1', letterSpacing: '-0.02em' }],       // компактный вариант (32px)
+				'stat-label': ['0.8125rem', { lineHeight: '1.15', letterSpacing: '0.04em' }], // подпись статы (13px)
+				'card-title': ['0.9375rem', { lineHeight: '1.3' }],                       // заголовок в карточке (15px)
+				'quote': ['1.3125rem', { lineHeight: '1.55' }],                           // цитата-callout (21px)
 			},
 			fontFamily: {
 				sans: ['var(--font-plus-jakarta)', 'var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

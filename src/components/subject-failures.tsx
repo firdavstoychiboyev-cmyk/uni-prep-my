@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { getSubjectTheme } from "@/lib/subject-theme";
 import { ILLUSTRATIONS, BADGE_VIEWBOX, IllustrationKey } from "@/components/subject-illustrations";
@@ -101,8 +101,8 @@ export default function SubjectFailures({
                     ))}
                 </div>
             ) : merged.length === 0 ? (
-                <p className="py-6 text-center text-sm font-medium text-muted-foreground">
-                    {t("stats.noWrongYet")}
+                <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" /> {t("stats.noWrongYet")}
                 </p>
             ) : (
                 <ul className="flex flex-col gap-4">

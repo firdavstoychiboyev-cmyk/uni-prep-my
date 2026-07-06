@@ -177,9 +177,9 @@ export default function HomePage() {
                             { label: language === "uz" ? "Seria" : "Серия", value: String(streakDays) },
                             { label: language === "uz" ? "Universitetlar" : "Университеты", value: String(TOP_UNIVERSITIES.length) },
                         ].map((s, i) => (
-                            <div key={s.label} className={`p-5 sm:p-6 ${i !== 0 ? "border-l border-border" : ""}`}>
-                                <div className="text-[12px] font-semibold mb-2 uppercase tracking-wider text-muted-foreground">{s.label}</div>
-                                <div className="text-[34px] font-extrabold tabular-nums text-foreground" style={{ letterSpacing: "-.02em" }}>{s.value}</div>
+                            <div key={s.label} className={`p-4 sm:p-5 ${i !== 0 ? "border-l border-border" : ""}`}>
+                                <div className="text-stat-label font-semibold mb-2 uppercase text-muted-foreground">{s.label}</div>
+                                <div className="text-stat font-extrabold tabular-nums text-foreground">{s.value}</div>
                             </div>
                         ))}
                     </div>
@@ -189,7 +189,7 @@ export default function HomePage() {
             {/* ── Daily quote ── */}
             <div className="rounded-xl p-6 bg-card border border-border">
                 <div className="text-[11px] font-bold uppercase tracking-[.18em] mb-4 text-muted-foreground">Daily Wisdom</div>
-                <p className="text-[17px] font-medium text-foreground leading-relaxed" style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}>
+                <p className="text-quote font-medium text-foreground" style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}>
                     &ldquo;{dailyQuote.text}&rdquo;
                 </p>
                 <p className="mt-3 text-[13px] font-semibold text-muted-foreground">— {dailyQuote.author}</p>
@@ -214,24 +214,24 @@ export default function HomePage() {
                                 }`}
                                 style={isDream ? { border: `1px solid ${uni.color}`, boxShadow: `inset 0 0 0 1px ${uni.color}` } : undefined}>
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
                                         style={{ background: `${uni.color}22`, color: uni.color }}>
                                         {uni.name.slice(0, 4)}
                                     </div>
-                                    <div className="text-[13px] font-semibold text-foreground leading-snug">{uni.fullName}</div>
+                                    <div className="text-[15px] font-bold text-foreground leading-snug">{uni.fullName}</div>
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="flex-1 rounded-lg p-2.5 bg-emerald-50 dark:bg-[#0d1f12]">
-                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-emerald-600 dark:text-emerald-400">
+                                        <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-emerald-600 dark:text-emerald-400">
                                             {language === "uz" ? "Grant" : "Грант"}
                                         </div>
-                                        <div className="text-[18px] font-extrabold text-foreground">{uni.grant}</div>
+                                        <div className="text-[22px] font-extrabold text-foreground tabular-nums">{uni.grant}</div>
                                     </div>
                                     <div className="flex-1 rounded-lg p-2.5 bg-muted">
-                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-muted-foreground">
+                                        <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-muted-foreground">
                                             {language === "uz" ? "Mening ball" : "Мой балл"}
                                         </div>
-                                        <div className="text-[18px] font-extrabold text-foreground">{totalCorrect}</div>
+                                        <div className="text-[22px] font-extrabold text-foreground tabular-nums">{totalCorrect}</div>
                                     </div>
                                 </div>
                             </div>
