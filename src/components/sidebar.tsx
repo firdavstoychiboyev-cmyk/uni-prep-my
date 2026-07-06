@@ -100,23 +100,21 @@ function Sidebar() {
                 className={`
                     fixed left-0 top-0 h-screen flex flex-col z-50
                     overflow-y-auto overflow-x-hidden
-                    transition-[width,transform] duration-200 ease-in-out
+                    transition-transform duration-200 ease-in-out
                     w-64
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-64 md:translate-x-0"}
                 `}
                 style={{
+                    // Полностью непрозрачный оверлей поверх контента.
                     background: "#2C4A3E",
                     borderRight: "1px solid rgba(255,255,255,0.10)",
-                    // Раскрытие рельса — оверлей ПОВЕРХ контента. Анимация width —
-                    // layout-свойство, из-за чего на некоторых GPU оставались следы
-                    // перерисовки (контент «просвечивал»/двоился). Промоутим сайдбар
-                    // в собственный композитный слой и изолируем стек, чтобы он
-                    // рисовался цельно над контентом без артефактов.
-                    transform: "translateZ(0)",
-                    willChange: "width",
-                    backfaceVisibility: "hidden",
-                    isolation: "isolate",
+                    // НЕ анимируем width: это layout-свойство, и его покадровая
+                    // анимация на GPU оставляла следы перерисовки — контент под
+                    // сайдбаром «двоился»/рвался (напр. «Xayrli kun,» → «li kun,»).
+                    // Теперь рельс раскрывается мгновенно (один чистый repaint),
+                    // без промежуточных кадров, где мог бы возникнуть артефакт.
+                    // (mobile-drawer по-прежнему выезжает через transform.)
                 }}
             >
                 {/* ── Brand ── */}
