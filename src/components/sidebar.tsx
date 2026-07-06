@@ -105,7 +105,19 @@ function Sidebar() {
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     ${collapsed ? "md:w-16 md:translate-x-0" : "md:w-64 md:translate-x-0"}
                 `}
-                style={{ background: "#2C4A3E", borderRight: "1px solid rgba(255,255,255,0.10)" }}
+                style={{
+                    background: "#2C4A3E",
+                    borderRight: "1px solid rgba(255,255,255,0.10)",
+                    // Раскрытие рельса — оверлей ПОВЕРХ контента. Анимация width —
+                    // layout-свойство, из-за чего на некоторых GPU оставались следы
+                    // перерисовки (контент «просвечивал»/двоился). Промоутим сайдбар
+                    // в собственный композитный слой и изолируем стек, чтобы он
+                    // рисовался цельно над контентом без артефактов.
+                    transform: "translateZ(0)",
+                    willChange: "width",
+                    backfaceVisibility: "hidden",
+                    isolation: "isolate",
+                }}
             >
                 {/* ── Brand ── */}
                 <div className={`shrink-0 h-14 flex items-center border-b ${collapsed ? "justify-between px-4 md:justify-center md:px-0" : "justify-between px-4"}`}
