@@ -74,6 +74,7 @@ const config: Config = {
 			fontFamily: {
 				sans: ['var(--font-plus-jakarta)', 'var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
 				mono: ['var(--font-geist-mono)', 'monospace'],
+				manrope: ['var(--font-manrope)', 'ui-sans-serif', 'sans-serif'],
 			}
 		}
 	},

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Montserrat, DM_Sans, Cormorant_Garamond, Source_Serif_4, Plus_Jakarta_Sans } from "next/font/google";
+import { Montserrat, DM_Sans, Cormorant_Garamond, Source_Serif_4, Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -44,6 +44,12 @@ const sourceSerif = Source_Serif_4({
   subsets: ["latin", "cyrillic"],
   variable: "--font-source-serif",
   weight: ["400", "600"],
+});
+
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -96,7 +102,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} ${cormorantGaramond.variable} ${sourceSerif.variable} ${plusJakartaSans.variable} antialiased min-h-screen relative app-bg`}
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${dmSans.variable} ${cormorantGaramond.variable} ${sourceSerif.variable} ${plusJakartaSans.variable} ${manrope.variable} antialiased min-h-screen relative app-bg`}
       >
         <div className="relative z-10 min-h-screen">
           <AuthProvider>{children}</AuthProvider>

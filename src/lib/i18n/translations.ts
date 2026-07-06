@@ -164,6 +164,10 @@ export const translations: Record<Language, Record<string, string>> = {
         "sidebar.collapse": "Свернуть меню",
         "sidebar.openMenu": "Открыть меню",
         "sidebar.closeMenu": "Закрыть меню",
+        "sidebar.newBadge": "Новое",
+        "sidebar.planFree": "Free план",
+        "sidebar.proUpsell": "Получите Kulcha Pro",
+        "sidebar.proDiscount": "−25%",
 
         // ── Topbar / search ──────────────────────────────────────
         "search.placeholder": "Поиск по предметам…",
@@ -834,9 +838,13 @@ export const translations: Record<Language, Record<string, string>> = {
         "nav.admin": "Admin",
         "nav.logout": "Chiqish",
         "sidebar.expand": "Menyuni yoyish",
-        "sidebar.collapse": "Menyuni yig‘ish",
+        "sidebar.collapse": "Menyuni yig’ish",
         "sidebar.openMenu": "Menyuni ochish",
         "sidebar.closeMenu": "Menyuni yopish",
+        "sidebar.newBadge": "Yangi",
+        "sidebar.planFree": "Free reja",
+        "sidebar.proUpsell": "Kulcha Pro oling",
+        "sidebar.proDiscount": "−25%",
 
         // ── Topbar / search ──────────────────────────────────────
         "search.placeholder": "Fanlardan qidirish…",

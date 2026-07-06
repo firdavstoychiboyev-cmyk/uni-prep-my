@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NavProgressBar />
             {/* Отступ контента следует за pin-состоянием (isCollapsed), а не за
                 наведением — рельс раскрывается ПОВЕРХ контента, без сдвига. */}
-            <main className={`flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-background transition-[margin] duration-200 ease-in-out ${isCollapsed ? "md:ml-16" : "md:ml-64"}`}>
+            <main className={`flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-background transition-[margin] duration-200 ease-in-out ${isCollapsed ? "md:ml-16" : "md:ml-[296px]"}`}>
                 <Topbar />
                 <PageWrapper>{children}</PageWrapper>
             </main>
