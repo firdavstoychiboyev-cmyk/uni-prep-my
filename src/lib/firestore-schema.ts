@@ -37,6 +37,33 @@ export interface User {
 }
 
 /**
+ * Код доступа к конкретному мок-тесту: mockCodes/{CODE}.
+ * Отдельная коллекция — не связана с accessCodes (регистрационные коды).
+ * Администратор создаёт код и распространяет его; студент вводит код
+ * на вкладке «Kod orqali» и получает доступ к мок-тесту.
+ */
+export interface MockCode {
+  code: string;          // строка-код, совпадает с id документа
+  mockId: string;        // ссылка на mocks/{id}
+  orgId: string | null;  // null — не привязан к организации
+  reusable: boolean;     // true — многоразовый; false — одноразовый
+  createdBy: string;     // uid администратора
+  createdAt: string;
+  usedBy: string[];      // uid-ы студентов, активировавших код
+  maxUses: number | null; // null — без ограничения
+}
+
+/**
+ * Запись об активированном мок-тесте: users/{uid}/redeemedMocks/{mockId}.
+ * Служит индексом — позволяет студенту видеть свои разблокированные тесты
+ * без листинга всей коллекции mockCodes.
+ */
+export interface RedeemedMock {
+  code: string;        // какой код был использован
+  redeemedAt: string;  // ISO timestamp
+}
+
+/**
  * Код доступа организации-партнёра: accessCodes/{CODE}.
  * Студент вводит код при регистрации и получает organization в профиле.
  */

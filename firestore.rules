@@ -88,6 +88,14 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
+
+      // ── Redeemed mock-test index (mockCodes/{code} → users/{uid}/redeemedMocks/{mockId}) ──
+      // Created atomically alongside the usedBy append on the mockCodes doc.
+      // Lets users list their own unlocked mocks without needing to scan mockCodes.
+      match /redeemedMocks/{mockId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
     }
 
 
@@ -148,6 +156,36 @@ service cloud.firestore {
             || resource.data.maxUses == null
             || resource.data.usesCount < resource.data.maxUses)
       );
+    }
+
+
+    // ── Mock-test access codes (mockCodes/{CODE}) ────────────────────────────
+    // Separate collection from accessCodes (signup org-tagging codes).
+    // Admin creates/deletes codes. Any signed-in user may GET a single code
+    // by exact path to validate it during redemption — list is admin-only.
+    // Users may append ONLY their own uid to usedBy (atomic array-union),
+    // subject to reusability and maxUses constraints.
+
+    match /mockCodes/{code} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          // Only the usedBy array may change
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usedBy"])
+          // Array grows by exactly one entry
+          && request.resource.data.usedBy.size() == resource.data.usedBy.size() + 1
+          // Caller wasn't already in usedBy (prevents double-redemption via rules)
+          && !resource.data.usedBy.hasAny([request.auth.uid])
+          // The new entry must be the caller's own uid
+          && request.resource.data.usedBy.hasAll([request.auth.uid])
+          // Reusable codes always OK; single-use codes must still be unclaimed
+          && (resource.data.reusable == true || resource.data.usedBy.size() == 0)
+          // Honour maxUses cap (null = unlimited)
+          && (resource.data.maxUses == null || resource.data.usedBy.size() < resource.data.maxUses)
+        );
     }
 
 
