@@ -223,7 +223,7 @@ export default function LandingPage() {
         <nav className="sticky top-0 z-50 backdrop-blur-xl border-b bg-white/80 dark:bg-black/40 border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="relative w-9 h-9">
-              <Image src="/gogg.png" alt="Kulcha" fill className="object-contain" priority />
+              <Image src="/logo-mark.png" alt="Kulcha" fill className="object-contain" priority />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Kulcha</span>
           </div>

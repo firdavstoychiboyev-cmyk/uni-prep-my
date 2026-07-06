@@ -319,7 +319,7 @@ export default function LoginPage() {
                     <div className="mb-8 flex justify-center">
                         <div className="flex items-center gap-3">
                             <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
-                                <Image src="/gogg.png" alt="" fill className="object-contain" priority />
+                                <Image src="/logo-mark.png" alt="Kulcha" fill className="object-contain" priority />
                             </div>
                             <span className="text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.75rem]">
                                 Kulcha

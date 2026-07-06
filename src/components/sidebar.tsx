@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSubjectsStore } from "@/store/useSubjectsStore";
@@ -155,10 +156,8 @@ function Sidebar() {
                 <div className={`shrink-0 h-14 flex items-center border-b ${collapsed ? "justify-between px-4 md:justify-center md:px-0" : "justify-between px-4"}`}
                     style={{ borderColor: "rgba(255,255,255,0.10)" }}>
                     <Link href="/home" className="flex items-center gap-2.5" onClick={close}>
-                        <div
-                            className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
-                            style={{ background: "linear-gradient(150deg, #38BDF8 0%, #6366F1 55%, #C084FC 100%)" }}>
-                            <span style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>K</span>
+                        <div className="relative w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/15">
+                            <Image src="/logo-mark.png" alt="Kulcha" fill sizes="28px" className="object-cover" priority />
                         </div>
                         <span className={collapsed ? "md:hidden" : ""} style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: "-.01em" }}>Kulcha</span>
                     </Link>

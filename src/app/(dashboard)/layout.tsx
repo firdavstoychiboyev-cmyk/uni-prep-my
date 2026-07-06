@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     чтобы после загрузки контент не прыгал. */}
                 <aside className="hidden md:flex fixed left-0 top-0 h-screen w-16 flex-col z-50 py-0 bg-card border-r border-border">
                     <div className="h-14 flex items-center justify-center border-b border-border">
-                        <div className="h-7 w-7 rounded-[8px] animate-pulse bg-muted" />
+                        <div className="h-7 w-7 rounded-full animate-pulse bg-muted" />
                     </div>
                     <div className="pt-2 px-2 flex flex-col items-center gap-1.5">
                         {[...Array(6)].map((_, i) => (

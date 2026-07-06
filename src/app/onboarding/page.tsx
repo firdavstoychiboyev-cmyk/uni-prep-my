@@ -98,8 +98,8 @@ export default function OnboardingPage() {
                         <div className="flex items-center gap-3">
                             <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
                                 <Image
-                                    src="/gogg.png"
-                                    alt=""
+                                    src="/logo-mark.png"
+                                    alt="Kulcha"
                                     fill
                                     className="object-contain"
                                     priority
