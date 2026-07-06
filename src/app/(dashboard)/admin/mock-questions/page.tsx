@@ -246,7 +246,7 @@ export default function AdminMockQuestionsPage() {
             )}
 
             {embeddedOnly && (
-                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">⚠️ {t("adminMockQ.embeddedUnsupported")}</p>
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400"><AlertTriangle size={14} className="shrink-0" strokeWidth={2} /> {t("adminMockQ.embeddedUnsupported")}</p>
             )}
 
             {selectedMock && !embeddedOnly && (

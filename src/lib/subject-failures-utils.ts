@@ -13,6 +13,8 @@ export interface SubjectFailure {
     subjectId: string;
     subjectName: string;
     subjectEmoji?: string;
+    /** Язык документа предмета — чтобы при слиянии дублей выбрать имя под UI-язык */
+    subjectLanguage?: string;
     wrong: number;       // всего неверных ответов по предмету
     total: number;       // всего попыток (верно + неверно)
     wrongPct: number;    // процент неверных, целое 0–100
@@ -65,6 +67,7 @@ const decorate = async (bySubject: Map<string, { wrong: number; total: number }>
                 subjectId,
                 subjectName: subj?.name ?? subjectId,
                 subjectEmoji: subj?.emoji,
+                subjectLanguage: subj?.language,
                 wrong,
                 total,
                 wrongPct: total > 0 ? Math.round((wrong / total) * 100) : 0,

@@ -54,7 +54,12 @@ const config: Config = {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				// Более мягкие углы карточек/панелей (глобально). Вложенные
+				// элементы обычно rounded-lg/rounded-full — остаются меньше.
+				xl: '1rem',        // 16px (было 12px)
+				'2xl': '1.375rem', // 22px (было 16px)
+				'3xl': '1.75rem'   // 28px (было 24px)
 			},
 			fontFamily: {
 				sans: ['var(--font-plus-jakarta)', 'var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

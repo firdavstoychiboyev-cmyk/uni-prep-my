@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
@@ -230,8 +230,9 @@ export default function MockTestPage() {
                 <p>• {language === "uz" ? "Natijalar oxirida ko'rsatiladi" : "Результаты показываются в конце"}</p>
             </div>
             {questions.length === 0 && (
-                <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                    {language === "uz" ? "⚠️ Hali savollar qo'shilmagan" : "⚠️ Вопросы ещё не добавлены"}
+                <p className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    <AlertTriangle size={14} className="shrink-0" strokeWidth={2} />
+                    {language === "uz" ? "Hali savollar qo'shilmagan" : "Вопросы ещё не добавлены"}
                 </p>
             )}
             <button
@@ -564,8 +565,9 @@ export default function MockTestPage() {
                                 : `Отвечено: ${answeredCount} / ${questions.length}`}
                         </p>
                         {answeredCount < questions.length && (
-                            <p className="text-red-500 text-sm mb-6">
-                                ⚠️ {questions.length - answeredCount}{" "}
+                            <p className="inline-flex items-center gap-1.5 text-red-500 text-sm mb-6">
+                                <AlertTriangle size={14} className="shrink-0" strokeWidth={2} />
+                                {questions.length - answeredCount}{" "}
                                 {language === "uz" ? "ta savol javobsiz qolmoqda!" : "вопросов остались без ответа!"}
                             </p>
                         )}

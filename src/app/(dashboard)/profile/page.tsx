@@ -236,9 +236,10 @@ export default function ProfilePage() {
                                         <div className="h-full bg-foreground rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        {medals.green > 0 && <span>🟢 {medals.green}</span>}
-                                        {medals.grey > 0 && <span>⚪ {medals.grey}</span>}
-                                        {medals.bronze > 0 && <span>🥉 {medals.bronze}</span>}
+                                        {/* Медали-цветовые точки (были эмодзи 🟢⚪🥉) */}
+                                        {medals.green > 0 && <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />{medals.green}</span>}
+                                        {medals.grey > 0 && <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-neutral-400" />{medals.grey}</span>}
+                                        {medals.bronze > 0 && <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-700" />{medals.bronze}</span>}
                                         {stars > 0 && (
                                             <span className="ml-auto flex items-center gap-1">
                                                 <Star size={11} className="fill-yellow-400 text-yellow-400" />

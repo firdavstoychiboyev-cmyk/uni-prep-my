@@ -5,6 +5,7 @@ import { Subject } from "@/lib/firestore-schema";
 import { getSubjectTheme } from "@/lib/subject-theme";
 import { ILLUSTRATIONS } from "@/components/subject-illustrations";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { ruPlural } from "@/lib/i18n/plural";
 
 /**
  * Большая карточка предмета для /subjects — точная реализация макета Claude
@@ -30,6 +31,8 @@ export default function SubjectGridCard({
     const { gradFrom, gradTo, illustration } = getSubjectTheme(subject.name, subject.id);
     const Illustration = ILLUSTRATIONS[illustration];
     const qCount = subject.questionCount ?? 0;
+    // Русская плюрализация: 1 вопрос / 2–4 вопроса / 5+ вопросов (uz — одна форма)
+    const qCountLabel = t(`subjects.qCount_${ruPlural(qCount)}`, { count: qCount });
 
     const cardClass = "group relative block w-full text-left overflow-hidden transition-transform duration-200 hover:-translate-y-0.5";
     const cardStyle: React.CSSProperties = {
@@ -69,9 +72,9 @@ export default function SubjectGridCard({
                 <h3 className="text-white" style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-.02em" }}>
                     {subject.name}
                 </h3>
-                {(subtitle ?? (qCount > 0 ? t("subjects.qCount", { count: qCount }) : "")) && (
+                {(subtitle ?? (qCount > 0 ? qCountLabel : "")) && (
                     <p className="mt-2 font-semibold text-white/85" style={{ fontSize: 15 }}>
-                        {subtitle ?? t("subjects.qCount", { count: qCount })}
+                        {subtitle ?? qCountLabel}
                     </p>
                 )}
                 <span
