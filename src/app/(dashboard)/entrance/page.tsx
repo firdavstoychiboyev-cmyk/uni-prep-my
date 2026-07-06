@@ -258,7 +258,8 @@ export default function EntrancePage() {
                 <div className="flex-1 overflow-y-auto">
                     <div className="mx-auto max-w-3xl px-6 py-8">
                         <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-sm font-black text-background">{idx + 1}</div>
-                        {q?.imageUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={q.imageUrl} alt="" className="mb-4 max-h-72 rounded-xl border border-border object-contain" />}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {q?.imageUrl && <img src={q.imageUrl} alt="" className="mb-4 max-h-72 rounded-xl border border-border object-contain" />}
                         <div className="mb-6 ql-content"><MathText content={q?.text ?? ""} className="text-foreground" style={{ fontFamily: "var(--font-source-serif), Georgia, serif", fontSize: "1.2rem", lineHeight: "1.8" }} /></div>
                         {isOpen ? (
                             <textarea value={answers[idx] ?? ""} onChange={(e) => setOpen(e.target.value)} rows={4}

@@ -130,7 +130,7 @@ function Sidebar() {
     const animating = !isOpen && isCollapsed && (hovered || focusWithin);
 
     // CSS class for a newly-revealed label element (index i, 0-based top→bottom).
-    const fc = (i: number) =>
+    const fc = (_i: number) =>
         animating
             ? "animate-in fade-in-0 slide-in-from-left-2 duration-[130ms]"
             : collapsed ? "md:hidden" : "";
