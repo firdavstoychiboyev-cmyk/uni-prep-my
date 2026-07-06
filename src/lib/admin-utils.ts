@@ -52,7 +52,7 @@ export const fetchAdminUsers = async (
 ): Promise<User[]> => {
     // В списке учеников показываем и Registan-админов (их промоутят из учеников),
     // чтобы супер-админ мог их видеть и понижать роль обратно.
-    const roles = role === "student" ? ["student", "registanAdmin"] : ["teacher"];
+    const roles = role === "student" ? ["student", "registanAdmin", "filial_admin"] : ["teacher"];
     const matches = (r?: string) => roles.includes(r ?? "");
     try {
         if (scope === "registan") {

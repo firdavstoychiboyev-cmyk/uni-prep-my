@@ -5,7 +5,7 @@ import { Landmark, Loader2 } from "lucide-react";
 import { fetchAdminUsers, setUserRole, fetchFilials, setUserFilial } from "@/lib/admin-utils";
 import { useAdminScope, REGISTAN_ORG } from "@/store/useAdminScopeStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { isSuperAdmin, ASSIGNABLE_ROLES } from "@/lib/roles";
+import { isSuperAdmin, isFilialAdmin, ASSIGNABLE_ROLES } from "@/lib/roles";
 import { User, UserRole, Filial } from "@/lib/firestore-schema";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -122,7 +122,7 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
                                             )}
                                         </td>
                                         <td className="px-3 py-3">
-                                            {canManageRoles && u.role === "registanAdmin" ? (
+                                            {canManageRoles && isFilialAdmin(u) ? (
                                                 <div className="flex items-center gap-2">
                                                     <select
                                                         value={u.filialId ?? ""}

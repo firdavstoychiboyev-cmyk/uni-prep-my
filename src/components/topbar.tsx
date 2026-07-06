@@ -9,6 +9,7 @@ import { useSubjectsStore } from "@/store/useSubjectsStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { logOut, updateUserLanguage } from "@/lib/auth-utils";
+import { isAnyAdmin } from "@/lib/roles";
 import { ThemeToggle } from "@/components/theme-toggle";
 import OrgBadge from "@/components/org-badge";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -85,7 +86,7 @@ export default function Topbar() {
     const userMenu: MenuItem[] = [
         { label: t("topbar.account"), href: "/profile", icon: User2, visible: true },
         { label: t("nav.classes"), href: "/classes", icon: GraduationCap, visible: user?.role === "teacher" },
-        { label: t("nav.admin"), href: "/admin", icon: Shield, visible: user?.role === "admin" },
+        { label: t("nav.admin"), href: "/admin", icon: Shield, visible: isAnyAdmin(user) },
         {
             label: t("nav.logout"),
             icon: LogOut,

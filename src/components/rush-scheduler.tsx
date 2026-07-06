@@ -7,6 +7,7 @@ import { fetchSubjects } from "@/lib/data-fetching";
 import { fetchActiveMocks, MockOption } from "@/lib/homework-utils";
 import { scheduleGroupRush } from "@/lib/rush-utils";
 import { Subject, User, Language } from "@/lib/firestore-schema";
+import { isAnyAdmin } from "@/lib/roles";
 
 /**
  * Учительская форма: назначить Rush-сессию группе — выбрать предмет, набор
@@ -44,7 +45,7 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                 scheduledFor: new Date(scheduledFor).toISOString(),
                 windowEnd: windowEnd ? new Date(windowEnd).toISOString() : undefined,
                 createdBy: user.id,
-                creatorRole: (user.role === "admin" || user.role === "registanAdmin") ? "admin" : "teacher",
+                creatorRole: isAnyAdmin(user) ? "admin" : "teacher",
                 language: (user.language ?? "ru") as Language,
                 title: subjects.find((s) => s.id === subjectId)?.name,
             });

@@ -2,10 +2,13 @@
  * Firestore logical schema and TypeScript types for the application.
  */
 
-// "admin" — супер-админ (полный доступ). "registanAdmin" — ограниченный админ
-// организации Registan (см. lib/roles.ts): только Registan-данные, без
-// доступа к глобальному контенту и другим организациям.
-export type UserRole = "student" | "teacher" | "admin" | "registanAdmin";
+// Трёхуровневая иерархия ролей:
+//   "super_admin"    — полный доступ (Firdavs). Заменяет устаревший "admin".
+//   "director_admin" — read-only по всем филиалам (сравнительная аналитика).
+//   "filial_admin"   — только свой филиал. Заменяет устаревший "registanAdmin".
+// Устаревшие значения "admin" и "registanAdmin" сохранены для обратной
+// совместимости на время миграции существующих аккаунтов.
+export type UserRole = "student" | "teacher" | "super_admin" | "director_admin" | "filial_admin" | "admin" | "registanAdmin";
 
 /** Язык контента и интерфейса. По умолчанию — русский. */
 export type Language = "ru" | "uz";

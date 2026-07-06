@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchAdminStats, AdminStats } from "@/lib/admin-utils";
 import { useAdminScope } from "@/store/useAdminScopeStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { isRegistanAdmin } from "@/lib/roles";
+import { isSuperAdmin } from "@/lib/roles";
 import {
     Users,
     GraduationCap,
@@ -22,8 +22,8 @@ export default function AdminDashboard() {
     const { t } = useTranslation();
     const { scope } = useAdminScope();
     const { user } = useAuthStore();
-    // Registan-админу не показываем ярлыки управления глобальным контентом
-    const showContentMgmt = !isRegistanAdmin(user);
+    // Управление глобальным контентом — только для super_admin
+    const showContentMgmt = isSuperAdmin(user);
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 

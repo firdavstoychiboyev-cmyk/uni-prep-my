@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3, Zap, Building2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3, Zap, Building2, GitCompare } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import AdminScopeToggle from "@/components/admin-scope-toggle";
-import { isAnyAdmin, isRegistanAdmin, registanAdminCanAccess, REGISTAN_ADMIN_ROUTES } from "@/lib/roles";
+import { isAnyAdmin, isFilialAdmin, isDirectorAdmin, filialAdminCanAccess, directorAdminCanAccess, FILIAL_ADMIN_ROUTES, DIRECTOR_ADMIN_ROUTES } from "@/lib/roles";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuthStore();
@@ -16,15 +16,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const { t } = useTranslation();
 
-    // Доступ: супер-админ или Registan-админ. Registan-админа выкидываем с
-    // запрещённых разделов админки обратно на дашборд панели.
+    // Доступ: любой уровень admin. Ограниченных ролей выкидываем с запрещённых
+    // разделов обратно на дашборд панели.
     useEffect(() => {
         if (isLoading) return;
         if (!user || !isAnyAdmin(user)) {
             router.push("/home");
             return;
         }
-        if (isRegistanAdmin(user) && !registanAdminCanAccess(pathname)) {
+        if (isFilialAdmin(user) && !filialAdminCanAccess(pathname)) {
+            router.push("/admin");
+        }
+        if (isDirectorAdmin(user) && !directorAdminCanAccess(pathname)) {
             router.push("/admin");
         }
     }, [user, isLoading, router, pathname]);
@@ -55,10 +58,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: t("adminMockQ.title"), href: "/admin/mock-questions", icon: ListChecks },
         { name: t("adminCodes.title"), href: "/admin/codes", icon: KeyRound },
         { name: t("adminFilials.title"), href: "/admin/filials", icon: Building2 },
+        { name: t("adminDirector.title"), href: "/admin/director", icon: GitCompare },
     ];
-    // Registan-админ видит только разрешённые разделы; супер-админ — все.
-    const menuItems = isRegistanAdmin(user)
-        ? allMenuItems.filter((m) => REGISTAN_ADMIN_ROUTES.includes(m.href))
+    // Фильтрация меню по роли: filial_admin → только свои разделы,
+    // director_admin → только разделы директора, super_admin → всё.
+    const menuItems = isFilialAdmin(user)
+        ? allMenuItems.filter((m) => FILIAL_ADMIN_ROUTES.includes(m.href))
+        : isDirectorAdmin(user)
+        ? allMenuItems.filter((m) => DIRECTOR_ADMIN_ROUTES.includes(m.href))
         : allMenuItems;
 
     return (

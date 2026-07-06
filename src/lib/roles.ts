@@ -1,24 +1,42 @@
 import { UserRole } from "./firestore-schema";
 
 /**
- * Роли и доступ к админ-панели.
+ * Трёхуровневая иерархия ролей.
  *
- * Модель: роль хранится полем users/{uid}.role в Firestore (кастомных
- * claims в Firebase Auth нет — весь RBAC на роли из профиля). Проверки в
- * правилах Firestore читают то же поле (userRole()).
+ * Роль хранится полем users/{uid}.role в Firestore (кастомных claims нет —
+ * весь RBAC на роли из профиля). Проверки в правилах Firestore читают то же
+ * поле (userRole()).
  *
- * - "admin"         — супер-админ: весь функционал, все организации.
- * - "registanAdmin" — админ Registan: только Registan-данные, ограниченный
- *                     набор разделов, без глобального контента и без промо
- *                     других пользователей.
+ * - "super_admin"    — полный доступ, все организации и филиалы.
+ *                      Устаревший алиас: "admin" (поддерживается до миграции).
+ * - "director_admin" — read-only по всем филиалам: сравнительная аналитика.
+ * - "filial_admin"   — только свой филиал (student/teacher своего filialId).
+ *                      Устаревший алиас: "registanAdmin" (до миграции).
  */
 type RoleLike = { role?: UserRole | string } | null | undefined;
 
-export const isSuperAdmin = (u: RoleLike): boolean => u?.role === "admin";
-export const isRegistanAdmin = (u: RoleLike): boolean => u?.role === "registanAdmin";
-export const isAnyAdmin = (u: RoleLike): boolean => isSuperAdmin(u) || isRegistanAdmin(u);
+/** Полный доступ (super_admin + устаревший "admin"). */
+export const isSuperAdmin = (u: RoleLike): boolean =>
+    u?.role === "super_admin" || u?.role === "admin";
 
-/** Разделы админки, доступные Registan-админу (всё остальное — запрещено). */
+/** Read-only по всем филиалам. */
+export const isDirectorAdmin = (u: RoleLike): boolean =>
+    u?.role === "director_admin";
+
+/** Ограниченный доступ к своему филиалу (filial_admin + устаревший "registanAdmin"). */
+export const isFilialAdmin = (u: RoleLike): boolean =>
+    u?.role === "filial_admin" || u?.role === "registanAdmin";
+
+/**
+ * Устаревший алиас — оставлен, чтобы не менять все точки вызова разом.
+ * Семантически эквивалентен isFilialAdmin.
+ */
+export const isRegistanAdmin = isFilialAdmin;
+
+export const isAnyAdmin = (u: RoleLike): boolean =>
+    isSuperAdmin(u) || isDirectorAdmin(u) || isFilialAdmin(u);
+
+/** Разделы, доступные filial_admin (бывший registanAdmin). */
 export const REGISTAN_ADMIN_ROUTES: readonly string[] = [
     "/admin",
     "/admin/students",
@@ -29,9 +47,30 @@ export const REGISTAN_ADMIN_ROUTES: readonly string[] = [
     "/admin/entrance",
 ];
 
-/** Может ли Registan-админ открыть данный путь админки. */
-export const registanAdminCanAccess = (pathname: string): boolean =>
-    REGISTAN_ADMIN_ROUTES.includes(pathname);
+/** Алиас с новым именем — используйте в новом коде. */
+export const FILIAL_ADMIN_ROUTES = REGISTAN_ADMIN_ROUTES;
 
-/** Роли, которые супер-админ может назначить из списка пользователей. */
-export const ASSIGNABLE_ROLES: readonly UserRole[] = ["student", "teacher", "registanAdmin"];
+/** Разделы, доступные director_admin. */
+export const DIRECTOR_ADMIN_ROUTES: readonly string[] = [
+    "/admin",
+    "/admin/director",
+];
+
+export const registanAdminCanAccess = (pathname: string): boolean =>
+    FILIAL_ADMIN_ROUTES.includes(pathname);
+
+export const filialAdminCanAccess = registanAdminCanAccess;
+
+export const directorAdminCanAccess = (pathname: string): boolean =>
+    DIRECTOR_ADMIN_ROUTES.includes(pathname);
+
+/**
+ * Роли, которые супер-админ может назначить из списка пользователей.
+ * "super_admin" намеренно исключён — нельзя назначить через UI.
+ */
+export const ASSIGNABLE_ROLES: readonly UserRole[] = [
+    "student",
+    "teacher",
+    "filial_admin",
+    "director_admin",
+];

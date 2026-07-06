@@ -10,6 +10,7 @@ import { fetchStudentClasses } from "@/lib/profile-utils";
 import { fetchSubjects, fetchTextbooksBySubject, fetchTopicsByTextbook } from "@/lib/data-fetching";
 import { fetchUserSubjectRatings, fetchSubjectProgress } from "@/lib/stats-utils";
 import { updateUserProfile } from "@/lib/auth-utils";
+import { isSuperAdmin, isDirectorAdmin, isFilialAdmin } from "@/lib/roles";
 import { Star, ShieldCheck, Copy, Check, Settings2, X } from "lucide-react";
 import { getSubjectMeta, ACCENT_ICON_BG, ACCENT_ICON_COLORS } from "@/lib/subject-icons";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -120,7 +121,15 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1.5 text-[10px] bg-muted border border-border px-3 py-1 rounded-full text-muted-foreground font-bold uppercase tracking-widest">
                             <ShieldCheck size={11} />
-                            {user.role === "teacher" ? t("role.teacher") : t("role.student")}
+                            {isSuperAdmin(user)
+                                ? t("role.super_admin")
+                                : isDirectorAdmin(user)
+                                ? t("role.director_admin")
+                                : isFilialAdmin(user)
+                                ? t("role.filial_admin")
+                                : user.role === "teacher"
+                                ? t("role.teacher")
+                                : t("role.student")}
                         </span>
                         <OrgBadge organization={user.organization} />
                     </div>

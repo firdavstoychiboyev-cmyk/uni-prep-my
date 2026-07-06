@@ -19,18 +19,24 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
+    // super_admin (полный доступ). Поддерживает устаревший "admin" до миграции.
     function isAdmin() {
-      return isSignedIn() && userRole() == "admin";
+      return isSignedIn() && userRole() in ["admin", "super_admin"];
     }
 
-    // Ограниченный админ организации Registan (роль в профиле). НЕ входит в
-    // isAdmin()/isTeacherOrAdmin() — глобальный контент ему недоступен.
+    // director_admin: read-only по всем филиалам. НЕ входит в isAdmin().
+    function isDirectorAdmin() {
+      return isSignedIn() && userRole() == "director_admin";
+    }
+
+    // filial_admin: ограниченный доступ к своему филиалу.
+    // Поддерживает устаревший "registanAdmin" до миграции.
     function isRegistanAdmin() {
-      return isSignedIn() && userRole() == "registanAdmin";
+      return isSignedIn() && userRole() in ["registanAdmin", "filial_admin"];
     }
 
     function isTeacherOrAdmin() {
-      return isSignedIn() && userRole() in ["teacher", "admin"];
+      return isSignedIn() && userRole() in ["teacher", "admin", "super_admin"];
     }
 
 
@@ -150,7 +156,7 @@ service cloud.firestore {
     }
     match /accessCodes/{code} {
       allow get: if true;
-      allow list: if isAdmin() || (isRegistanAdmin() && isRegistanCode());
+      allow list: if isAdmin() || isDirectorAdmin() || (isRegistanAdmin() && isRegistanCode());
       allow create: if isAdmin()
         || (isRegistanAdmin() && request.resource.data.organization == "registan");
       allow delete: if isAdmin() || (isRegistanAdmin() && isRegistanCode());
