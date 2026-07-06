@@ -25,23 +25,19 @@ import {
     Landmark,
     Target,
     Zap,
-    Star,
-    ChevronDown,
     type LucideIcon,
 } from "lucide-react";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-    rail:        "#16233b",
-    border:      "rgba(255,255,255,0.08)",
-    textBase:    "#aab6ca",
-    textHover:   "#e8edf5",
-    textWhite:   "#ffffff",
-    textMuted:   "#5f6f8a",
-    hoverBg:     "rgba(255,255,255,0.05)",
-    activeBg:    "rgba(255,255,255,0.10)",
-    selectorBg:  "#0f1a2e",
-    accentBlue:  "#35a7ff",
+    rail:     "#16233b",
+    border:   "rgba(255,255,255,0.08)",
+    textBase: "#aab6ca",
+    textHover:"#e8edf5",
+    textWhite:"#ffffff",
+    textMuted:"#5f6f8a",
+    hoverBg:  "rgba(255,255,255,0.05)",
+    activeBg: "rgba(255,255,255,0.10)",
 } as const;
 
 type NavLink = {
@@ -114,6 +110,48 @@ function Sidebar() {
 
     const links = mainLinks(user?.role === "teacher", user?.role === "student", user?.organization === "registan", t);
 
+    // ── Stagger animation helpers ──────────────────────────────────────────
+    // Only animate when desktop hover-expands the collapsed rail.
+    // - isOpen=true (mobile drawer): no stagger — the drawer slide-in is enough.
+    // - isCollapsed=false (pinned open): no stagger — labels are always visible.
+    // - isCollapsed=true + hover/focus (the hover-expand case): stagger fires.
+    //
+    // Implementation: tailwindcss-animate's `animate-in fade-in-0
+    // slide-in-from-left-2` starts the CSS animation when the class is newly
+    // applied to an element (animation-name changes from none → "enter"), which
+    // fires correctly even when display:none is simultaneously removed by the
+    // md:hidden class being dropped — per CSS Animations spec §3.4 "new CSS
+    // animations must start" when animation-name gains a non-none value.
+    //
+    // Collapse exit: elements immediately get `md:hidden` (display:none) via the
+    // collapsed branch below — the snap-hide is acceptable per the spec ("fine
+    // for this to just fade out quickly/uniformly"). The 180ms leaveTimer means
+    // the sidebar stays visible for 180ms anyway.
+    const animating = !isOpen && isCollapsed && (hovered || focusWithin);
+
+    // CSS class for a newly-revealed label element (index i, 0-based top→bottom).
+    const fc = (i: number) =>
+        animating
+            ? "animate-in fade-in-0 slide-in-from-left-2 duration-[130ms]"
+            : collapsed ? "md:hidden" : "";
+
+    // Inline animationDelay for stagger (only when animating).
+    const fd = (i: number): React.CSSProperties =>
+        animating ? { animationDelay: `${i * 15}ms` } : {};
+
+    // Pre-compute stagger base indices for each section.
+    // 0        → brand wordmark + close/pin buttons (treated as one row)
+    // 1..N     → nav item labels (N = links.length)
+    // N+1      → section label (ПРАКТИКА/AMALIYOT)
+    // N+2..    → subject labels
+    // N+2+S    → footer user text + settings gear (S = subjects.length)
+    const SI_BRAND   = 0;
+    const SI_NAV     = 1;                               // base; add navIdx
+    const SI_SECTION = 1 + links.length;
+    const SI_SUBJ    = 2 + links.length;                // base; add subjIdx
+    const SI_FOOTER  = 2 + links.length + subjects.length;
+    // ── end animation helpers ──────────────────────────────────────────────
+
     return (
         <>
             {/* Mobile backdrop */}
@@ -155,26 +193,32 @@ function Sidebar() {
                     style={{ borderColor: C.border }}
                 >
                     <Link href="/home" onClick={close} className="flex items-center gap-2.5 flex-1 min-w-0">
-                        {/* Conic-gradient kulcha badge */}
+                        {/* Conic-gradient kulcha badge — always visible in collapsed rail */}
                         <div
                             className="flex-shrink-0 flex items-center justify-center rounded-[11px]"
                             style={{
                                 width: 36, height: 36,
                                 background: "conic-gradient(from 210deg, #f0873a, #ef4f6b, #7c5cff, #f0873a)",
                             }}
-                        >
-                            <div className="w-2.5 h-2.5 rounded-full bg-white/90" />
-                        </div>
+                        />
+                        {/* Wordmark — fades in on expand */}
                         <span
-                            className={collapsed ? "md:hidden" : ""}
-                            style={{ color: C.textWhite, fontWeight: 800, fontSize: 21, letterSpacing: "-0.02em" }}
+                            className={fc(SI_BRAND)}
+                            style={{
+                                color: C.textWhite, fontWeight: 800, fontSize: 21,
+                                letterSpacing: "-0.02em",
+                                ...fd(SI_BRAND),
+                            }}
                         >
                             Kulcha
                         </span>
                     </Link>
 
-                    {/* Close (mobile) / pin (desktop) */}
-                    <div className={`flex-shrink-0 flex items-center gap-1 ${collapsed ? "md:hidden" : ""}`}>
+                    {/* Close (mobile) / pin (desktop) — fades in with brand row */}
+                    <div
+                        className={`flex-shrink-0 flex items-center gap-1 ${fc(SI_BRAND)}`}
+                        style={fd(SI_BRAND)}
+                    >
                         <button
                             onClick={close}
                             className="md:hidden p-1.5 rounded-lg transition-colors"
@@ -199,28 +243,12 @@ function Sidebar() {
                     </div>
                 </div>
 
-                {/* ── DTM selector ── */}
-                <div className={`px-3 pt-3 pb-0.5 ${collapsed ? "md:hidden" : ""}`}>
-                    <button
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-[13px] transition-[border-color] duration-100"
-                        style={{
-                            background: C.selectorBg,
-                            border: "1px solid rgba(255,255,255,0.09)",
-                            color: C.textBase,
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.22)"; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.09)"; }}
-                    >
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>DTM</span>
-                        <ChevronDown size={14} style={{ color: C.textMuted }} />
-                    </button>
-                </div>
-
                 {/* ── Main nav ── */}
                 <nav className="pt-2 px-2">
                     <ul className="flex flex-col gap-px">
-                        {links.map(({ label, href, icon: Icon, pill }) => {
+                        {links.map(({ label, href, icon: Icon, pill }, navIdx) => {
                             const active = pathname === href;
+                            const si = SI_NAV + navIdx;
                             return (
                                 <li key={href}>
                                     <Link
@@ -247,12 +275,22 @@ function Sidebar() {
                                             }
                                         }}
                                     >
+                                        {/* Icon — always visible in collapsed rail, does NOT animate */}
                                         <Icon size={20} className="flex-shrink-0" style={{ color: active ? C.textWhite : C.textBase }} />
-                                        <span className={`${collapsed ? "md:hidden" : ""} flex-1 min-w-0`}>{label}</span>
+
+                                        {/* Label — fades/slides in on expand */}
+                                        <span
+                                            className={`flex-1 min-w-0 ${fc(si)}`}
+                                            style={fd(si)}
+                                        >
+                                            {label}
+                                        </span>
+
+                                        {/* Pill — fades in with its label */}
                                         {pill && (
                                             <span
-                                                className={`flex-shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${collapsed ? "md:hidden" : ""}`}
-                                                style={{ background: pill.bg, color: pill.color }}
+                                                className={`flex-shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${fc(si)}`}
+                                                style={{ background: pill.bg, color: pill.color, ...fd(si) }}
                                             >
                                                 {pill.label}
                                             </span>
@@ -266,8 +304,12 @@ function Sidebar() {
 
                 {/* ── AMALIYOT / ПРАКТИКА section label ── */}
                 <div
-                    className={`pt-5 pb-1.5 uppercase ${collapsed ? "md:hidden px-4" : "px-4"}`}
-                    style={{ color: C.textMuted, fontSize: 11.5, fontWeight: 800, letterSpacing: "0.09em" }}
+                    className={`pt-5 pb-1.5 uppercase ${fc(SI_SECTION)} ${collapsed ? "px-4" : "px-4"}`}
+                    style={{
+                        color: C.textMuted, fontSize: 11.5, fontWeight: 800,
+                        letterSpacing: "0.09em",
+                        ...fd(SI_SECTION),
+                    }}
                 >
                     {language === "uz" ? "AMALIYOT" : "ПРАКТИКА"}
                 </div>
@@ -276,10 +318,11 @@ function Sidebar() {
                 <div className={`pb-2 flex-1 ${collapsed ? "md:px-2 px-2" : "px-2"}`}>
                     {subjects.length > 0 ? (
                         <ul className="flex flex-col gap-px">
-                            {subjects.map((subject) => {
+                            {subjects.map((subject, subjIdx) => {
                                 const active = pathname === `/subject/${subject.id}`;
                                 const theme = getSubjectTheme(subject.name, subject.id);
                                 const Illustration = ILLUSTRATIONS[theme.illustration];
+                                const si = SI_SUBJ + subjIdx;
                                 return (
                                     <li key={subject.id}>
                                         <Link
@@ -306,7 +349,7 @@ function Sidebar() {
                                                 }
                                             }}
                                         >
-                                            {/* 30×30 gradient chip using the existing finished subject illustrations */}
+                                            {/* Chip — always visible in collapsed rail, does NOT animate */}
                                             <span
                                                 className="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] ring-1 ring-white/10"
                                                 style={{
@@ -321,7 +364,14 @@ function Sidebar() {
                                                     preserveAspectRatio="xMidYMid slice"
                                                 />
                                             </span>
-                                            <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{subject.name}</span>
+
+                                            {/* Subject name — fades/slides in on expand */}
+                                            <span
+                                                className={`truncate ${fc(si)}`}
+                                                style={fd(si)}
+                                            >
+                                                {subject.name}
+                                            </span>
                                         </Link>
                                     </li>
                                 );
@@ -341,28 +391,6 @@ function Sidebar() {
                     )}
                 </div>
 
-                {/* ── Kulcha Pro upsell ── */}
-                <div className={`px-2 pb-2 ${collapsed ? "md:hidden" : ""}`}>
-                    <Link
-                        href="/settings"
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors duration-100"
-                        style={{ color: C.accentBlue }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(53,167,255,0.10)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                        <Star size={16} className="flex-shrink-0" />
-                        <span className="flex-1 min-w-0 truncate" style={{ fontSize: 14, fontWeight: 600 }}>
-                            {t("sidebar.proUpsell")}
-                        </span>
-                        <span
-                            className="flex-shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ background: "#ffd23f", color: "#4a3600" }}
-                        >
-                            {t("sidebar.proDiscount")}
-                        </span>
-                    </Link>
-                </div>
-
                 {/* ── Footer: user + settings ── */}
                 {user && (
                     <div className="shrink-0 border-t px-2 py-2.5" style={{ borderColor: C.border }}>
@@ -372,7 +400,7 @@ function Sidebar() {
                             onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
                             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
-                            {/* 36×36 avatar — warm gradient matches design spec */}
+                            {/* 36×36 avatar — always visible in collapsed rail */}
                             <div
                                 className="flex items-center justify-center rounded-xl text-[14px] font-bold flex-shrink-0 text-white"
                                 style={{
@@ -384,8 +412,11 @@ function Sidebar() {
                                 {user.name[0].toUpperCase()}
                             </div>
 
-                            {/* Name + plan tier */}
-                            <div className={`flex-1 min-w-0 ${collapsed ? "md:hidden" : ""}`}>
+                            {/* Name + plan — fades/slides in on expand */}
+                            <div
+                                className={`flex-1 min-w-0 ${fc(SI_FOOTER)}`}
+                                style={fd(SI_FOOTER)}
+                            >
                                 <p className="text-[14px] font-bold truncate" style={{ color: C.textWhite }}>
                                     {user.name} {user.surname || ""}
                                 </p>
@@ -398,12 +429,12 @@ function Sidebar() {
                                 </p>
                             </div>
 
-                            {/* Settings gear */}
+                            {/* Settings gear — fades/slides in with footer */}
                             <Link
                                 href="/settings"
                                 title={t("nav.settings")}
-                                className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${collapsed ? "md:hidden" : ""}`}
-                                style={{ color: C.textMuted }}
+                                className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${fc(SI_FOOTER)}`}
+                                style={{ color: C.textMuted, ...fd(SI_FOOTER) }}
                                 onMouseEnter={e => (e.currentTarget.style.color = C.textWhite)}
                                 onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
                             >
