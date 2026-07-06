@@ -124,6 +124,16 @@ service cloud.firestore {
     }
 
 
+    // ── Filials (physical Registan branches) ─────────────────────────────────
+    // Super-admin manages; any signed-in user (admin or registanAdmin) may read
+    // so filial dropdowns work. Filial names are not sensitive.
+
+    match /filials/{filialId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+
     // ── Partner access codes (Registan etc.) ──────────────────────────────────
     // Codes are validated on the signup form before the user is authenticated,
     // so `get` is public. `list` is admin-only (for the admin codes page).

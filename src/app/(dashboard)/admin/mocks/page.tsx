@@ -5,8 +5,8 @@ import {
     query, where, serverTimestamp, writeBatch, setDoc, getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { adminFetchCollection } from "@/lib/admin-utils";
-import { Subject, Language, MockCode } from "@/lib/firestore-schema";
+import { adminFetchCollection, fetchFilials } from "@/lib/admin-utils";
+import { Subject, Language, MockCode, Filial } from "@/lib/firestore-schema";
 import { Plus, Trash2, ClipboardList, Loader2, Upload, FileSpreadsheet, KeyRound, Copy, Check } from "lucide-react";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -54,7 +54,8 @@ export default function AdminMocksPage() {
     const [codesMockId, setCodesMockId] = useState("");
     const [codeReusable, setCodeReusable] = useState(true);
     const [codeMaxUses, setCodeMaxUses] = useState("");
-    const [codeOrg, setCodeOrg] = useState("");
+    const [codeFilialId, setCodeFilialId] = useState("");
+    const [filials, setFilials] = useState<Filial[]>([]);
     const [generatingCode, setGeneratingCode] = useState(false);
     const [lastCode, setLastCode] = useState("");
     const [codeCopied, setCodeCopied] = useState(false);
@@ -65,6 +66,7 @@ export default function AdminMocksPage() {
 
     useEffect(() => {
         adminFetchCollection("subjects", "name").then(data => setSubjects(data as Subject[]));
+        fetchFilials().then(setFilials).catch(() => setFilials([]));
     }, []);
 
     useEffect(() => {
@@ -208,7 +210,7 @@ export default function AdminMocksPage() {
                 : code;
             const data: Omit<MockCode, "code"> = {
                 mockId: codesMockId,
-                orgId: codeOrg.trim() || null,
+                filialId: codeFilialId.trim() || null,
                 reusable: codeReusable,
                 createdBy: user.id,
                 createdAt: new Date().toISOString(),
@@ -432,17 +434,21 @@ export default function AdminMocksPage() {
                                 />
                             </div>
 
-                            {/* Org */}
+                            {/* Filial */}
                             <div className="flex flex-col gap-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                    {t("adminMockCodes.orgOptional")}
+                                    {t("adminMockCodes.filialOptional")}
                                 </label>
-                                <input
-                                    value={codeOrg}
-                                    onChange={e => setCodeOrg(e.target.value)}
-                                    placeholder="registan"
-                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
-                                />
+                                <select
+                                    value={codeFilialId}
+                                    onChange={e => setCodeFilialId(e.target.value)}
+                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none"
+                                >
+                                    <option value="">—</option>
+                                    {filials.map((f) => (
+                                        <option key={f.id} value={f.id}>{f.name.ru} / {f.name.uz}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             {/* Generate button */}
@@ -482,7 +488,7 @@ export default function AdminMocksPage() {
                                     <tr>
                                         <th className="px-5 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockCodes.colCode")}</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockCodes.colType")}</th>
-                                        <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockCodes.colOrg")}</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockCodes.colFilial")}</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockCodes.colRedeemed")}</th>
                                         <th className="px-4 py-3" />
                                     </tr>
@@ -512,7 +518,9 @@ export default function AdminMocksPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground text-xs">
-                                                    {row.orgId ?? "—"}
+                                                    {row.filialId
+                                                        ? (filials.find((f) => f.id === row.filialId)?.name.ru ?? row.filialId)
+                                                        : "—"}
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     {row.usedBy.length}

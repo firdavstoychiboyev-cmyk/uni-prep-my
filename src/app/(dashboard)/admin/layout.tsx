@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3, Zap } from "lucide-react";
+import { LayoutDashboard, BookOpen, Library, ListTree, HelpCircle, ArrowLeft, FileUp, ClipboardList, KeyRound, ListChecks, GraduationCap, Users, BarChart3, Zap, Building2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import AdminScopeToggle from "@/components/admin-scope-toggle";
 import { isAnyAdmin, isRegistanAdmin, registanAdminCanAccess, REGISTAN_ADMIN_ROUTES } from "@/lib/roles";
@@ -54,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: "Mocklar", href: "/admin/mocks", icon: ClipboardList },
         { name: t("adminMockQ.title"), href: "/admin/mock-questions", icon: ListChecks },
         { name: t("adminCodes.title"), href: "/admin/codes", icon: KeyRound },
+        { name: t("adminFilials.title"), href: "/admin/filials", icon: Building2 },
     ];
     // Registan-админ видит только разрешённые разделы; супер-админ — все.
     const menuItems = isRegistanAdmin(user)

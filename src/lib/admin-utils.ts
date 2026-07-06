@@ -13,7 +13,7 @@ import {
     increment
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { User } from "./firestore-schema";
+import { User, Filial } from "./firestore-schema";
 import { AdminScope, REGISTAN_ORG } from "../store/useAdminScopeStore";
 
 /**
@@ -22,6 +22,16 @@ import { AdminScope, REGISTAN_ORG } from "../store/useAdminScopeStore";
  */
 export const setUserRole = (userId: string, role: import("./firestore-schema").UserRole) =>
     updateDoc(doc(db, "users", userId), { role, updatedAt: new Date().toISOString() });
+
+/** Привязка пользователя к филиалу (или снятие привязки при filialId=null). */
+export const setUserFilial = (userId: string, filialId: string | null) =>
+    updateDoc(doc(db, "users", userId), { filialId, updatedAt: new Date().toISOString() });
+
+/** Все филиалы Registan: filials/{id}, сортировка по дате создания. */
+export const fetchFilials = async (): Promise<Filial[]> => {
+    const snap = await getDocs(query(collection(db, "filials"), orderBy("createdAt", "asc")));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Filial);
+};
 
 /** Пользователи организации Registan (одно чтение, без composite-индекса). */
 export const fetchRegistanUsers = async (): Promise<User[]> => {

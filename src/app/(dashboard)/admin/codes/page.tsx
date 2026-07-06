@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { collection, doc, getDocs, orderBy, query, where, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AccessCode } from "@/lib/firestore-schema";
+import { AccessCode, Filial } from "@/lib/firestore-schema";
 import { normalizeAccessCode } from "@/lib/auth-utils";
+import { fetchFilials } from "@/lib/admin-utils";
 import { KeyRound, Plus, Trash2, RefreshCw, Power } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAdminScope, REGISTAN_ORG } from "@/store/useAdminScopeStore";
@@ -24,6 +25,8 @@ export default function AdminCodesPage() {
     const [busy, setBusy] = useState(false);
     // Храним ключ перевода, а не готовый текст — загрузка не должна зависеть от t
     const [errorKey, setErrorKey] = useState<string | null>(null);
+    const [filials, setFilials] = useState<Filial[]>([]);
+    const [newFilialId, setNewFilialId] = useState("");
 
     // Create form
     const [newCode, setNewCode] = useState("");
@@ -50,6 +53,7 @@ export default function AdminCodesPage() {
 
     useEffect(() => {
         void load();
+        void fetchFilials().then(setFilials).catch(() => setFilials([]));
     }, [load]);
 
     // В Registan-области организация кода жёстко зафиксирована
@@ -73,6 +77,7 @@ export default function AdminCodesPage() {
             }
             const data: AccessCode = {
                 organization: org,
+                ...(newFilialId ? { filialId: newFilialId } : {}),
                 active: true,
                 createdAt: new Date().toISOString(),
                 maxUses: newMaxUses.trim() ? Math.max(1, parseInt(newMaxUses, 10) || 1) : null,
@@ -165,6 +170,21 @@ export default function AdminCodesPage() {
                         {t("adminCodes.create")}
                     </button>
                 </div>
+                {/* Filial picker — shown only in Registan scope */}
+                {registanOnly && filials.length > 0 && (
+                    <div className="mt-3">
+                        <select
+                            value={newFilialId}
+                            onChange={(e) => setNewFilialId(e.target.value)}
+                            className="h-11 w-full max-w-xs rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10"
+                        >
+                            <option value="">{t("adminCodes.filialOptional")}</option>
+                            {filials.map((f) => (
+                                <option key={f.id} value={f.id}>{f.name.ru} / {f.name.uz}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 {errorKey && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{t(errorKey)}</p>}
             </form>
 
@@ -184,6 +204,7 @@ export default function AdminCodesPage() {
                             <tr className="border-b border-border text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                 <th className="px-5 py-3">{t("adminCodes.colCode")}</th>
                                 <th className="px-3 py-3">{t("adminCodes.colOrg")}</th>
+                                <th className="px-3 py-3">{t("adminCodes.colFilial")}</th>
                                 <th className="px-3 py-3">{t("adminCodes.colUses")}</th>
                                 <th className="px-3 py-3">{t("adminCodes.colStatus")}</th>
                                 <th className="px-3 py-3" />
@@ -196,6 +217,11 @@ export default function AdminCodesPage() {
                                     <tr key={row.id} className="border-b border-border last:border-0">
                                         <td className="px-5 py-3 font-mono font-bold text-foreground">{row.id}</td>
                                         <td className="px-3 py-3 text-muted-foreground">{row.organization}</td>
+                                        <td className="px-3 py-3 text-muted-foreground text-xs">
+                                            {row.filialId
+                                                ? (filials.find((f) => f.id === row.filialId)?.name.ru ?? row.filialId)
+                                                : <span className="opacity-40">—</span>}
+                                        </td>
                                         <td className="px-3 py-3 text-muted-foreground">
                                             {row.usesCount}
                                             {row.maxUses != null ? ` / ${row.maxUses}` : ""}

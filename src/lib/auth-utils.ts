@@ -84,7 +84,7 @@ export const isPhoneTaken = async (phone: string) => {
 export const normalizeAccessCode = (raw: string) => raw.trim().toUpperCase();
 
 export type AccessCodeCheck =
-    | { ok: true; organization: string }
+    | { ok: true; organization: string; filialId?: string }
     | { ok: false; reason: "not-found" | "inactive" | "exhausted" };
 
 /** Проверка кода доступа перед регистрацией (читается без авторизации) */
@@ -96,7 +96,7 @@ export const validateAccessCode = async (raw: string): Promise<AccessCodeCheck> 
     const data = snap.data() as AccessCode;
     if (!data.active) return { ok: false, reason: "inactive" };
     if (data.maxUses != null && data.usesCount >= data.maxUses) return { ok: false, reason: "exhausted" };
-    return { ok: true, organization: data.organization };
+    return { ok: true, organization: data.organization, filialId: data.filialId };
 };
 
 /** Бросается, когда username/телефон не найден в lookup-коллекциях */
@@ -157,11 +157,13 @@ export const signUpWithEmail = async (params: {
 
     // Повторная проверка кода прямо перед регистрацией (форма могла устареть)
     let organization: string | undefined;
+    let filialId: string | undefined;
     let accessCode: string | undefined;
     if (params.accessCode?.trim()) {
         const check = await validateAccessCode(params.accessCode);
         if (!check.ok) throw new Error(`access-code-${check.reason}`);
         organization = check.organization;
+        filialId = check.filialId;
         accessCode = normalizeAccessCode(params.accessCode);
     }
 
@@ -184,6 +186,7 @@ export const signUpWithEmail = async (params: {
         };
         if (params.phone) userData.phone = params.phone;
         if (organization) userData.organization = organization;
+        if (filialId) userData.filialId = filialId;
 
         const batch = writeBatch(db);
         batch.set(doc(db, "users", uid), userData, { merge: true });

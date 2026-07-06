@@ -19,6 +19,7 @@ export interface User {
   username?: string; // Уникальный username (нижний регистр) для входа по логину
   phone?: string; // Телефон в формате E.164 (+998...) для входа по номеру
   organization?: string; // Организация-партнёр (напр. "registan"), выставляется по коду доступа при регистрации
+  filialId?: string; // Филиал Registan (filials/{id}); выставляется при регистрации по коду или вручную супер-админом
   name: string; // Имя
   surname?: string; // Фамилия (опционально)
   role: UserRole;
@@ -45,7 +46,7 @@ export interface User {
 export interface MockCode {
   code: string;          // строка-код, совпадает с id документа
   mockId: string;        // ссылка на mocks/{id}
-  orgId: string | null;  // null — не привязан к организации
+  filialId: string | null; // ссылка на filials/{id}; null — без ограничения по филиалу
   reusable: boolean;     // true — многоразовый; false — одноразовый
   createdBy: string;     // uid администратора
   createdAt: string;
@@ -69,10 +70,22 @@ export interface RedeemedMock {
  */
 export interface AccessCode {
   organization: string; // напр. "registan"
+  filialId?: string;    // ссылка на filials/{id}; если задан — студент получает этот филиал при регистрации
   active: boolean;
   createdAt: string;
   maxUses: number | null; // null — без лимита
   usesCount: number;
+}
+
+/**
+ * Физический филиал Registan: filials/{id}.
+ * Супер-админ создаёт и управляет; Registan-админы привязаны к одному филиалу.
+ */
+export interface Filial {
+  id: string;
+  name: { ru: string; uz: string };
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface Subject {

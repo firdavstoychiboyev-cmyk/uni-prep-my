@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Landmark, Loader2 } from "lucide-react";
-import { fetchAdminUsers, setUserRole } from "@/lib/admin-utils";
+import { fetchAdminUsers, setUserRole, fetchFilials, setUserFilial } from "@/lib/admin-utils";
 import { useAdminScope, REGISTAN_ORG } from "@/store/useAdminScopeStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { isSuperAdmin, ASSIGNABLE_ROLES } from "@/lib/roles";
-import { User, UserRole } from "@/lib/firestore-schema";
+import { User, UserRole, Filial } from "@/lib/firestore-schema";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /**
@@ -20,6 +20,8 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
     const canManageRoles = isSuperAdmin(me); // роли меняет ТОЛЬКО супер-админ
     const [users, setUsers] = useState<User[] | null>(null);
     const [savingId, setSavingId] = useState<string | null>(null);
+    const [filials, setFilials] = useState<Filial[]>([]);
+    const [savingFilialId, setSavingFilialId] = useState<string | null>(null);
 
     const changeRole = async (id: string, role: UserRole) => {
         setSavingId(id);
@@ -32,6 +34,23 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
             setSavingId(null);
         }
     };
+
+    const changeFilial = async (id: string, filialId: string) => {
+        setSavingFilialId(id);
+        try {
+            const value = filialId || null;
+            await setUserFilial(id, value);
+            setUsers((prev) => prev?.map((u) => (u.id === id ? { ...u, filialId: value ?? undefined } : u)) ?? prev);
+        } catch (e) {
+            console.error("Error setting filial:", e);
+        } finally {
+            setSavingFilialId(null);
+        }
+    };
+
+    useEffect(() => {
+        fetchFilials().then(setFilials).catch(() => setFilials([]));
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -76,6 +95,7 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
                                     <th className="px-3 py-3">{t("adminUsers.shortId")}</th>
                                     <th className="px-3 py-3">{t("adminUsers.email")}</th>
                                     <th className="px-3 py-3">{t("adminUsers.org")}</th>
+                                    <th className="px-3 py-3">{t("adminUsers.filial")}</th>
                                     <th className="px-3 py-3">{t("adminUsers.role")}</th>
                                 </tr>
                             </thead>
@@ -96,6 +116,30 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
                                             {u.organization === REGISTAN_ORG ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
                                                     <Landmark size={10} /> Registan
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground/60">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            {canManageRoles && u.role === "registanAdmin" ? (
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={u.filialId ?? ""}
+                                                        disabled={savingFilialId === u.id}
+                                                        onChange={(e) => changeFilial(u.id, e.target.value)}
+                                                        className="h-8 rounded-lg border border-border bg-background px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50"
+                                                    >
+                                                        <option value="">{t("adminFilials.noFilial")}</option>
+                                                        {filials.map((f) => (
+                                                            <option key={f.id} value={f.id}>{f.name.ru}</option>
+                                                        ))}
+                                                    </select>
+                                                    {savingFilialId === u.id && <Loader2 size={13} className="animate-spin text-muted-foreground" />}
+                                                </div>
+                                            ) : u.filialId ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                                                    {filials.find((f) => f.id === u.filialId)?.name.ru ?? u.filialId}
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-muted-foreground/60">—</span>
