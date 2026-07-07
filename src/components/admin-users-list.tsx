@@ -64,8 +64,8 @@ export default function AdminUsersList({ role, titleKey }: { role: "student" | "
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t(titleKey)}</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{t(titleKey)}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
                     {scope === "registan" ? t("adminScope.registanNote") : t("admin.overviewSubtitle")}
                 </p>
             </div>

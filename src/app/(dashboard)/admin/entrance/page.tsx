@@ -111,10 +111,10 @@ export default function AdminEntrancePage() {
     return (
         <div className="flex flex-col gap-8">
             <div>
-                <h1 className="flex items-center gap-2 text-4xl font-semibold tracking-tight text-foreground">
-                    <GraduationCap size={28} /> {t("adminEntrance.title")}
+                <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-foreground">
+                    <GraduationCap size={22} />{t("adminEntrance.title")}
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground">{t("adminEntrance.subtitle")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("adminEntrance.subtitle")}</p>
             </div>
 
             {/* Create form */}

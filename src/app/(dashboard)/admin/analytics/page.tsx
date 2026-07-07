@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Landmark } from "lucide-react";
+import { Landmark, BarChart3 } from "lucide-react";
 import { fetchScopedStudentIds } from "@/lib/admin-utils";
 import { useAdminScope } from "@/store/useAdminScopeStore";
 import SubjectFailures from "@/components/subject-failures";
@@ -29,8 +29,10 @@ export default function AdminAnalyticsPage() {
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.analytics")}</h1>
-                <p className="mt-2 text-sm text-muted-foreground">{t("adminAnalytics.subtitle")}</p>
+                <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-foreground">
+                    <BarChart3 size={22} />{t("admin.analytics")}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">{t("adminAnalytics.subtitle")}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

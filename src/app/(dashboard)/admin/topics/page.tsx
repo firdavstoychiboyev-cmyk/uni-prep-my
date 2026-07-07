@@ -193,16 +193,18 @@ export default function AdminTopicsPage() {
     return (
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
-                <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.topicsTitle")}</h1>
-                    <p className="text-muted-foreground mt-2">{t("admin.topicsSubtitle")}</p>
-                </section>
+                <div>
+                    <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-foreground">
+                        <ListTree size={22} />{t("admin.topicsTitle")}
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground">{t("admin.topicsSubtitle")}</p>
+                </div>
                 <button
                     onClick={() => { setIsAdding(v => !v); if (!isAdding) setEditingId(null); }}
                     disabled={!canAdd}
-                    className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
+                    className="flex h-11 items-center gap-2 rounded-xl bg-foreground px-5 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     <span>{t("admin.newTopic")}</span>
                 </button>
             </div>
@@ -307,32 +309,34 @@ export default function AdminTopicsPage() {
             )}
 
             {/* Topics table */}
-            <section className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-border bg-card">
                 <table className="w-full text-left">
-                    <thead className="bg-muted/50 border-b border-border">
-                        <tr>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.order")}</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.name")}</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.questionsCol")}</th>
-                            <th className="px-8 py-4 text-xs font-bold text-muted-foreground uppercase tracking-widest text-right">{t("admin.actions")}</th>
+                    <thead>
+                        <tr className="border-b border-border text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            <th className="px-5 py-3">{t("admin.order")}</th>
+                            <th className="px-5 py-3">{t("admin.name")}</th>
+                            <th className="px-5 py-3">{t("admin.questionsCol")}</th>
+                            <th className="px-5 py-3 text-right">{t("admin.actions")}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                         {isLoading ? (
-                            [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-muted/20" />)
+                            [1, 2, 3].map(i => (
+                                <tr key={i}><td colSpan={4}><div className="mx-5 my-2 h-10 animate-pulse rounded-lg bg-muted" /></td></tr>
+                            ))
                         ) : topics.length > 0 ? (
                             topics.map((topic) => (
                                 <Fragment key={topic.id}>
                                     <tr className="hover:bg-muted/40 transition-colors group text-sm">
-                                        <td className="px-8 py-6 font-mono text-muted-foreground">#{topic.order}</td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-5 py-4 font-mono text-muted-foreground">#{topic.order}</td>
+                                        <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
                                                 <ListTree size={18} className="text-muted-foreground shrink-0" />
                                                 <span className="font-semibold text-foreground tracking-tight">{topic.title}</span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-muted-foreground font-medium tabular-nums">{topic.totalQuestions}</td>
-                                        <td className="px-8 py-6 text-right">
+                                        <td className="px-5 py-4 text-muted-foreground font-medium tabular-nums">{topic.totalQuestions}</td>
+                                        <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
                                                     type="button"
@@ -357,7 +361,7 @@ export default function AdminTopicsPage() {
                                     {/* Inline edit row */}
                                     {editingId === topic.id && (
                                         <tr className="border-b border-border bg-muted/25">
-                                            <td colSpan={4} className="px-8 py-6">
+                                            <td colSpan={4} className="px-5 py-5">
                                                 <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
                                                     <p className="text-sm font-semibold text-foreground">{t("admin.editTopic")}</p>
 
@@ -452,7 +456,7 @@ export default function AdminTopicsPage() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} className="px-8 py-12 text-center text-muted-foreground font-medium whitespace-pre">
+                                <td colSpan={4} className="p-8 text-center text-sm font-medium text-muted-foreground whitespace-pre">
                                     {emptyMessage}
                                 </td>
                             </tr>

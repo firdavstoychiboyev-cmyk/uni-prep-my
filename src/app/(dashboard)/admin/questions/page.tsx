@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { adminFetchCollection, adminAddItem, adminDeleteItem, adminIncrementField } from "@/lib/admin-utils";
 import { Question, Topic, Textbook, Subject, Language } from "@/lib/firestore-schema";
-import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, BookOpen, Layers, ImagePlus, X, Loader2, HelpCircle } from "lucide-react";
 import { fetchTextbooksBySubject, fetchTopicsByTextbook, fetchQuestionsByTopic, fetchTopicsBySubject } from "@/lib/data-fetching";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { uploadToStorage } from "@/lib/upload";
@@ -171,16 +171,18 @@ export default function AdminQuestionsPage() {
     return (
         <div className="flex flex-col gap-12">
             <div className="flex items-center justify-between">
-                <section>
-                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{t("admin.questionsTitle")}</h1>
-                    <p className="text-muted-foreground mt-2">{t("admin.questionsSubtitle")}</p>
-                </section>
+                <div>
+                    <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-foreground">
+                        <HelpCircle size={22} />{t("admin.questionsTitle")}
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground">{t("admin.questionsSubtitle")}</p>
+                </div>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
                     disabled={!selectedTopic}
-                    className="bg-foreground text-background px-6 py-3 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-30 transition-all shadow-sm"
+                    className="flex h-11 items-center gap-2 rounded-xl bg-foreground px-5 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     <span>{t("admin.newQuestion")}</span>
                 </button>
             </div>

@@ -43,10 +43,10 @@ export default function AdminRushPage() {
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h1 className="flex items-center gap-2 text-4xl font-semibold tracking-tight text-foreground">
-                    <Zap size={28} className="text-amber-500" /> {t("adminRush.title")}
+                <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-foreground">
+                    <Zap size={22} className="text-amber-500" />{t("adminRush.title")}
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground">{t("adminRush.subtitle")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("adminRush.subtitle")}</p>
             </div>
 
             <span className="inline-flex w-fit items-center gap-2 rounded-lg bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
