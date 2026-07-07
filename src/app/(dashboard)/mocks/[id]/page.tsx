@@ -25,6 +25,7 @@ interface MockData {
 interface QuestionData {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
+    optionImages?: { a?: string; b?: string; c?: string; d?: string };
     // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
     type?: string; // "mc" (по умолчанию) | "open"
@@ -452,7 +453,7 @@ export default function MockTestPage() {
                                         {/* Answer option */}
                                         <button
                                             onClick={() => selectAnswer(key)}
-                                            className={`flex-1 flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all ${
+                                            className={`flex-1 flex items-start gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all ${
                                                 isEliminated
                                                     ? "border-border bg-muted/30 opacity-50"
                                                     : isSelected
@@ -460,7 +461,7 @@ export default function MockTestPage() {
                                                     : "border-border bg-card hover:border-muted-foreground/50"
                                             }`}
                                         >
-                                            <div className={`w-9 h-9 text-sm rounded-xl flex items-center justify-center font-bold shrink-0 border-2 ${
+                                            <div className={`w-9 h-9 mt-0.5 text-sm rounded-xl flex items-center justify-center font-bold shrink-0 border-2 ${
                                                 isEliminated
                                                     ? "border-border text-muted-foreground"
                                                     : isSelected
@@ -469,18 +470,28 @@ export default function MockTestPage() {
                                             }`}>
                                                 {key.toUpperCase()}
                                             </div>
-                                            <span
-                                                className={`font-medium ql-content ${
-                                                    isEliminated ? "line-through text-muted-foreground" : "text-foreground"
-                                                }`}
-                                                style={{
-                                                    fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
-                                                    fontSize: "1rem",
-                                                    lineHeight: "1.6",
-                                                }}
-                                            >
-                                                <MathText content={val} as="span" />
-                                            </span>
+                                            <div className="flex flex-col gap-2 flex-1 min-w-0">
+                                                <span
+                                                    className={`font-medium ql-content ${
+                                                        isEliminated ? "line-through text-muted-foreground" : "text-foreground"
+                                                    }`}
+                                                    style={{
+                                                        fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
+                                                        fontSize: "1rem",
+                                                        lineHeight: "1.6",
+                                                    }}
+                                                >
+                                                    <MathText content={val} as="span" />
+                                                </span>
+                                                {q?.optionImages?.[key] && (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={q.optionImages[key]}
+                                                        alt=""
+                                                        className="max-h-40 max-w-full rounded-lg object-contain border border-border"
+                                                    />
+                                                )}
+                                            </div>
                                         </button>
                                     </div>
                                 );

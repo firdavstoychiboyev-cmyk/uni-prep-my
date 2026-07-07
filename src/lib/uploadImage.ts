@@ -1,21 +1,55 @@
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "./firebase";
+
 /**
- * Client-side helper that uploads a File through the /api/upload-image route
- * (which forwards to imgbb server-side so the API key is never exposed).
- * Throws with the real error message from the API route on failure.
+ * Upload a file to Firebase Storage and return the download URL.
+ *
+ * @param file - The file to upload.
+ * @param storagePath - Optional explicit path inside the bucket
+ *   (e.g. "questions/{id}/question.jpg").  When omitted a timestamped
+ *   path under question-images/ is used (suitable for new questions
+ *   whose Firestore ID isn't known yet).
  */
-export async function uploadImage(file: File): Promise<string> {
-    const body = new FormData();
-    body.append("image", file);
+export async function uploadImage(file: File, storagePath?: string): Promise<string> {
+    const path =
+        storagePath ??
+        `question-images/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
-    const res = await fetch("/api/upload-image", { method: "POST", body });
-    const json = await res.json().catch(() => ({ error: "Unexpected server response." }));
+    const storageRef = ref(storage, path);
 
-    if (!res.ok) {
-        throw new Error(json.error ?? "Image upload failed.");
-    }
+    return new Promise<string>((resolve, reject) => {
+        const task = uploadBytesResumable(storageRef, file);
 
-    const url = json.url as string | undefined;
-    if (!url) throw new Error("Upload succeeded but no URL was returned.");
+        const timeoutId = setTimeout(() => {
+            task.cancel();
+            reject(
+                new Error(
+                    "Upload timed out after 30 s. Check Firebase Storage rules and network."
+                )
+            );
+        }, 30_000);
 
-    return url;
+        task.on(
+            "state_changed",
+            null,
+            (error) => {
+                clearTimeout(timeoutId);
+                // error.code is e.g. "storage/unauthorized", "storage/canceled"
+                reject(
+                    new Error(
+                        `Storage upload failed [${error.code}]: ${error.serverResponse ?? error.message}`
+                    )
+                );
+            },
+            async () => {
+                clearTimeout(timeoutId);
+                try {
+                    const url = await getDownloadURL(task.snapshot.ref);
+                    resolve(url);
+                } catch (err) {
+                    reject(err);
+                }
+            }
+        );
+    });
 }

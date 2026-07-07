@@ -7,6 +7,7 @@ import MathText from "@/components/MathText";
 export interface ReviewQuestion {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
+    optionImages?: { a?: string; b?: string; c?: string; d?: string };
     // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
     type?: string; // "mc" (по умолчанию) | "open"
@@ -140,6 +141,15 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
                                 >
                                     <MathText content={val} as="span" />
                                 </span>
+                                {q.optionImages?.[key] && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={q.optionImages[key]}
+                                        alt=""
+                                        loading="lazy"
+                                        className="mt-2 max-h-40 max-w-full rounded-lg object-contain border border-border"
+                                    />
+                                )}
                                 {(isCorrectOpt || isPicked) && (
                                     <div className="mt-1.5 flex flex-wrap gap-2">
                                         {isPicked && (
