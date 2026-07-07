@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
     collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
     query, where, arrayUnion, arrayRemove, increment, deleteField,
@@ -44,7 +44,9 @@ interface Draft {
     correctKey: "a" | "b" | "c" | "d";
     referenceAnswer: string;
     explanation: string;
+    /** Existing URL from Firestore (empty string = none) */
     imageUrl: string;
+    /** Existing option image URLs from Firestore */
     optionImages: { a: string; b: string; c: string; d: string };
 }
 
@@ -105,12 +107,37 @@ export default function AdminMockQuestionsPage() {
     const [deleting, setDeleting] = useState<QuestionDoc | null>(null);
     const [saving, setSaving] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
-    const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+
+    // Pending image files — selected but not yet uploaded (deferred until Save)
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [pendingPreview, setPendingPreview] = useState("");
+    const [pendingOptionFiles, setPendingOptionFiles] = useState<Record<string, File | null>>({ a: null, b: null, c: null, d: null });
+    const [pendingOptionPreviews, setPendingOptionPreviews] = useState<Record<string, string>>({ a: "", b: "", c: "", d: "" });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const uploadSlotRef = useRef<string>("");
 
     const selectedMock = mocks.find(m => m.id === selectedMockId) ?? null;
     const embeddedOnly = Boolean(selectedMock && !selectedMock.questionIds?.length && selectedMock.questions?.length);
+
+    const clearPendingFiles = useCallback(() => {
+        if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+        Object.values(pendingOptionPreviews).forEach(p => { if (p) URL.revokeObjectURL(p); });
+        setPendingFile(null);
+        setPendingPreview("");
+        setPendingOptionFiles({ a: null, b: null, c: null, d: null });
+        setPendingOptionPreviews({ a: "", b: "", c: "", d: "" });
+    }, [pendingPreview, pendingOptionPreviews]);
+
+    const openDraft = (d: Draft) => {
+        clearPendingFiles();
+        setDraft(d);
+    };
+
+    const closeDraft = () => {
+        clearPendingFiles();
+        setDraft(null);
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -118,10 +145,11 @@ export default function AdminMockQuestionsPage() {
             setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() } as MockDoc)));
             setSelectedMockId("");
             setQuestions([]);
-            setDraft(null);
+            closeDraft();
             setStatusMsg("");
         };
         load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lang]);
 
     const loadQuestions = async (mock: MockDoc) => {
@@ -138,7 +166,7 @@ export default function AdminMockQuestionsPage() {
 
     const selectMock = (id: string) => {
         setSelectedMockId(id);
-        setDraft(null);
+        closeDraft();
         setStatusMsg("");
         const mock = mocks.find(m => m.id === id);
         if (mock) loadQuestions(mock);
@@ -150,23 +178,42 @@ export default function AdminMockQuestionsPage() {
         fileInputRef.current?.click();
     };
 
-    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Synchronous: store file + local preview only — no upload yet
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const slot = uploadSlotRef.current;
-        e.target.value = "";
-        setUploadingSlot(slot);
-        try {
-            const url = await uploadToStorage(file);
-            if (slot === "question") {
-                setDraft(d => d && { ...d, imageUrl: url });
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        const preview = URL.createObjectURL(file);
+        if (slot === "question") {
+            if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+            setPendingFile(file);
+            setPendingPreview(preview);
+        } else {
+            if (pendingOptionPreviews[slot]) URL.revokeObjectURL(pendingOptionPreviews[slot]);
+            setPendingOptionFiles(prev => ({ ...prev, [slot]: file }));
+            setPendingOptionPreviews(prev => ({ ...prev, [slot]: preview }));
+        }
+    };
+
+    const removePendingOrExisting = (slot: string) => {
+        if (slot === "question") {
+            if (pendingPreview) {
+                URL.revokeObjectURL(pendingPreview);
+                setPendingFile(null);
+                setPendingPreview("");
             } else {
-                setDraft(d => d && { ...d, optionImages: { ...d.optionImages, [slot]: url } });
+                setDraft(d => d && { ...d, imageUrl: "" });
             }
-        } catch (err) {
-            console.error("Image upload failed:", err);
-        } finally {
-            setUploadingSlot(null);
+        } else {
+            if (pendingOptionPreviews[slot]) {
+                URL.revokeObjectURL(pendingOptionPreviews[slot]);
+                setPendingOptionFiles(prev => ({ ...prev, [slot]: null }));
+                setPendingOptionPreviews(prev => ({ ...prev, [slot]: "" }));
+            } else {
+                setDraft(d => d && { ...d, optionImages: { ...d.optionImages, [slot]: "" } });
+            }
         }
     };
 
@@ -184,12 +231,25 @@ export default function AdminMockQuestionsPage() {
         setSaving(true);
         setStatusMsg("");
         try {
-            const hasOptionImages = Object.values(draft.optionImages).some(v => v);
+            // Upload any pending images now (deferred from file-select)
+            let questionImageUrl = draft.imageUrl;
+            if (pendingFile) {
+                questionImageUrl = await uploadToStorage(pendingFile);
+            }
+
+            const optionImageUrls = { ...draft.optionImages };
+            for (const k of OPTION_KEYS) {
+                if (pendingOptionFiles[k]) {
+                    optionImageUrls[k] = await uploadToStorage(pendingOptionFiles[k]!);
+                }
+            }
+
+            const hasOptionImages = Object.values(optionImageUrls).some(v => v);
             const imageFields = {
-                ...(draft.imageUrl ? { imageUrl: draft.imageUrl } : { imageUrl: deleteField() }),
+                ...(questionImageUrl ? { imageUrl: questionImageUrl } : { imageUrl: deleteField() }),
             };
             const optionImageFields = draft.type === "mc"
-                ? { ...(hasOptionImages ? { optionImages: draft.optionImages } : { optionImages: deleteField() }) }
+                ? { ...(hasOptionImages ? { optionImages: optionImageUrls } : { optionImages: deleteField() }) }
                 : { optionImages: deleteField() };
 
             if (draft.id) {
@@ -211,8 +271,8 @@ export default function AdminMockQuestionsPage() {
                     text: draft.text.trim(),
                     type: draft.type,
                     explanation: draft.explanation.trim(),
-                    ...(draft.imageUrl ? { imageUrl: draft.imageUrl } : {}),
-                    ...(draft.type === "mc" && hasOptionImages ? { optionImages: draft.optionImages } : {}),
+                    ...(questionImageUrl ? { imageUrl: questionImageUrl } : {}),
+                    ...(draft.type === "mc" && hasOptionImages ? { optionImages: optionImageUrls } : {}),
                     ...(draft.type === "open"
                         ? { correctAnswer: draft.referenceAnswer.trim() }
                         : { correctAnswer: draft.correctKey, options: {
@@ -231,7 +291,7 @@ export default function AdminMockQuestionsPage() {
                 });
                 selectedMock.questionIds = [...(selectedMock.questionIds ?? []), ref.id];
             }
-            setDraft(null);
+            closeDraft();
             setStatusMsg(t("adminMockQ.saved"));
             await loadQuestions(selectedMock);
         } catch (e) {
@@ -292,7 +352,7 @@ export default function AdminMockQuestionsPage() {
             </div>
 
             {statusMsg && (
-                <p className={`text-sm font-medium -mt-4 ${statusMsg.startsWith("❌") ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>
+                <p className={`text-sm font-medium -mt-4 ${statusMsg.startsWith("❌") || statusMsg.includes("Error") || statusMsg.includes("err") ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>
                     {statusMsg}
                 </p>
             )}
@@ -306,7 +366,7 @@ export default function AdminMockQuestionsPage() {
                     <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                         <span className="font-bold text-foreground">{selectedMock.title}</span>
                         <button
-                            onClick={() => setDraft(emptyDraft())}
+                            onClick={() => openDraft(emptyDraft())}
                             className="px-4 py-2 rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2"
                         >
                             <Plus size={16} />
@@ -349,7 +409,7 @@ export default function AdminMockQuestionsPage() {
                                             )}
                                         </span>
                                         <button
-                                            onClick={() => setDraft(draftFromQuestion(q))}
+                                            onClick={() => openDraft(draftFromQuestion(q))}
                                             className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                             title={t("adminMockQ.editQuestion")}
                                         >
@@ -389,20 +449,20 @@ export default function AdminMockQuestionsPage() {
                             />
                         </div>
 
-                        {/* Question image */}
+                        {/* Question image — local preview or existing URL */}
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.imageOptional")}</label>
-                            {draft.imageUrl ? (
+                            {(pendingPreview || draft.imageUrl) ? (
                                 <div className="flex flex-col gap-2">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                        src={draft.imageUrl}
+                                        src={pendingPreview || draft.imageUrl}
                                         alt="preview"
                                         className="max-h-40 rounded-lg object-contain border border-border bg-muted"
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setDraft(d => d && { ...d, imageUrl: "" })}
+                                        onClick={() => removePendingOrExisting("question")}
                                         className="flex items-center gap-1.5 w-fit text-sm text-red-500 hover:text-red-600 transition-colors"
                                     >
                                         <X size={14} /> {t("admin.removeImage")}
@@ -412,14 +472,9 @@ export default function AdminMockQuestionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => triggerUpload("question")}
-                                    disabled={uploadingSlot !== null}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50 w-fit"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all w-fit"
                                 >
-                                    {uploadingSlot === "question" ? (
-                                        <><Loader2 size={16} className="animate-spin" /> {t("admin.uploading")}</>
-                                    ) : (
-                                        <><ImagePlus size={16} /> {t("admin.addImage")}</>
-                                    )}
+                                    <ImagePlus size={16} /> {t("admin.addImage")}
                                 </button>
                             )}
                         </div>
@@ -469,10 +524,10 @@ export default function AdminMockQuestionsPage() {
                                                 onChange={e => setDraft(d => d && { ...d, options: { ...d.options, [k]: e.target.value } })}
                                                 className="flex-1 bg-muted border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                             />
-                                            {draft.optionImages[k] ? (
+                                            {(pendingOptionPreviews[k] || draft.optionImages[k]) ? (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDraft(d => d && { ...d, optionImages: { ...d.optionImages, [k]: "" } })}
+                                                    onClick={() => removePendingOrExisting(k)}
                                                     className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/70 transition-colors"
                                                     title={t("admin.removeImage")}
                                                 >
@@ -482,19 +537,18 @@ export default function AdminMockQuestionsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => triggerUpload(k)}
-                                                    disabled={uploadingSlot !== null}
-                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50"
+                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
                                                     title={t("admin.addImage")}
                                                 >
-                                                    {uploadingSlot === k ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                                                    <ImagePlus size={14} />
                                                 </button>
                                             )}
                                         </div>
-                                        {draft.optionImages[k] && (
+                                        {(pendingOptionPreviews[k] || draft.optionImages[k]) && (
                                             <div className="ml-[92px]">
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img
-                                                    src={draft.optionImages[k]}
+                                                    src={pendingOptionPreviews[k] || draft.optionImages[k]}
                                                     alt=""
                                                     className="max-h-24 rounded-lg object-contain border border-border bg-muted"
                                                 />
@@ -526,7 +580,7 @@ export default function AdminMockQuestionsPage() {
                             />
                         </div>
 
-                        {/* Hidden file input shared across all upload slots */}
+                        {/* Hidden file input — shared for all image slots */}
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -537,7 +591,7 @@ export default function AdminMockQuestionsPage() {
 
                         <div className="flex gap-3 justify-end">
                             <button
-                                onClick={() => setDraft(null)}
+                                onClick={closeDraft}
                                 disabled={saving}
                                 className="px-5 py-2.5 rounded-lg border border-border font-semibold text-sm hover:bg-muted transition-colors text-foreground"
                             >
@@ -545,11 +599,11 @@ export default function AdminMockQuestionsPage() {
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!canSave || saving || uploadingSlot !== null}
+                                disabled={!canSave || saving}
                                 className="px-5 py-2.5 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-2"
                             >
                                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {t("common.save")}
+                                {saving ? t("admin.uploading") : t("common.save")}
                             </button>
                         </div>
                     </div>
