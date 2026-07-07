@@ -231,48 +231,51 @@ export default function AdminMockQuestionsPage() {
         setSaving(true);
         setStatusMsg("");
         try {
-            // Upload any pending images now (deferred from file-select)
-            let questionImageUrl = draft.imageUrl;
+            // Upload only newly-selected files (pendingFile / pendingOptionFiles are File objects,
+            // never URL strings — so re-uploading an existing image is impossible here)
+            let finalImageUrl = draft.imageUrl;
             if (pendingFile) {
-                questionImageUrl = await uploadToStorage(pendingFile);
+                finalImageUrl = await uploadToStorage(pendingFile);
             }
 
-            const optionImageUrls = { ...draft.optionImages };
+            const finalOptionImages = { ...draft.optionImages };
             for (const k of OPTION_KEYS) {
-                if (pendingOptionFiles[k]) {
-                    optionImageUrls[k] = await uploadToStorage(pendingOptionFiles[k]!);
-                }
+                const f = pendingOptionFiles[k];
+                if (f) finalOptionImages[k] = await uploadToStorage(f);
             }
-
-            const hasOptionImages = Object.values(optionImageUrls).some(v => v);
-            const imageFields = {
-                ...(questionImageUrl ? { imageUrl: questionImageUrl } : { imageUrl: deleteField() }),
-            };
-            const optionImageFields = draft.type === "mc"
-                ? { ...(hasOptionImages ? { optionImages: optionImageUrls } : { optionImages: deleteField() }) }
-                : { optionImages: deleteField() };
+            const hasOptionImages = Object.values(finalOptionImages).some(Boolean);
 
             if (draft.id) {
-                await updateDoc(doc(db, "questions", draft.id), {
+                // Build payload without spreading deleteField() through intermediate objects —
+                // that pattern can corrupt FieldValue sentinels and cause updateDoc to hang.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const payload: Record<string, any> = {
                     text: draft.text.trim(),
                     type: draft.type,
                     explanation: draft.explanation.trim(),
-                    ...imageFields,
-                    ...optionImageFields,
-                    ...(draft.type === "open"
-                        ? { correctAnswer: draft.referenceAnswer.trim(), options: deleteField() }
-                        : { correctAnswer: draft.correctKey, options: {
-                            a: draft.options.a.trim(), b: draft.options.b.trim(),
-                            c: draft.options.c.trim(), d: draft.options.d.trim(),
-                        } }),
-                });
+                };
+                payload.imageUrl = finalImageUrl || deleteField();
+                payload.optionImages = (draft.type === "mc" && hasOptionImages)
+                    ? finalOptionImages
+                    : deleteField();
+                if (draft.type === "open") {
+                    payload.correctAnswer = draft.referenceAnswer.trim();
+                    payload.options = deleteField();
+                } else {
+                    payload.correctAnswer = draft.correctKey;
+                    payload.options = {
+                        a: draft.options.a.trim(), b: draft.options.b.trim(),
+                        c: draft.options.c.trim(), d: draft.options.d.trim(),
+                    };
+                }
+                await updateDoc(doc(db, "questions", draft.id), payload);
             } else {
                 const ref = await addDoc(collection(db, "questions"), {
                     text: draft.text.trim(),
                     type: draft.type,
                     explanation: draft.explanation.trim(),
-                    ...(questionImageUrl ? { imageUrl: questionImageUrl } : {}),
-                    ...(draft.type === "mc" && hasOptionImages ? { optionImages: optionImageUrls } : {}),
+                    ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
+                    ...(draft.type === "mc" && hasOptionImages ? { optionImages: finalOptionImages } : {}),
                     ...(draft.type === "open"
                         ? { correctAnswer: draft.referenceAnswer.trim() }
                         : { correctAnswer: draft.correctKey, options: {
@@ -291,9 +294,10 @@ export default function AdminMockQuestionsPage() {
                 });
                 selectedMock.questionIds = [...(selectedMock.questionIds ?? []), ref.id];
             }
+            // Reload first so any Firestore error shows before closing the modal
+            await loadQuestions(selectedMock);
             closeDraft();
             setStatusMsg(t("adminMockQ.saved"));
-            await loadQuestions(selectedMock);
         } catch (e) {
             console.error(e);
             setStatusMsg(`${t("adminMockQ.errSave")}: ${String(e)}`);
