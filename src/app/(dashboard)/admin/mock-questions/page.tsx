@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
     collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
     query, where, arrayUnion, arrayRemove, increment, deleteField,
@@ -7,10 +7,11 @@ import {
 import { db } from "@/lib/firebase";
 import { Language } from "@/lib/firestore-schema";
 import {
-    Plus, Trash2, Pencil, Loader2, CheckCircle2, AlertTriangle, PenLine, ListChecks,
+    Plus, Trash2, Pencil, Loader2, CheckCircle2, AlertTriangle, PenLine, ListChecks, ImagePlus, X,
 } from "lucide-react";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { uploadToStorage } from "@/lib/upload";
 
 interface MockDoc {
     id: string;
@@ -30,6 +31,7 @@ interface QuestionDoc {
     type?: string; // "mc" (default) | "open"
     explanation?: string;
     imageUrl?: string;
+    optionImages?: { a?: string; b?: string; c?: string; d?: string };
 }
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
@@ -42,6 +44,8 @@ interface Draft {
     correctKey: "a" | "b" | "c" | "d";
     referenceAnswer: string;
     explanation: string;
+    imageUrl: string;
+    optionImages: { a: string; b: string; c: string; d: string };
 }
 
 const emptyDraft = (): Draft => ({
@@ -52,6 +56,8 @@ const emptyDraft = (): Draft => ({
     correctKey: "a",
     referenceAnswer: "",
     explanation: "",
+    imageUrl: "",
+    optionImages: { a: "", b: "", c: "", d: "" },
 });
 
 const draftFromQuestion = (q: QuestionDoc): Draft => ({
@@ -67,6 +73,13 @@ const draftFromQuestion = (q: QuestionDoc): Draft => ({
     correctKey: (OPTION_KEYS as readonly string[]).includes(q.correctAnswer) ? (q.correctAnswer as Draft["correctKey"]) : "a",
     referenceAnswer: q.type === "open" ? (q.correctAnswer ?? "") : "",
     explanation: q.explanation ?? "",
+    imageUrl: q.imageUrl ?? "",
+    optionImages: {
+        a: q.optionImages?.a ?? "",
+        b: q.optionImages?.b ?? "",
+        c: q.optionImages?.c ?? "",
+        d: q.optionImages?.d ?? "",
+    },
 });
 
 const stripHtml = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -92,6 +105,9 @@ export default function AdminMockQuestionsPage() {
     const [deleting, setDeleting] = useState<QuestionDoc | null>(null);
     const [saving, setSaving] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
+    const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const uploadSlotRef = useRef<string>("");
 
     const selectedMock = mocks.find(m => m.id === selectedMockId) ?? null;
     const embeddedOnly = Boolean(selectedMock && !selectedMock.questionIds?.length && selectedMock.questions?.length);
@@ -129,6 +145,31 @@ export default function AdminMockQuestionsPage() {
         else setQuestions([]);
     };
 
+    const triggerUpload = (slot: string) => {
+        uploadSlotRef.current = slot;
+        fileInputRef.current?.click();
+    };
+
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const slot = uploadSlotRef.current;
+        e.target.value = "";
+        setUploadingSlot(slot);
+        try {
+            const url = await uploadToStorage(file);
+            if (slot === "question") {
+                setDraft(d => d && { ...d, imageUrl: url });
+            } else {
+                setDraft(d => d && { ...d, optionImages: { ...d.optionImages, [slot]: url } });
+            }
+        } catch (err) {
+            console.error("Image upload failed:", err);
+        } finally {
+            setUploadingSlot(null);
+        }
+    };
+
     const canSave = Boolean(
         draft && draft.text.trim() && (
             draft.type === "open"
@@ -143,12 +184,21 @@ export default function AdminMockQuestionsPage() {
         setSaving(true);
         setStatusMsg("");
         try {
+            const hasOptionImages = Object.values(draft.optionImages).some(v => v);
+            const imageFields = {
+                ...(draft.imageUrl ? { imageUrl: draft.imageUrl } : { imageUrl: deleteField() }),
+            };
+            const optionImageFields = draft.type === "mc"
+                ? { ...(hasOptionImages ? { optionImages: draft.optionImages } : { optionImages: deleteField() }) }
+                : { optionImages: deleteField() };
+
             if (draft.id) {
-                // Существующий вопрос; при open-типе варианты удаляются из документа
                 await updateDoc(doc(db, "questions", draft.id), {
                     text: draft.text.trim(),
                     type: draft.type,
                     explanation: draft.explanation.trim(),
+                    ...imageFields,
+                    ...optionImageFields,
                     ...(draft.type === "open"
                         ? { correctAnswer: draft.referenceAnswer.trim(), options: deleteField() }
                         : { correctAnswer: draft.correctKey, options: {
@@ -161,6 +211,8 @@ export default function AdminMockQuestionsPage() {
                     text: draft.text.trim(),
                     type: draft.type,
                     explanation: draft.explanation.trim(),
+                    ...(draft.imageUrl ? { imageUrl: draft.imageUrl } : {}),
+                    ...(draft.type === "mc" && hasOptionImages ? { optionImages: draft.optionImages } : {}),
                     ...(draft.type === "open"
                         ? { correctAnswer: draft.referenceAnswer.trim() }
                         : { correctAnswer: draft.correctKey, options: {
@@ -326,6 +378,7 @@ export default function AdminMockQuestionsPage() {
                             {draft.id ? t("adminMockQ.editQuestion") : t("adminMockQ.newQuestion")}
                         </h2>
 
+                        {/* Question text */}
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.qText")}</label>
                             <textarea
@@ -336,6 +389,42 @@ export default function AdminMockQuestionsPage() {
                             />
                         </div>
 
+                        {/* Question image */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.imageOptional")}</label>
+                            {draft.imageUrl ? (
+                                <div className="flex flex-col gap-2">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={draft.imageUrl}
+                                        alt="preview"
+                                        className="max-h-40 rounded-lg object-contain border border-border bg-muted"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setDraft(d => d && { ...d, imageUrl: "" })}
+                                        className="flex items-center gap-1.5 w-fit text-sm text-red-500 hover:text-red-600 transition-colors"
+                                    >
+                                        <X size={14} /> {t("admin.removeImage")}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => triggerUpload("question")}
+                                    disabled={uploadingSlot !== null}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50 w-fit"
+                                >
+                                    {uploadingSlot === "question" ? (
+                                        <><Loader2 size={16} className="animate-spin" /> {t("admin.uploading")}</>
+                                    ) : (
+                                        <><ImagePlus size={16} /> {t("admin.addImage")}</>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Type toggle */}
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.qType")}</label>
                             <div className="flex gap-2">
@@ -356,28 +445,61 @@ export default function AdminMockQuestionsPage() {
                             </div>
                         </div>
 
+                        {/* Options (MC) or reference answer (open) */}
                         {draft.type === "mc" ? (
                             <div className="flex flex-col gap-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.options")}</label>
                                 {OPTION_KEYS.map(k => (
-                                    <div key={k} className="flex items-center gap-3">
-                                        <label className="flex items-center gap-1.5 cursor-pointer shrink-0 w-20" title={t("adminMockQ.correctMark")}>
+                                    <div key={k} className="flex flex-col gap-1.5">
+                                        <div className="flex items-center gap-3">
+                                            <label className="flex items-center gap-1.5 cursor-pointer shrink-0 w-20" title={t("adminMockQ.correctMark")}>
+                                                <input
+                                                    type="radio"
+                                                    name="correctKey"
+                                                    checked={draft.correctKey === k}
+                                                    onChange={() => setDraft(d => d && { ...d, correctKey: k })}
+                                                    className="accent-green-600"
+                                                />
+                                                <span className={`text-sm font-bold ${draft.correctKey === k ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                                                    {k.toUpperCase()}
+                                                </span>
+                                            </label>
                                             <input
-                                                type="radio"
-                                                name="correctKey"
-                                                checked={draft.correctKey === k}
-                                                onChange={() => setDraft(d => d && { ...d, correctKey: k })}
-                                                className="accent-green-600"
+                                                value={draft.options[k]}
+                                                onChange={e => setDraft(d => d && { ...d, options: { ...d.options, [k]: e.target.value } })}
+                                                className="flex-1 bg-muted border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
                                             />
-                                            <span className={`text-sm font-bold ${draft.correctKey === k ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-                                                {k.toUpperCase()}
-                                            </span>
-                                        </label>
-                                        <input
-                                            value={draft.options[k]}
-                                            onChange={e => setDraft(d => d && { ...d, options: { ...d.options, [k]: e.target.value } })}
-                                            className="flex-1 bg-muted border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
-                                        />
+                                            {draft.optionImages[k] ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDraft(d => d && { ...d, optionImages: { ...d.optionImages, [k]: "" } })}
+                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/70 transition-colors"
+                                                    title={t("admin.removeImage")}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => triggerUpload(k)}
+                                                    disabled={uploadingSlot !== null}
+                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-50"
+                                                    title={t("admin.addImage")}
+                                                >
+                                                    {uploadingSlot === k ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {draft.optionImages[k] && (
+                                            <div className="ml-[92px]">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={draft.optionImages[k]}
+                                                    alt=""
+                                                    className="max-h-24 rounded-lg object-contain border border-border bg-muted"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -393,6 +515,7 @@ export default function AdminMockQuestionsPage() {
                             </div>
                         )}
 
+                        {/* Explanation */}
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.explanationField")}</label>
                             <textarea
@@ -402,6 +525,15 @@ export default function AdminMockQuestionsPage() {
                                 className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 resize-y"
                             />
                         </div>
+
+                        {/* Hidden file input shared across all upload slots */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
+                        />
 
                         <div className="flex gap-3 justify-end">
                             <button
@@ -413,7 +545,7 @@ export default function AdminMockQuestionsPage() {
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!canSave || saving}
+                                disabled={!canSave || saving || uploadingSlot !== null}
                                 className="px-5 py-2.5 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-2"
                             >
                                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
