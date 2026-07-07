@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -195,12 +196,14 @@ function Sidebar() {
                     <Link href="/home" onClick={close} className="flex items-center gap-2.5 flex-1 min-w-0">
                         {/* Conic-gradient kulcha badge — always visible in collapsed rail */}
                         <div
-                            className="flex-shrink-0 flex items-center justify-center rounded-[11px]"
+                            className="relative flex-shrink-0 rounded-[11px] overflow-hidden"
                             style={{
                                 width: 36, height: 36,
                                 background: "conic-gradient(from 210deg, #f0873a, #ef4f6b, #7c5cff, #f0873a)",
                             }}
-                        />
+                        >
+                            <Image src="/logo-mark.png" alt="Kulcha" fill sizes="36px" className="object-cover" priority />
+                        </div>
                         {/* Wordmark — fades in on expand */}
                         <span
                             className={fc()}
