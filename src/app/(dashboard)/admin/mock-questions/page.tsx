@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { uploadToStorage } from "@/lib/upload";
+import { uploadImage } from "@/lib/uploadImage";
 
 interface MockDoc {
     id: string;
@@ -235,13 +235,13 @@ export default function AdminMockQuestionsPage() {
             // never URL strings — so re-uploading an existing image is impossible here)
             let finalImageUrl = draft.imageUrl;
             if (pendingFile) {
-                finalImageUrl = await uploadToStorage(pendingFile);
+                finalImageUrl = await uploadImage(pendingFile);
             }
 
             const finalOptionImages = { ...draft.optionImages };
             for (const k of OPTION_KEYS) {
                 const f = pendingOptionFiles[k];
-                if (f) finalOptionImages[k] = await uploadToStorage(f);
+                if (f) finalOptionImages[k] = await uploadImage(f);
             }
             const hasOptionImages = Object.values(finalOptionImages).some(Boolean);
 
