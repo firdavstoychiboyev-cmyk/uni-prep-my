@@ -232,16 +232,24 @@ export default function AdminMockQuestionsPage() {
         setStatusMsg("");
         try {
             // Upload only newly-selected files (pendingFile / pendingOptionFiles are File objects,
-            // never URL strings — so re-uploading an existing image is impossible here)
+            // never URL strings — so re-uploading an existing image is impossible here).
+            // When editing an existing question we know its ID, so we use a deterministic
+            // path inside questions/{id}/ for organised Storage layout.
             let finalImageUrl = draft.imageUrl;
             if (pendingFile) {
-                finalImageUrl = await uploadImage(pendingFile);
+                const ext = (pendingFile.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "");
+                const path = draft.id ? `questions/${draft.id}/question.${ext}` : undefined;
+                finalImageUrl = await uploadImage(pendingFile, path);
             }
 
             const finalOptionImages = { ...draft.optionImages };
             for (const k of OPTION_KEYS) {
                 const f = pendingOptionFiles[k];
-                if (f) finalOptionImages[k] = await uploadImage(f);
+                if (f) {
+                    const ext = (f.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "");
+                    const path = draft.id ? `questions/${draft.id}/option-${k.toUpperCase()}.${ext}` : undefined;
+                    finalOptionImages[k] = await uploadImage(f, path);
+                }
             }
             const hasOptionImages = Object.values(finalOptionImages).some(Boolean);
 
