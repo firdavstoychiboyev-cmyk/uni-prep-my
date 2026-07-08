@@ -4,6 +4,12 @@ import { CheckCircle2, XCircle, ChevronRight, PenLine } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 
+export interface PassageDoc {
+    id: string;
+    title: string;
+    blocks: Array<{ label: string; text: string }>;
+}
+
 export interface ReviewQuestion {
     text: string;
     options?: { a: string; b: string; c: string; d: string };
@@ -13,6 +19,7 @@ export interface ReviewQuestion {
     type?: string; // "mc" (по умолчанию) | "open"
     explanation?: string;
     imageUrl?: string;
+    passageId?: string;
 }
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
@@ -20,7 +27,7 @@ const OPTION_KEYS = ["a", "b", "c", "d"] as const;
    рендерим порциями по мере прокрутки, а не все сразу */
 const BATCH_SIZE = 10;
 
-function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | null; index: number }) {
+function ReviewCard({ q, answer, index, passage }: { q: ReviewQuestion; answer: string | null; index: number; passage?: PassageDoc }) {
     const { t } = useTranslation();
     // Открытые вопросы не автопроверяются — самопроверка по эталонному ответу
     const isOpenQ = q.type === "open";
@@ -49,6 +56,31 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
                     {isOpenQ ? t("mock.open.selfCheck") : isCorrect ? t("mock.review.correct") : t("mock.review.incorrect")}
                 </div>
             </div>
+
+            {passage && (
+                <div className="mb-4 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20 px-4 py-4 flex flex-col gap-3">
+                    {passage.title && (
+                        <p className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest">
+                            {passage.title}
+                        </p>
+                    )}
+                    {passage.blocks.map((block, bi) => (
+                        <div key={bi} className="flex flex-col gap-1">
+                            {block.label && (
+                                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    {block.label}
+                                </p>
+                            )}
+                            <p
+                                className="text-sm text-foreground whitespace-pre-wrap"
+                                style={{ fontFamily: "var(--font-source-serif), Georgia, serif", lineHeight: "1.75" }}
+                            >
+                                {block.text}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {q.imageUrl && (
                 <div className="w-full flex justify-center mb-4">
@@ -204,9 +236,11 @@ function ReviewCard({ q, answer, index }: { q: ReviewQuestion; answer: string | 
 export default function MockReview({
     questions,
     answers,
+    passages = {},
 }: {
     questions: ReviewQuestion[];
     answers: (string | null)[];
+    passages?: Record<string, PassageDoc>;
 }) {
     const { t } = useTranslation();
     const [visibleCount, setVisibleCount] = useState(() => Math.min(BATCH_SIZE, questions.length));
@@ -231,7 +265,13 @@ export default function MockReview({
     return (
         <div className="flex flex-col gap-4">
             {questions.slice(0, visibleCount).map((q, i) => (
-                <ReviewCard key={i} q={q} answer={answers[i] ?? null} index={i} />
+                <ReviewCard
+                    key={i}
+                    q={q}
+                    answer={answers[i] ?? null}
+                    index={i}
+                    passage={q.passageId ? passages[q.passageId] : undefined}
+                />
             ))}
             {visibleCount < questions.length && (
                 <div ref={sentinelRef} className="flex justify-center py-2">

@@ -32,6 +32,19 @@ interface QuestionDoc {
     explanation?: string;
     imageUrl?: string;
     optionImages?: { a?: string; b?: string; c?: string; d?: string };
+    passageId?: string;
+}
+
+interface PassageDoc {
+    id: string;
+    title: string;
+    blocks: Array<{ label: string; text: string }>;
+}
+
+interface PassageDraft {
+    id: string | null;
+    title: string;
+    blocks: Array<{ label: string; text: string }>;
 }
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
@@ -48,6 +61,8 @@ interface Draft {
     imageUrl: string;
     /** Existing option image URLs from Firestore */
     optionImages: { a: string; b: string; c: string; d: string };
+    /** Passage ID attached to this question, or "" for none */
+    passageId: string;
 }
 
 const emptyDraft = (): Draft => ({
@@ -60,6 +75,7 @@ const emptyDraft = (): Draft => ({
     explanation: "",
     imageUrl: "",
     optionImages: { a: "", b: "", c: "", d: "" },
+    passageId: "",
 });
 
 const draftFromQuestion = (q: QuestionDoc): Draft => ({
@@ -82,6 +98,7 @@ const draftFromQuestion = (q: QuestionDoc): Draft => ({
         c: q.optionImages?.c ?? "",
         d: q.optionImages?.d ?? "",
     },
+    passageId: q.passageId ?? "",
 });
 
 const stripHtml = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -107,6 +124,12 @@ export default function AdminMockQuestionsPage() {
     const [deleting, setDeleting] = useState<QuestionDoc | null>(null);
     const [saving, setSaving] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
+
+    // Passage management
+    const [passages, setPassages] = useState<PassageDoc[]>([]);
+    const [passageDraft, setPassageDraft] = useState<PassageDraft | null>(null);
+    const [passageSaving, setPassageSaving] = useState(false);
+    const [passageFromQuestion, setPassageFromQuestion] = useState(false);
 
     // Pending image files — selected but not yet uploaded (deferred until Save)
     const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -145,6 +168,7 @@ export default function AdminMockQuestionsPage() {
             setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() } as MockDoc)));
             setSelectedMockId("");
             setQuestions([]);
+            setPassages([]);
             closeDraft();
             setStatusMsg("");
         };
@@ -164,13 +188,60 @@ export default function AdminMockQuestionsPage() {
         setLoading(false);
     };
 
+    const loadPassages = async (mock: MockDoc) => {
+        const snap = await getDocs(collection(db, "mocks", mock.id, "passages"));
+        setPassages(snap.docs.map(d => ({ id: d.id, ...d.data() } as PassageDoc)));
+    };
+
     const selectMock = (id: string) => {
         setSelectedMockId(id);
         closeDraft();
         setStatusMsg("");
         const mock = mocks.find(m => m.id === id);
-        if (mock) loadQuestions(mock);
-        else setQuestions([]);
+        if (mock) { loadQuestions(mock); loadPassages(mock); }
+        else { setQuestions([]); setPassages([]); }
+    };
+
+    const handleSavePassage = async () => {
+        if (!passageDraft || !selectedMock) return;
+        if (!passageDraft.blocks.some(b => b.text.trim())) return;
+        setPassageSaving(true);
+        try {
+            if (passageDraft.id) {
+                await updateDoc(doc(db, "mocks", selectedMock.id, "passages", passageDraft.id), {
+                    title: passageDraft.title.trim(),
+                    blocks: passageDraft.blocks,
+                });
+            } else {
+                const newRef = await addDoc(collection(db, "mocks", selectedMock.id, "passages"), {
+                    title: passageDraft.title.trim(),
+                    blocks: passageDraft.blocks,
+                });
+                // Auto-attach the new passage to the question being edited
+                if (passageFromQuestion) {
+                    setDraft(d => d && { ...d, passageId: newRef.id });
+                }
+            }
+            await loadPassages(selectedMock);
+            setPassageDraft(null);
+            setPassageFromQuestion(false);
+        } catch (e) {
+            console.error("Passage save error:", e);
+        } finally {
+            setPassageSaving(false);
+        }
+    };
+
+    const handleDeletePassage = async (passageId: string) => {
+        if (!selectedMock) return;
+        try {
+            await deleteDoc(doc(db, "mocks", selectedMock.id, "passages", passageId));
+            setPassages(prev => prev.filter(p => p.id !== passageId));
+            // Unlink from draft if it was attached
+            setDraft(d => d && d.passageId === passageId ? { ...d, passageId: "" } : d);
+        } catch (e) {
+            console.error("Passage delete error:", e);
+        }
     };
 
     const triggerUpload = (slot: string) => {
@@ -266,6 +337,7 @@ export default function AdminMockQuestionsPage() {
                 payload.optionImages = (draft.type === "mc" && hasOptionImages)
                     ? finalOptionImages
                     : deleteField();
+                payload.passageId = draft.passageId || deleteField();
                 if (draft.type === "open") {
                     payload.correctAnswer = draft.referenceAnswer.trim();
                     payload.options = deleteField();
@@ -284,6 +356,7 @@ export default function AdminMockQuestionsPage() {
                     explanation: draft.explanation.trim(),
                     ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
                     ...(draft.type === "mc" && hasOptionImages ? { optionImages: finalOptionImages } : {}),
+                    ...(draft.passageId ? { passageId: draft.passageId } : {}),
                     ...(draft.type === "open"
                         ? { correctAnswer: draft.referenceAnswer.trim() }
                         : { correctAnswer: draft.correctKey, options: {
@@ -442,6 +515,48 @@ export default function AdminMockQuestionsPage() {
                 </section>
             )}
 
+            {/* ── Passages section ─────────────────────────────────────────────── */}
+            {selectedMock && !embeddedOnly && (
+                <section className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                        <span className="font-bold text-foreground">{t("adminMockQ.passages")}</span>
+                        <button
+                            onClick={() => setPassageDraft({ id: null, title: "", blocks: [{ label: "Text 1", text: "" }] })}
+                            className="px-4 py-2 rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2"
+                        >
+                            <Plus size={16} />
+                            {t("adminMockQ.addPassage")}
+                        </button>
+                    </div>
+                    {passages.length === 0 ? (
+                        <p className="px-6 py-8 text-center text-sm text-muted-foreground">{t("adminMockQ.noPassages")}</p>
+                    ) : (
+                        <ul className="divide-y divide-border">
+                            {passages.map(p => (
+                                <li key={p.id} className="flex items-center gap-4 px-6 py-3 hover:bg-muted/40 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-foreground truncate">{p.title || "Untitled"}</p>
+                                        <p className="text-xs text-muted-foreground">{p.blocks.length} section{p.blocks.length !== 1 ? "s" : ""}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setPassageDraft({ id: p.id, title: p.title, blocks: p.blocks })}
+                                        className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    >
+                                        <Pencil size={15} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeletePassage(p.id)}
+                                        className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                                    >
+                                        <Trash2 size={15} />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            )}
+
             {/* Edit / add dialog */}
             {draft && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
@@ -592,6 +707,29 @@ export default function AdminMockQuestionsPage() {
                             />
                         </div>
 
+                        {/* Passage */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.passageField")}</label>
+                            <select
+                                value={draft.passageId}
+                                onChange={e => {
+                                    if (e.target.value === "__new__") {
+                                        setPassageFromQuestion(true);
+                                        setPassageDraft({ id: null, title: "", blocks: [{ label: "Text 1", text: "" }] });
+                                    } else {
+                                        setDraft(d => d && { ...d, passageId: e.target.value });
+                                    }
+                                }}
+                                className="w-full bg-muted border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 appearance-none"
+                            >
+                                <option value="">{t("adminMockQ.passageNone")}</option>
+                                {passages.map(p => (
+                                    <option key={p.id} value={p.id}>{p.title || "Untitled passage"}</option>
+                                ))}
+                                <option value="__new__">{t("adminMockQ.passageNew")}</option>
+                            </select>
+                        </div>
+
                         {/* Hidden file input — shared for all image slots */}
                         <input
                             ref={fileInputRef}
@@ -616,6 +754,102 @@ export default function AdminMockQuestionsPage() {
                             >
                                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {saving ? t("admin.uploading") : t("common.save")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Passage create/edit modal */}
+            {passageDraft && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+                    <div className="bg-background border border-border rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl flex flex-col gap-5">
+                        <h2 className="text-xl font-bold text-foreground">
+                            {passageDraft.id ? t("adminMockQ.passageEditTitle") : t("adminMockQ.passageNewTitle")}
+                        </h2>
+
+                        {/* Passage title */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.passageTitle")}</label>
+                            <input
+                                value={passageDraft.title}
+                                onChange={e => setPassageDraft(d => d && { ...d, title: e.target.value })}
+                                placeholder="Passage 1"
+                                className="w-full bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                            />
+                        </div>
+
+                        {/* Text blocks */}
+                        <div className="flex flex-col gap-3">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.passageSections")}</label>
+                            {passageDraft.blocks.map((block, i) => (
+                                <div key={i} className="flex flex-col gap-2 p-4 bg-muted/40 border border-border rounded-xl">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            value={block.label}
+                                            onChange={e => setPassageDraft(d => {
+                                                if (!d) return d;
+                                                const blocks = [...d.blocks];
+                                                blocks[i] = { ...blocks[i], label: e.target.value };
+                                                return { ...d, blocks };
+                                            })}
+                                            placeholder="Text 1"
+                                            className="flex-1 bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-ring"
+                                        />
+                                        {passageDraft.blocks.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setPassageDraft(d => {
+                                                    if (!d) return d;
+                                                    return { ...d, blocks: d.blocks.filter((_, j) => j !== i) };
+                                                })}
+                                                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <textarea
+                                        value={block.text}
+                                        onChange={e => setPassageDraft(d => {
+                                            if (!d) return d;
+                                            const blocks = [...d.blocks];
+                                            blocks[i] = { ...blocks[i], text: e.target.value };
+                                            return { ...d, blocks };
+                                        })}
+                                        rows={6}
+                                        placeholder={t("adminMockQ.passageSectionContent")}
+                                        className="w-full bg-background border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 resize-y"
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => setPassageDraft(d => d && {
+                                    ...d,
+                                    blocks: [...d.blocks, { label: `Text ${d.blocks.length + 1}`, text: "" }],
+                                })}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all w-fit"
+                            >
+                                <Plus size={14} /> {t("adminMockQ.passageAddSection")}
+                            </button>
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => { setPassageDraft(null); setPassageFromQuestion(false); }}
+                                disabled={passageSaving}
+                                className="px-5 py-2.5 rounded-lg border border-border font-semibold text-sm hover:bg-muted transition-colors text-foreground"
+                            >
+                                {t("common.cancel")}
+                            </button>
+                            <button
+                                onClick={handleSavePassage}
+                                disabled={passageSaving || !passageDraft.blocks.some(b => b.text.trim())}
+                                className="px-5 py-2.5 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-2"
+                            >
+                                {passageSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {passageDraft.id ? t("adminMockQ.passageSaveBtnEdit") : t("adminMockQ.passageSaveBtnNew")}
                             </button>
                         </div>
                     </div>
