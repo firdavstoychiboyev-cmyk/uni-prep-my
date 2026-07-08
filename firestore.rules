@@ -1,47 +1,35 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
     // ── Helpers ────────────────────────────────────────────────────────────────
-
     function isSignedIn() {
       return request.auth != null;
     }
-
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
-
     // Reads the caller's role from the users collection.
     // Cached per-request by Firestore so multiple calls don't cost extra reads.
     function userRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
-
     // super_admin (полный доступ). Поддерживает устаревший "admin" до миграции.
     function isAdmin() {
       return isSignedIn() && userRole() in ["admin", "super_admin"];
     }
-
     // director_admin: read-only по всем филиалам. НЕ входит в isAdmin().
     function isDirectorAdmin() {
       return isSignedIn() && userRole() == "director_admin";
     }
-
     // filial_admin: ограниченный доступ к своему филиалу.
     // Поддерживает устаревший "registanAdmin" до миграции.
     function isRegistanAdmin() {
       return isSignedIn() && userRole() in ["registanAdmin", "filial_admin"];
     }
-
     function isTeacherOrAdmin() {
       return isSignedIn() && userRole() in ["teacher", "admin", "super_admin"];
     }
-
-
     // ── Users ─────────────────────────────────────────────────────────────────
-
     match /users/{uid} {
       // Онбординг легитимно выставляет student или teacher; роль admin
       // самому себе присвоить нельзя (isAdmin() читается из этого же поля,
@@ -53,48 +41,39 @@ service cloud.firestore {
                // текущую (напр. registanAdmin обновляет свой профиль)
                || request.resource.data.role == resource.data.role;
       }
-
       // Any signed-in user can read profiles (needed for class management)
       allow read: if isSignedIn();
       // Users can only write their own profile (without granting themselves
       // admin); admins can write any
       allow create, update: if isAdmin() || (isOwner(uid) && ownRoleAllowed());
       allow delete: if isOwner(uid) || isAdmin();
-
       // ── Sub-collections ───────────────────────────────────────────────────
-
       match /userProgress/{docId} {
         // Teachers read students' topic progress to derive homework completion
         allow read: if isOwner(uid) || isTeacherOrAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       match /testResults/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       match /mockResults/{docId} {
         // Completion marks for mock tests; teachers read them for homework tracking
         allow read: if isOwner(uid) || isTeacherOrAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       match /badges/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       match /ratings/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       match /dailyActivity/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow write: if isOwner(uid) || isAdmin();
       }
-
       // ── Redeemed mock-test index (mockCodes/{code} → users/{uid}/redeemedMocks/{mockId}) ──
       // Created atomically alongside the usedBy append on the mockCodes doc.
       // Lets users list their own unlocked mocks without needing to scan mockCodes.
@@ -103,14 +82,11 @@ service cloud.firestore {
         allow write: if isOwner(uid) || isAdmin();
       }
     }
-
-
     // ── Login identifier lookups (username / phone → email) ───────────────────
     // Public `get` is required so the login page can resolve an identifier
     // BEFORE the user is authenticated. `list` stays closed so the collections
     // can't be enumerated. Uniqueness is enforced here: writing to a document
     // owned by another uid is an update, which only the owner may perform.
-
     match /usernames/{username} {
       allow get: if true;
       allow list: if false;
@@ -119,7 +95,6 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid;
       allow delete: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
     }
-
     match /phoneNumbers/{phone} {
       allow get: if true;
       allow list: if false;
@@ -128,25 +103,19 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid;
       allow delete: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
     }
-
-
     // ── Filials (physical Registan branches) ─────────────────────────────────
     // Super-admin manages; any signed-in user (admin or registanAdmin) may read
     // so filial dropdowns work. Filial names are not sensitive.
-
     match /filials/{filialId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
-
-
     // ── Partner access codes (Registan etc.) ──────────────────────────────────
     // Codes are validated on the signup form before the user is authenticated,
     // so `get` is public. `list` is admin-only (for the admin codes page).
     // The ONLY non-admin write allowed is incrementing usesCount by exactly 1
     // (the atomic use-count bump inside the signup batch), and only while the
     // code is active and under its maxUses limit.
-
     // Registan-админ управляет ТОЛЬКО кодами organization=="registan":
     //  - list разрешён лишь при запросе, где каждый документ registan (иначе
     //    правило на не-registan документе провалит выборку — data-layer scope);
@@ -173,15 +142,12 @@ service cloud.firestore {
             || resource.data.usesCount < resource.data.maxUses)
       );
     }
-
-
     // ── Mock-test access codes (mockCodes/{CODE}) ────────────────────────────
     // Separate collection from accessCodes (signup org-tagging codes).
     // Admin creates/deletes codes. Any signed-in user may GET a single code
     // by exact path to validate it during redemption — list is admin-only.
     // Users may append ONLY their own uid to usedBy (atomic array-union),
     // subject to reusability and maxUses constraints.
-
     match /mockCodes/{code} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
@@ -203,25 +169,19 @@ service cloud.firestore {
           && (resource.data.maxUses == null || resource.data.usedBy.size() < resource.data.maxUses)
         );
     }
-
-
     // ── Content collections (admin writes, public read for anonymous browsing) ─
-
     match /subjects/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-
     match /textbooks/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-
     match /topics/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-
     match /questions/{docId} {
       allow read: if true;
       // Registan-админ может ТОЛЬКО создавать вопросы вступительных наборов
@@ -230,17 +190,14 @@ service cloud.firestore {
         || (isRegistanAdmin() && request.resource.data.isEntranceQuestion == true);
       allow update, delete: if isAdmin();
     }
-
     match /mocks/{docId} {
       allow read: if true;
       allow write: if isAdmin();
-
       match /passages/{passageId} {
         allow read: if true;
         allow write: if isAdmin();
       }
     }
-
     // ── Dedicated entrance-test question sets (отдельная коллекция) ────────────
     // Не попадают в списки Mocklar/Rush. Читают все вошедшие; пишут админы и
     // Registan-админы.
@@ -248,14 +205,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isRegistanAdmin();
     }
-
-
     // ── Rush sessions (DTM-style exam) ────────────────────────────────────────
     // Readable by any signed-in user (students discover sessions for their
     // groups; teachers/admins manage). A student may create/own a MANUAL solo
     // session (creatorRole "student", createdBy == self) and update only their
     // own; teachers/admins create scheduled group sessions.
-
     match /rushSessions/{sessionId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid && (
@@ -266,14 +220,12 @@ service cloud.firestore {
       );
       allow update, delete: if isSignedIn() && (resource.data.createdBy == request.auth.uid || isTeacherOrAdmin());
     }
-
     // ── Rush attempts ─────────────────────────────────────────────────────────
     // TRADEOFF (flagged): signed-in read is allowed so per-session ranking and
     // the μ/σ reference population can be computed on the client (no Cloud
     // Functions). This exposes peers' answers/scores within a session — acceptable
     // for an exam leaderboard, but revisit if answers must stay private. A student
     // may only create/update their OWN attempt.
-
     match /rushAttempts/{attemptId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
@@ -282,17 +234,14 @@ service cloud.firestore {
                     && request.resource.data.sessionId == resource.data.sessionId;
       allow delete: if isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin());
     }
-
     // ── Entrance tests (Qabul testi) — конфигурируют админы/Registan-админы ────
     // Читают все вошедшие (ученик видит опубликованные). Пишут только
     // супер-админ или Registan-админ (глобального контента это не касается —
     // сам пул вопросов лежит в mocks/questions под обычными admin-правилами).
-
     match /entranceTests/{id} {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isRegistanAdmin();
     }
-
     match /entranceTestAttempts/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
@@ -301,19 +250,14 @@ service cloud.firestore {
                     && request.resource.data.testId == resource.data.testId;
       allow delete: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
     }
-
-
     // ── Classes (teachers and admins manage, students read their own) ─────────
-
     match /classes/{classId} {
       allow read: if isSignedIn();
       allow create: if isTeacherOrAdmin();
       allow update, delete: if isTeacherOrAdmin();
-
       // ── Homework (topic + mock assigned by the class teacher) ────────────
       // Readable by the owning teacher and enrolled students; writable only
       // by the owning teacher (or admin).
-
       match /homework/{homeworkId} {
         function parentClass() {
           return get(/databases/$(database)/documents/classes/$(classId)).data;
@@ -328,6 +272,5 @@ service cloud.firestore {
         );
       }
     }
-
   }
 }
