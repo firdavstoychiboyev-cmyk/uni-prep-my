@@ -21,6 +21,8 @@ interface MockDoc {
     questionIds?: string[];
     questions?: unknown[];
     questionCount?: number;
+    /** Reading passages stored inline on the mock doc (see PassageDoc) */
+    passages?: PassageDoc[];
 }
 
 interface QuestionDoc {
@@ -189,9 +191,10 @@ export default function AdminMockQuestionsPage() {
         setLoading(false);
     };
 
-    const loadPassages = async (mock: MockDoc) => {
-        const snap = await getDocs(collection(db, "mocks", mock.id, "passages"));
-        setPassages(snap.docs.map(d => ({ id: d.id, ...d.data() } as PassageDoc)));
+    const loadPassages = (mock: MockDoc) => {
+        // Passages live as an array field on the mock doc (no subcollection),
+        // so they're already loaded with the mock — no extra fetch/rules needed.
+        setPassages(mock.passages ?? []);
     };
 
     const selectMock = (id: string) => {
@@ -209,22 +212,30 @@ export default function AdminMockQuestionsPage() {
         setPassageSaving(true);
         setPassageError(null);
         try {
+            const current = selectedMock.passages ?? [];
+            let updated: PassageDoc[];
+            let savedId: string;
             if (passageDraft.id) {
-                await updateDoc(doc(db, "mocks", selectedMock.id, "passages", passageDraft.id), {
-                    title: passageDraft.title.trim(),
-                    blocks: passageDraft.blocks,
-                });
+                savedId = passageDraft.id;
+                updated = current.map(p =>
+                    p.id === passageDraft.id
+                        ? { id: p.id, title: passageDraft.title.trim(), blocks: passageDraft.blocks }
+                        : p
+                );
             } else {
-                const newRef = await addDoc(collection(db, "mocks", selectedMock.id, "passages"), {
-                    title: passageDraft.title.trim(),
-                    blocks: passageDraft.blocks,
-                });
-                // Auto-attach the new passage to the question being edited
-                if (passageFromQuestion) {
-                    setDraft(d => d && { ...d, passageId: newRef.id });
-                }
+                savedId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                updated = [...current, { id: savedId, title: passageDraft.title.trim(), blocks: passageDraft.blocks }];
             }
-            await loadPassages(selectedMock);
+            // Single write to the mock doc — uses the existing admin write rule,
+            // no separate subcollection rule / deploy required.
+            await updateDoc(doc(db, "mocks", selectedMock.id), { passages: updated });
+            // Keep local state in sync so the list + selectedMock reflect the save.
+            setMocks(prev => prev.map(m => m.id === selectedMock.id ? { ...m, passages: updated } : m));
+            setPassages(updated);
+            // Auto-attach a newly created passage to the question being edited.
+            if (!passageDraft.id && passageFromQuestion) {
+                setDraft(d => d && { ...d, passageId: savedId });
+            }
             setPassageDraft(null);
             setPassageFromQuestion(false);
         } catch (e) {
@@ -239,8 +250,10 @@ export default function AdminMockQuestionsPage() {
     const handleDeletePassage = async (passageId: string) => {
         if (!selectedMock) return;
         try {
-            await deleteDoc(doc(db, "mocks", selectedMock.id, "passages", passageId));
-            setPassages(prev => prev.filter(p => p.id !== passageId));
+            const updated = (selectedMock.passages ?? []).filter(p => p.id !== passageId);
+            await updateDoc(doc(db, "mocks", selectedMock.id), { passages: updated });
+            setMocks(prev => prev.map(m => m.id === selectedMock.id ? { ...m, passages: updated } : m));
+            setPassages(updated);
             // Unlink from draft if it was attached
             setDraft(d => d && d.passageId === passageId ? { ...d, passageId: "" } : d);
         } catch (e) {

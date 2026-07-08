@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
 import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle } from "lucide-react";
@@ -20,6 +20,7 @@ interface MockData {
     questionIds?: string[];
     language?: string;
     active?: boolean;
+    passages?: PassageDoc[];
 }
 
 interface PassageDoc {
@@ -99,10 +100,10 @@ export default function MockTestPage() {
             setAnswers(qs.map(() => null));
             setEliminated(qs.map(() => []));
 
-            // Load passages scoped to this mock
-            const passSnap = await getDocs(collection(db, "mocks", id as string, "passages"));
+            // Passages are stored inline on the mock doc (array field), so they
+            // arrive with the mock — no separate fetch or subcollection rule needed.
             const passMap: Record<string, PassageDoc> = {};
-            passSnap.docs.forEach(d => { passMap[d.id] = { id: d.id, ...d.data() } as PassageDoc; });
+            (mockData.passages ?? []).forEach(p => { passMap[p.id] = p; });
             setPassages(passMap);
         };
         load();
