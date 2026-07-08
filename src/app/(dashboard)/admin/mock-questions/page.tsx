@@ -129,6 +129,7 @@ export default function AdminMockQuestionsPage() {
     const [passages, setPassages] = useState<PassageDoc[]>([]);
     const [passageDraft, setPassageDraft] = useState<PassageDraft | null>(null);
     const [passageSaving, setPassageSaving] = useState(false);
+    const [passageError, setPassageError] = useState<string | null>(null);
     const [passageFromQuestion, setPassageFromQuestion] = useState(false);
 
     // Pending image files — selected but not yet uploaded (deferred until Save)
@@ -206,6 +207,7 @@ export default function AdminMockQuestionsPage() {
         if (!passageDraft || !selectedMock) return;
         if (!passageDraft.blocks.some(b => b.text.trim())) return;
         setPassageSaving(true);
+        setPassageError(null);
         try {
             if (passageDraft.id) {
                 await updateDoc(doc(db, "mocks", selectedMock.id, "passages", passageDraft.id), {
@@ -226,6 +228,8 @@ export default function AdminMockQuestionsPage() {
             setPassageDraft(null);
             setPassageFromQuestion(false);
         } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            setPassageError(msg);
             console.error("Passage save error:", e);
         } finally {
             setPassageSaving(false);
@@ -835,9 +839,15 @@ export default function AdminMockQuestionsPage() {
                             </button>
                         </div>
 
+                        {passageError && (
+                            <p className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3">
+                                {passageError}
+                            </p>
+                        )}
+
                         <div className="flex gap-3 justify-end">
                             <button
-                                onClick={() => { setPassageDraft(null); setPassageFromQuestion(false); }}
+                                onClick={() => { setPassageDraft(null); setPassageFromQuestion(false); setPassageError(null); }}
                                 disabled={passageSaving}
                                 className="px-5 py-2.5 rounded-lg border border-border font-semibold text-sm hover:bg-muted transition-colors text-foreground"
                             >

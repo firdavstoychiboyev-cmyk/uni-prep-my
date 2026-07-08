@@ -234,6 +234,11 @@ service cloud.firestore {
     match /mocks/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+
+      match /passages/{passageId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
 
     // ── Dedicated entrance-test question sets (отдельная коллекция) ────────────
