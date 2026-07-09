@@ -1,5 +1,5 @@
 import {
-    collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc,
+    collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc,
     query, where, documentId, serverTimestamp, limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -166,6 +166,19 @@ export const scheduleGroupRush = async (params: {
         createdAt: new Date().toISOString(),
     });
     return ref.id;
+};
+
+/** All rush sessions scheduled for a specific group, newest first (admin view). */
+export const fetchGroupRushSessions = async (groupId: string): Promise<RushSession[]> => {
+    const snap = await getDocs(query(collection(db, "rushSessions"), where("groupId", "==", groupId)));
+    return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as RushSession))
+        .sort((a, b) => (b.scheduledFor ?? b.createdAt).localeCompare(a.scheduledFor ?? a.createdAt));
+};
+
+/** Cancel a scheduled rush (admin/teacher who owns it, or any admin). */
+export const deleteRushSession = async (id: string): Promise<void> => {
+    await deleteDoc(doc(db, "rushSessions", id));
 };
 
 export const fetchRushSession = async (id: string): Promise<RushSession | null> => {

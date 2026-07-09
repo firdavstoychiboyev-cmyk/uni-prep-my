@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Zap, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Zap, Loader2, CalendarClock, Trash2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { fetchSubjects } from "@/lib/data-fetching";
 import { fetchActiveMocks, MockOption } from "@/lib/homework-utils";
-import { scheduleGroupRush } from "@/lib/rush-utils";
-import { Subject, User, Language } from "@/lib/firestore-schema";
+import { scheduleGroupRush, fetchGroupRushSessions, deleteRushSession } from "@/lib/rush-utils";
+import { Subject, User, Language, RushSession } from "@/lib/firestore-schema";
 import { isAnyAdmin } from "@/lib/roles";
 
 /**
@@ -24,11 +24,34 @@ export default function RushScheduler({ classId, user }: { classId: string; user
     const [windowEnd, setWindowEnd] = useState("");
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState("");
+    const [planned, setPlanned] = useState<RushSession[] | null>(null);
 
     useEffect(() => {
         fetchSubjects().then(setSubjects).catch(() => {});
         fetchActiveMocks().then(setMocks).catch(() => {});
     }, [language]);
+
+    const loadPlanned = useCallback(() => {
+        setPlanned(null);
+        fetchGroupRushSessions(classId).then(setPlanned).catch(() => setPlanned([]));
+    }, [classId]);
+
+    useEffect(() => { loadPlanned(); }, [loadPlanned]);
+
+    const cancelRush = async (id: string) => {
+        if (!window.confirm(t("rush.cancelConfirm"))) return;
+        try {
+            await deleteRushSession(id);
+            setPlanned((prev) => prev?.filter((s) => s.id !== id) ?? null);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const fmt = (iso?: string) =>
+        iso ? new Date(iso).toLocaleString(language === "uz" ? "uz-UZ" : "ru-RU", {
+            day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+        }) : "—";
 
     const filteredMocks = mocks.filter((m) => !m.subject || m.subject === subjectId);
     const selectedMock = mocks.find((m) => m.id === mockId);
@@ -54,6 +77,7 @@ export default function RushScheduler({ classId, user }: { classId: string; user
             });
             setMsg(t("rush.scheduledOk"));
             setSubjectId(""); setMockId(""); setScheduledFor(""); setWindowEnd("");
+            loadPlanned();
         } catch (e) {
             console.error(e);
             // Surface the real reason instead of a catch-all. The most common
@@ -105,6 +129,49 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                     {busy ? t("rush.scheduling") : t("rush.scheduleBtn")}
                 </button>
+            </div>
+
+            {/* Already-scheduled Rush sessions for this group */}
+            <div className="mt-8">
+                <div className="mb-3 flex items-center gap-2.5">
+                    <CalendarClock className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-bold tracking-tight text-foreground">{t("rush.plannedTitle")}</h3>
+                </div>
+                {planned === null ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> …
+                    </div>
+                ) : planned.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+                        {t("rush.plannedEmpty")}
+                    </p>
+                ) : (
+                    <ul className="flex flex-col gap-2">
+                        {planned.map((s) => (
+                            <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm font-semibold text-foreground">
+                                        {s.title || subjects.find((sub) => sub.id === s.subjectId)?.name || s.subjectId}
+                                        <span className="ml-2 text-xs font-medium text-muted-foreground">
+                                            {s.questionIds?.length ?? 0} {t("rush.mockQuestionCount")}
+                                        </span>
+                                    </div>
+                                    <div className="mt-0.5 text-xs text-muted-foreground">
+                                        {t("rush.opensAt")}: {fmt(s.scheduledFor)}
+                                        {s.windowEnd ? ` · ${t("rush.closesAt")}: ${fmt(s.windowEnd)}` : ""}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => cancelRush(s.id)}
+                                    title={t("rush.cancelRush")}
+                                    className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </section>
     );
