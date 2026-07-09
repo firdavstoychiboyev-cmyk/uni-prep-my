@@ -11,16 +11,44 @@ import Link from "next/link";
 import HomeworkSection from "@/components/homework-section";
 import ClassLeaderboardSection from "@/components/class-leaderboard-section";
 
+// logo → static asset under /public/university-logos/{id}.png.
+// If the file is missing, UniLogo falls back to the coloured short-code badge.
 const TOP_UNIVERSITIES = [
-    { id: "jidu",    name: "JIDU",      fullName: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", grant: 189.0, color: "#3B82F6" },
-    { id: "tdyu",    name: "TDYU",      fullName: "Toshkent Davlat Yuridik Universiteti",           grant: 189.0, color: "#8B5CF6" },
-    { id: "tdiu",    name: "TDIU",      fullName: "Toshkent Davlat Iqtisodiyot Universiteti",       grant: 185.5, color: "#14B8A6" },
-    { id: "nuu",     name: "O'zMU",     fullName: "O'zbekiston Milliy Universiteti",                grant: 181.0, color: "#10B981" },
-    { id: "tuit",    name: "TUIT",      fullName: "Toshkent Axborot Texnologiyalari Universiteti",  grant: 176.0, color: "#F59E0B" },
-    { id: "tdtu",    name: "TDTU",      fullName: "Toshkent Davlat Texnika Universiteti",           grant: 165.0, color: "#EF4444" },
-    { id: "samdu",   name: "SamDU",     fullName: "Samarqand Davlat Universiteti",                  grant: 160.0, color: "#EC4899" },
-    { id: "tashgiu", name: "ToshDShI",  fullName: "Toshkent Davlat Sharqshunoslik Universiteti",   grant: 170.0, color: "#6366F1" },
+    { id: "jidu",    name: "JIDU",      fullName: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", grant: 189.0, color: "#3B82F6", logo: "/university-logos/jidu.png" },
+    { id: "tdyu",    name: "TDYU",      fullName: "Toshkent Davlat Yuridik Universiteti",           grant: 189.0, color: "#8B5CF6", logo: "/university-logos/tdyu.png" },
+    { id: "tdiu",    name: "TDIU",      fullName: "Toshkent Davlat Iqtisodiyot Universiteti",       grant: 185.5, color: "#14B8A6", logo: "/university-logos/tdiu.png" },
+    { id: "nuu",     name: "O'zMU",     fullName: "O'zbekiston Milliy Universiteti",                grant: 181.0, color: "#10B981", logo: "/university-logos/nuu.png" },
+    { id: "tuit",    name: "TUIT",      fullName: "Toshkent Axborot Texnologiyalari Universiteti",  grant: 176.0, color: "#F59E0B", logo: "/university-logos/tuit.png" },
+    { id: "tdtu",    name: "TDTU",      fullName: "Toshkent Davlat Texnika Universiteti",           grant: 165.0, color: "#EF4444", logo: "/university-logos/tdtu.png" },
+    { id: "samdu",   name: "SamDU",     fullName: "Samarqand Davlat Universiteti",                  grant: 160.0, color: "#EC4899", logo: "/university-logos/samdu.png" },
+    { id: "tashgiu", name: "ToshDShI",  fullName: "Toshkent Davlat Sharqshunoslik Universiteti",   grant: 170.0, color: "#6366F1", logo: "/university-logos/tashgiu.png" },
 ];
+
+// Renders the university logo image, contained in a fixed square so every card
+// looks uniform regardless of the logo's aspect ratio. Falls back to the
+// coloured short-code badge if the image is missing or fails to load.
+function UniLogo({ uni }: { uni: (typeof TOP_UNIVERSITIES)[number] }) {
+    const [failed, setFailed] = useState(false);
+    if (uni.logo && !failed) {
+        return (
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-white border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={uni.logo}
+                    alt={uni.name}
+                    className="w-full h-full object-contain p-1"
+                    onError={() => setFailed(true)}
+                />
+            </div>
+        );
+    }
+    return (
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+            style={{ background: `${uni.color}22`, color: uni.color }}>
+            {uni.name.slice(0, 4)}
+        </div>
+    );
+}
 
 // Даты ориентировочные — обновляйте при публикации официального календаря DTM.
 // Прошедшие даты автоматически скрываются (futureExams), поэтому держите здесь и следующий цикл.
@@ -214,10 +242,7 @@ export default function HomePage() {
                                 }`}
                                 style={isDream ? { border: `1px solid ${uni.color}`, boxShadow: `inset 0 0 0 1px ${uni.color}` } : undefined}>
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
-                                        style={{ background: `${uni.color}22`, color: uni.color }}>
-                                        {uni.name.slice(0, 4)}
-                                    </div>
+                                    <UniLogo uni={uni} />
                                     <div className="text-[15px] font-bold text-foreground leading-snug">{uni.fullName}</div>
                                 </div>
                                 <div className="flex gap-2">
