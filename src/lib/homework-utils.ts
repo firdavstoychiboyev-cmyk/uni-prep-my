@@ -131,20 +131,29 @@ export interface MockOption {
     title: string;
     /** id документа предмета (subjects/{id}); у старых моков может отсутствовать */
     subject?: string;
+    /** Сколько вопросов реально привязано к моку (для индикации пустых моков) */
+    questionCount?: number;
 }
 
 /** Активные мок-тесты для выпадающего списка назначения */
 export const fetchActiveMocks = async (): Promise<MockOption[]> => {
     const snap = await getDocs(collection(db, "mocks"));
     return snap.docs
-        .map((d) => ({
-            id: d.id,
-            title: (d.data().title as string) || d.id,
-            subject: (d.data().subject as string) || undefined,
-            active: d.data().active
-        }))
+        .map((d) => {
+            const data = d.data();
+            const questionCount =
+                (Array.isArray(data.questionIds) ? data.questionIds.length : 0) ||
+                (Array.isArray(data.questions) ? data.questions.length : 0);
+            return {
+                id: d.id,
+                title: (data.title as string) || d.id,
+                subject: (data.subject as string) || undefined,
+                active: data.active,
+                questionCount,
+            };
+        })
         .filter((m) => m.active !== false)
-        .map(({ id, title, subject }) => ({ id, title, subject }));
+        .map(({ id, title, subject, questionCount }) => ({ id, title, subject, questionCount }));
 };
 
 /** Отметка о завершении мок-теста (вызывается со страницы мока) */

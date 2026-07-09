@@ -31,7 +31,10 @@ export default function RushScheduler({ classId, user }: { classId: string; user
     }, [language]);
 
     const filteredMocks = mocks.filter((m) => !m.subject || m.subject === subjectId);
-    const ready = subjectId && mockId && scheduledFor;
+    const selectedMock = mocks.find((m) => m.id === mockId);
+    // A mock with no attached questions can't seed a rush — block it up front.
+    const mockIsEmpty = Boolean(selectedMock && (selectedMock.questionCount ?? 0) === 0);
+    const ready = subjectId && mockId && scheduledFor && !mockIsEmpty;
 
     const submit = async () => {
         if (!ready || busy) return;
@@ -53,7 +56,10 @@ export default function RushScheduler({ classId, user }: { classId: string; user
             setSubjectId(""); setMockId(""); setScheduledFor(""); setWindowEnd("");
         } catch (e) {
             console.error(e);
-            setMsg(t("rush.scheduleError"));
+            // Surface the real reason instead of a catch-all. The most common
+            // failure is a mock with zero questions.
+            const code = e instanceof Error ? e.message : "";
+            setMsg(code === "no-questions-for-subject" ? t("rush.mockEmpty") : t("rush.scheduleError"));
         } finally {
             setBusy(false);
         }
@@ -75,7 +81,11 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                     <select value={mockId} onChange={(e) => setMockId(e.target.value)} disabled={!subjectId}
                         className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50">
                         <option value="">{t("rush.pickMock")}</option>
-                        {filteredMocks.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+                        {filteredMocks.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.title} · {m.questionCount ?? 0} {t("rush.mockQuestionCount")}
+                            </option>
+                        ))}
                     </select>
                     <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                         {t("rush.scheduleFor")}
@@ -88,7 +98,8 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                             className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm font-normal normal-case text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25" />
                     </label>
                 </div>
-                {msg && <p className={`mt-3 text-sm font-medium ${msg.startsWith("❌") || msg === t("rush.scheduleError") ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>{msg}</p>}
+                {mockIsEmpty && <p className="mt-3 text-sm font-medium text-red-500">{t("rush.mockEmpty")}</p>}
+                {msg && <p className={`mt-3 text-sm font-medium ${msg.startsWith("❌") || msg === t("rush.scheduleError") || msg === t("rush.mockEmpty") ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>{msg}</p>}
                 <button onClick={submit} disabled={!ready || busy}
                     className="mt-4 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-foreground px-7 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-40">
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
