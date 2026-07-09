@@ -11,17 +11,18 @@ import Link from "next/link";
 import HomeworkSection from "@/components/homework-section";
 import ClassLeaderboardSection from "@/components/class-leaderboard-section";
 
-// logo → static asset under /public/university-logos/{id}.png.
-// If the file is missing, UniLogo falls back to the coloured short-code badge.
+// logo → static asset under /public/university-logos/. Filenames are the
+// originals supplied per university (spaces removed to avoid URL encoding).
+// If a file is missing, UniLogo falls back to the coloured short-code badge.
 const TOP_UNIVERSITIES = [
     { id: "jidu",    name: "JIDU",      fullName: "Jahon Iqtisodiyoti va Diplomatiya Universiteti", grant: 189.0, color: "#3B82F6", logo: "/university-logos/jidu.png" },
-    { id: "tdyu",    name: "TDYU",      fullName: "Toshkent Davlat Yuridik Universiteti",           grant: 189.0, color: "#8B5CF6", logo: "/university-logos/tdyu.png" },
-    { id: "tdiu",    name: "TDIU",      fullName: "Toshkent Davlat Iqtisodiyot Universiteti",       grant: 185.5, color: "#14B8A6", logo: "/university-logos/tdiu.png" },
-    { id: "nuu",     name: "O'zMU",     fullName: "O'zbekiston Milliy Universiteti",                grant: 181.0, color: "#10B981", logo: "/university-logos/nuu.png" },
-    { id: "tuit",    name: "TUIT",      fullName: "Toshkent Axborot Texnologiyalari Universiteti",  grant: 176.0, color: "#F59E0B", logo: "/university-logos/tuit.png" },
-    { id: "tdtu",    name: "TDTU",      fullName: "Toshkent Davlat Texnika Universiteti",           grant: 165.0, color: "#EF4444", logo: "/university-logos/tdtu.png" },
-    { id: "samdu",   name: "SamDU",     fullName: "Samarqand Davlat Universiteti",                  grant: 160.0, color: "#EC4899", logo: "/university-logos/samdu.png" },
-    { id: "tashgiu", name: "ToshDShI",  fullName: "Toshkent Davlat Sharqshunoslik Universiteti",   grant: 170.0, color: "#6366F1", logo: "/university-logos/tashgiu.png" },
+    { id: "tdyu",    name: "TDYU",      fullName: "Toshkent Davlat Yuridik Universiteti",           grant: 189.0, color: "#8B5CF6", logo: "/university-logos/Toshkent_davlat_yuridik_universiteti-01-2.png" },
+    { id: "tdiu",    name: "TDIU",      fullName: "Toshkent Davlat Iqtisodiyot Universiteti",       grant: 185.5, color: "#14B8A6", logo: "/university-logos/TDIU-01.png" },
+    { id: "nuu",     name: "O'zMU",     fullName: "O'zbekiston Milliy Universiteti",                grant: 181.0, color: "#10B981", logo: "/university-logos/OZMU-01.png" },
+    { id: "tuit",    name: "TUIT",      fullName: "Toshkent Axborot Texnologiyalari Universiteti",  grant: 176.0, color: "#F59E0B", logo: "/university-logos/TATU-01.png" },
+    { id: "tdtu",    name: "TDTU",      fullName: "Toshkent Davlat Texnika Universiteti",           grant: 165.0, color: "#EF4444", logo: "/university-logos/TDTU_LOGO.png" },
+    { id: "samdu",   name: "SamDU",     fullName: "Samarqand Davlat Universiteti",                  grant: 160.0, color: "#EC4899", logo: "/university-logos/images.jpeg" },
+    { id: "tashgiu", name: "ToshDShI",  fullName: "Toshkent Davlat Sharqshunoslik Universiteti",   grant: 170.0, color: "#6366F1", logo: "/university-logos/channels4_profile.jpg" },
 ];
 
 // Renders the university logo image, contained in a fixed square so every card

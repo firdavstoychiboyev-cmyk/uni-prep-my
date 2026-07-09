@@ -1,26 +1,28 @@
 # University logos
 
 Static logo images for the "Orzumdagi universitetni tanlash" dashboard cards.
+Referenced by the `logo` field of each entry in `TOP_UNIVERSITIES`
+(`src/app/(dashboard)/home/page.tsx`). If a file is missing, that card falls
+back to the coloured short-code text badge — nothing breaks.
 
-Drop each file here with the EXACT filename below (all lowercase, `.png`).
-Until a file exists, that card automatically falls back to the coloured
-short-code text badge — nothing breaks.
+| Short code | University                                        | File in this folder                              |
+| ---------- | ------------------------------------------------- | ------------------------------------------------ |
+| JIDU       | Jahon Iqtisodiyoti va Diplomatiya Universiteti    | `jidu.png` *(not added yet → shows text badge)*  |
+| TDYU       | Toshkent Davlat Yuridik Universiteti              | `Toshkent_davlat_yuridik_universiteti-01-2.png`  |
+| TDIU       | Toshkent Davlat Iqtisodiyot Universiteti          | `TDIU-01.png`                                    |
+| O'zMU      | O'zbekiston Milliy Universiteti                   | `OZMU-01.png`                                    |
+| TUIT/TATU  | Toshkent Axborot Texnologiyalari Universiteti     | `TATU-01.png`                                    |
+| TDTU       | Toshkent Davlat Texnika Universiteti              | `TDTU_LOGO.png` *(renamed from "TDTU LOGO.png")* |
+| SamDU      | Samarqand Davlat Universiteti                     | `images.jpeg`                                    |
+| ToshDShI   | Toshkent Davlat Sharqshunoslik Universiteti       | `channels4_profile.jpg`                          |
 
-| Short code | University                                        | Expected file                          |
-| ---------- | ------------------------------------------------- | -------------------------------------- |
-| JIDU       | Jahon Iqtisodiyoti va Diplomatiya Universiteti    | `public/university-logos/jidu.png`     |
-| TDYU       | Toshkent Davlat Yuridik Universiteti              | `public/university-logos/tdyu.png`     |
-| TDIU       | Toshkent Davlat Iqtisodiyot Universiteti          | `public/university-logos/tdiu.png`     |
-| O'zMU      | O'zbekiston Milliy Universiteti                   | `public/university-logos/nuu.png`      |
-| TUIT       | Toshkent Axborot Texnologiyalari Universiteti     | `public/university-logos/tuit.png`     |
-| TDTU       | Toshkent Davlat Texnika Universiteti              | `public/university-logos/tdtu.png`     |
-| SamDU      | Samarqand Davlat Universiteti                     | `public/university-logos/samdu.png`    |
-| ToshDShI   | Toshkent Davlat Sharqshunoslik Universiteti       | `public/university-logos/tashgiu.png`  |
+## Adding the JIDU logo
+Drop the JIDU logo here as `jidu.png` (no spaces). It will appear automatically.
+To use a different filename, update the `logo` path for `id: "jidu"` in
+`src/app/(dashboard)/home/page.tsx`.
 
 ## Image guidelines
-- Square-ish source is ideal, but any aspect ratio works — the card renders it
-  with `object-fit: contain` inside a fixed 40×40 rounded square on a white
-  background, so nothing is stretched or cropped inconsistently.
-- Transparent-background PNGs look best (the container is white).
-- To use a different format (e.g. `.svg`), update the `logo` path for that
-  university in `src/app/(dashboard)/home/page.tsx`.
+- Any aspect ratio works — the card renders each logo with `object-fit: contain`
+  inside a fixed 40×40 rounded square on a white background, so nothing is
+  stretched or cropped inconsistently.
+- Avoid spaces in filenames (they need URL encoding). Use underscores/hyphens.
