@@ -32,19 +32,19 @@ function UniLogo({ uni }: { uni: (typeof TOP_UNIVERSITIES)[number] }) {
     const [failed, setFailed] = useState(false);
     if (uni.logo && !failed) {
         return (
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-white border border-border">
+            <div className="w-[72px] h-[72px] rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-white border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={uni.logo}
                     alt={uni.name}
-                    className="w-full h-full object-contain p-1"
+                    className="w-full h-full object-contain p-1.5"
                     onError={() => setFailed(true)}
                 />
             </div>
         );
     }
     return (
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+        <div className="w-[72px] h-[72px] rounded-xl flex items-center justify-center text-base font-extrabold flex-shrink-0"
             style={{ background: `${uni.color}22`, color: uni.color }}>
             {uni.name.slice(0, 4)}
         </div>
@@ -251,13 +251,13 @@ export default function HomePage() {
                                         <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-emerald-600 dark:text-emerald-400">
                                             {language === "uz" ? "Grant" : "Грант"}
                                         </div>
-                                        <div className="text-[22px] font-extrabold text-foreground tabular-nums">{uni.grant}</div>
+                                        <div className="text-[17px] font-extrabold text-foreground tabular-nums">{uni.grant}</div>
                                     </div>
                                     <div className="flex-1 rounded-lg p-2.5 bg-muted">
                                         <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-muted-foreground">
                                             {language === "uz" ? "Mening ball" : "Мой балл"}
                                         </div>
-                                        <div className="text-[22px] font-extrabold text-foreground tabular-nums">{totalCorrect}</div>
+                                        <div className="text-[17px] font-extrabold text-foreground tabular-nums">{totalCorrect}</div>
                                     </div>
                                 </div>
                             </div>
