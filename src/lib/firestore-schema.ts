@@ -200,38 +200,6 @@ export interface MockResult {
   total?: number;
 }
 
-export type MockAttemptStatus = "in_progress" | "completed" | "auto_submitted";
-
-/**
- * Попытка прохождения запланированного/прокторируемого мока: mockAttempts/{id}.
- * Один документ на (студент × мок). Отдельно от users/{uid}/mockResults
- * (та осталась для отметки выполнения ДЗ/обратной совместимости).
- */
-export interface MockAttempt {
-  id: string;
-  studentId: string;
-  mockId: string;
-  /** questionId → ответ студента (буква варианта для mc; текст для open); null — без ответа */
-  answers: Record<string, string | null>;
-  status: MockAttemptStatus;
-  startedAt: string;                 // ISO
-  /** Когда студент вышел из полноэкранного режима (последний инцидент); null — не выходил */
-  fullscreenExitAt?: string | null;
-  /** Лёгкий журнал инцидентов проктора (не дисквалифицирующие возвраты в 5 сек) */
-  violations?: { at: string; type: string }[];
-  submittedAt?: string | null;       // ISO
-  // Оценка (пересчитывается при сохранении баллов за эссе)
-  rawScore?: number;                 // число авто-верных ответов
-  weightedScore?: number;            // взвешенные заработанные баллы
-  maxWeightedScore?: number;         // взвешенный максимум
-  percentage?: number;
-  grade?: string;
-  /** questionId → баллы, выставленные админом за открытый вопрос */
-  essayScores?: Record<string, number>;
-  gradedBy?: string | null;          // uid админа
-  gradedAt?: string | null;          // ISO
-}
-
 export interface SubjectRating {
   userId: string;
   subjectId: string;

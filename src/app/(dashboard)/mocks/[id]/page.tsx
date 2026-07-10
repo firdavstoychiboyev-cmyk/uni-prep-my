@@ -1,16 +1,13 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle, Maximize } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
 import { isOpenAnswerCorrect } from "@/lib/open-answer";
-import { mockStartGate, resultsRevealed, computeMockScores } from "@/lib/mock-exam";
-import { startMockAttempt, submitMockAttempt, logMockViolation, fetchMockAttempt } from "@/lib/mock-attempts";
-import { MockAttempt } from "@/lib/firestore-schema";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveMockResult } from "@/lib/homework-utils";
 import { MockResult } from "@/lib/firestore-schema";
@@ -25,9 +22,6 @@ interface MockData {
     language?: string;
     active?: boolean;
     passages?: PassageDoc[];
-    availableFrom?: string | null;
-    availableUntil?: string | null;
-    resultsRevealAt?: string | null;
 }
 
 interface PassageDoc {
@@ -37,10 +31,8 @@ interface PassageDoc {
 }
 
 interface QuestionData {
-    id?: string;
-    difficulty?: string;
-    options?: { a: string; b: string; c: string; d: string };
     text: string;
+    options?: { a: string; b: string; c: string; d: string };
     optionImages?: { a?: string; b?: string; c?: string; d?: string };
     // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
@@ -53,8 +45,6 @@ interface QuestionData {
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
 const TOTAL_TIME = 120 * 60;
-// Seconds a student may stay out of fullscreen before the exam auto-submits.
-const FULLSCREEN_GRACE_SECONDS = 10;
 
 // Открытые вопросы теперь автопроверяются: ответ верен, если совпадает с любым
 // из принимаемых вариантов (isOpenAnswerCorrect). Всё считается в общий счёт.
@@ -96,22 +86,6 @@ export default function MockTestPage() {
     // Сохранённый ранее результат мока — для повторного просмотра разбора
     const [savedResult, setSavedResult] = useState<MockResult | null>(null);
     const [reviewMode, setReviewMode] = useState(false);
-
-    // ── Proctored/scheduled exam state ──────────────────────────────────────
-    const [attempt, setAttempt] = useState<MockAttempt | null>(null);
-    const [autoRemoved, setAutoRemoved] = useState(false);   // removed for leaving fullscreen
-    const [fsCountdown, setFsCountdown] = useState<number | null>(null); // seconds left to return
-    const answersRef = useRef<(string | null)[]>([]);
-    const submittedRef = useRef(false);
-    const violationsRef = useRef<{ at: string; type: string }[]>([]);
-    // Fullscreen + 10s auto-submit run on EVERY mock (user preference).
-    const proctored = true;
-    // Attempt tracking, no-retake, and hidden-results only apply to SCHEDULED
-    // exams (those with a start/end window or a results-reveal time). Casual
-    // mocks stay retakeable and don't create mockAttempts docs.
-    const isScheduledExam = Boolean(mock?.availableFrom || mock?.availableUntil || mock?.resultsRevealAt);
-
-    useEffect(() => { answersRef.current = answers; }, [answers]);
 
     useEffect(() => {
         const load = async () => {
@@ -164,132 +138,6 @@ export default function MockTestPage() {
             .then(snap => { if (snap.exists()) setSavedResult(snap.data() as MockResult); })
             .catch(() => {});
     }, [user, id]);
-
-    // Load the student's proctored attempt (if any) — used to block restart and
-    // gate the results screen for scheduled exams.
-    useEffect(() => {
-        if (!user || !id) return;
-        fetchMockAttempt(id as string, user.id)
-            .then(a => { if (a) { setAttempt(a); violationsRef.current = a.violations ?? []; } })
-            .catch(() => {});
-    }, [user, id]);
-
-    // Finalise the attempt on Firestore (normal or auto submit). Idempotent.
-    // Only scheduled exams persist a mockAttempt; casual mocks are not tracked.
-    const submitAttempt = useCallback(async (status: "completed" | "auto_submitted") => {
-        if (!isScheduledExam || !user || !mock || submittedRef.current) return;
-        submittedRef.current = true;
-        // Embedded mocks may lack question ids → fall back to the index as key.
-        const scorable = questions.map((q, i) => ({ ...q, id: q.id ?? String(i) }));
-        const ansMap: Record<string, string | null> = {};
-        scorable.forEach((q, i) => { ansMap[q.id] = answersRef.current[i] ?? null; });
-        // Open/essay questions are graded later by the admin → essayScores empty here.
-        const scores = computeMockScores(scorable, ansMap, {});
-        try {
-            await submitMockAttempt(id as string, user.id, { answers: ansMap, status, ...scores });
-        } catch (e) {
-            console.error("Error submitting mock attempt:", e);
-        }
-    }, [isScheduledExam, user, mock, questions, id]);
-
-    // Request fullscreen from a user gesture (used on start and the manual button).
-    const enterFullscreen = useCallback(() => {
-        try {
-            const el = document.documentElement;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const req = el.requestFullscreen?.() ?? (el as any).webkitRequestFullscreen?.();
-            if (req && typeof (req as Promise<void>).catch === "function") (req as Promise<void>).catch(() => {});
-        } catch { /* ignore — proctoring still works via visibility */ }
-    }, []);
-
-    // Begin the test: for proctored mocks go fullscreen FIRST (synchronously,
-    // while the click's user-activation is still valid — awaiting anything before
-    // requestFullscreen makes the browser silently block it), then fire the
-    // attempt write without blocking. Finally flip to the test screen.
-    const beginTest = useCallback(() => {
-        if (user) {
-            enterFullscreen(); // synchronous, within the click gesture — every mock
-            if (isScheduledExam) {
-                submittedRef.current = false;
-                startMockAttempt(id as string, user.id).catch((e) => console.error(e));
-            }
-        }
-        setStarted(true);
-    }, [isScheduledExam, user, id, enterFullscreen]);
-
-    // Auto-submit after leaving fullscreen too long.
-    const autoSubmit = useCallback(async () => {
-        setFsCountdown(null);
-        setAutoRemoved(true);
-        await submitAttempt("auto_submitted");
-        setFinished(true);
-        if (typeof document !== "undefined" && document.fullscreenElement) {
-            document.exitFullscreen?.().catch(() => {});
-        }
-    }, [submitAttempt]);
-
-    // Proctoring: watch fullscreen + tab visibility while a proctored test runs.
-    useEffect(() => {
-        if (!started || !proctored || finished || !user) return;
-        let ticking: ReturnType<typeof setInterval> | null = null;
-
-        const startCountdown = () => {
-            if (ticking) return; // already counting
-            // Light, non-disqualifying log for admin awareness (scheduled exams only).
-            if (isScheduledExam) logMockViolation(id as string, user.id, "fullscreen_exit", violationsRef.current)
-                .then(() => { violationsRef.current = [...violationsRef.current, { at: new Date().toISOString(), type: "fullscreen_exit" }]; })
-                .catch(() => {});
-            setFsCountdown(FULLSCREEN_GRACE_SECONDS);
-            ticking = setInterval(() => {
-                setFsCountdown(prev => {
-                    if (prev == null) return null;
-                    if (prev <= 1) {
-                        if (ticking) { clearInterval(ticking); ticking = null; }
-                        void autoSubmit();
-                        return null;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        };
-        const cancelCountdown = () => {
-            if (ticking) { clearInterval(ticking); ticking = null; }
-            setFsCountdown(null);
-        };
-        const onFsChange = () => {
-            if (!document.fullscreenElement) startCountdown();
-            else cancelCountdown();
-        };
-        const onVisibility = () => {
-            if (document.hidden) startCountdown();
-            else if (document.fullscreenElement) cancelCountdown();
-        };
-
-        document.addEventListener("fullscreenchange", onFsChange);
-        document.addEventListener("visibilitychange", onVisibility);
-        // Grace period for the async requestFullscreen() to settle before we
-        // judge the initial state (avoids a false countdown flash on start).
-        const initialTimer = setTimeout(() => {
-            if (!document.fullscreenElement && !document.hidden) startCountdown();
-        }, 2000);
-        return () => {
-            clearTimeout(initialTimer);
-            document.removeEventListener("fullscreenchange", onFsChange);
-            document.removeEventListener("visibilitychange", onVisibility);
-            if (ticking) clearInterval(ticking);
-        };
-    }, [started, proctored, finished, user, id, autoSubmit]);
-
-    // Normal finish (timer/finish button) submits the attempt (scheduled exams
-    // only — submitAttempt no-ops otherwise) and exits fullscreen.
-    useEffect(() => {
-        if (finished && user && !submittedRef.current) {
-            void submitAttempt("completed");
-            if (typeof document !== "undefined" && document.fullscreenElement) {
-                document.exitFullscreen?.().catch(() => {});
-            }
-        }
-    }, [finished, user, submitAttempt]);
 
     const openReview = (saved: MockResult) => {
         if (!saved.answers) return;
@@ -368,73 +216,6 @@ export default function MockTestPage() {
         </div>
     );
 
-    // ── Scheduled-start gating ──────────────────────────────────────────────
-    // Only blocks the START of the intro screen; unscheduled mocks (no window)
-    // return "open" and behave exactly as before. Review of a saved result is
-    // never gated here.
-    const fmtDateTime = (iso?: string | null) =>
-        iso ? new Date(iso).toLocaleString(language === "uz" ? "uz-UZ" : "ru-RU", {
-            day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-        }) : "";
-    const startGate = mockStartGate(mock);
-    if (!started && !reviewMode && startGate !== "open") return (
-        <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
-            <div className={`p-4 rounded-2xl ${startGate === "not_yet" ? "bg-blue-100 dark:bg-blue-950" : "bg-red-100 dark:bg-red-950"}`}>
-                {startGate === "not_yet"
-                    ? <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-                    : <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />}
-            </div>
-            <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
-                {mock.title}
-            </h1>
-            {startGate === "not_yet" ? (
-                <>
-                    <p className="text-lg font-bold text-foreground">{t("mockGate.notStarted")}</p>
-                    {mock.availableFrom && (
-                        <p className="text-muted-foreground">{t("mockGate.startsAt")}: <span className="font-semibold text-foreground">{fmtDateTime(mock.availableFrom)}</span></p>
-                    )}
-                </>
-            ) : (
-                <p className="text-lg font-bold text-red-600 dark:text-red-400">{t("mockGate.finished")}</p>
-            )}
-            <button onClick={() => router.push("/mocks")}
-                className="mt-2 px-8 py-4 rounded-full border border-border text-foreground font-bold hover:bg-muted transition-colors">
-                {language === "uz" ? "Mocklarga qaytish" : "К списку моков"}
-            </button>
-        </div>
-    );
-
-    // ── Results-reveal gating (proctored exams) ─────────────────────────────
-    // Unscheduled mocks (no resultsRevealAt) are always "revealed" → today's
-    // behavior. For a scheduled exam, results stay hidden until the reveal time.
-    const revealed = resultsRevealed(mock);
-    const alreadySubmitted = attempt?.status === "completed" || attempt?.status === "auto_submitted";
-
-    const resultsHeldScreen = (
-        <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
-            <div className={`p-4 rounded-2xl ${autoRemoved ? "bg-red-100 dark:bg-red-950" : "bg-blue-100 dark:bg-blue-950"}`}>
-                {autoRemoved ? <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" /> : <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />}
-            </div>
-            <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>{mock.title}</h1>
-            {autoRemoved && (
-                <p className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-400">
-                    {t("mockGate.removedFullscreen")}
-                </p>
-            )}
-            <p className="text-lg font-bold text-foreground">{t("mockGate.resultsLater")}</p>
-            {mock.resultsRevealAt && (
-                <p className="text-muted-foreground">{t("mockGate.resultsAt")}: <span className="font-semibold text-foreground">{fmtDateTime(mock.resultsRevealAt)}</span></p>
-            )}
-            <button onClick={() => router.push("/mocks")}
-                className="mt-2 px-8 py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
-                {language === "uz" ? "Mocklarga qaytish" : "К списку моков"}
-            </button>
-        </div>
-    );
-
-    // Revisiting a proctored exam already submitted, results not yet revealed.
-    if (isScheduledExam && alreadySubmitted && !revealed && !started && !reviewMode) return resultsHeldScreen;
-
     // ── Intro screen ──────────────────────────────────────────────────────────
 
     if (!started && !reviewMode) return (
@@ -478,24 +259,15 @@ export default function MockTestPage() {
                     {language === "uz" ? "Hali savollar qo'shilmagan" : "Вопросы ещё не добавлены"}
                 </p>
             )}
-            {!(isScheduledExam && alreadySubmitted) && (
-                <button
-                    onClick={beginTest}
-                    disabled={questions.length === 0}
-                    className="mt-2 px-8 py-4 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-40"
-                >
-                    <Play className="w-5 h-5" />
-                    {language === "uz" ? "Boshlash" : "Начать"}
-                </button>
-            )}
-            {!alreadySubmitted && (
-                <p className="text-xs text-muted-foreground max-w-sm">
-                    {language === "uz"
-                        ? `Diqqat: test to‘liq ekran rejimida o‘tadi. To‘liq ekrandan chiqsangiz va ${FULLSCREEN_GRACE_SECONDS} soniyada qaytmasangiz, test avtomatik yakunlanadi.`
-                        : `Внимание: тест проходит в полноэкранном режиме. Если выйти из него и не вернуться за ${FULLSCREEN_GRACE_SECONDS} секунд, тест завершится автоматически.`}
-                </p>
-            )}
-            {revealed && savedResult?.answers && questions.length > 0 && (
+            <button
+                onClick={() => setStarted(true)}
+                disabled={questions.length === 0}
+                className="mt-2 px-8 py-4 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-40"
+            >
+                <Play className="w-5 h-5" />
+                {language === "uz" ? "Boshlash" : "Начать"}
+            </button>
+            {savedResult?.answers && questions.length > 0 && (
                 <button
                     onClick={() => openReview(savedResult)}
                     className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
@@ -509,10 +281,6 @@ export default function MockTestPage() {
     );
 
     // ── Results screen (после завершения и повторный просмотр разбора) ───────
-
-    // Proctored exam just submitted (or auto-removed) but results not revealed:
-    // show the neutral held screen, never the score/review.
-    if ((finished || reviewMode) && isScheduledExam && !revealed) return resultsHeldScreen;
 
     if (finished || reviewMode) {
         const { correct, gradableTotal: total, openCount } = countScore(questions, answers);
@@ -733,28 +501,6 @@ export default function MockTestPage() {
 
     return (
         <>
-            {/* Fullscreen-exit proctoring overlay — return within the countdown or auto-submit */}
-            {fsCountdown !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-950/90 p-6">
-                    <div className="max-w-md w-full rounded-2xl bg-background border-2 border-red-500 p-8 text-center flex flex-col items-center gap-4">
-                        <AlertTriangle className="w-12 h-12 text-red-500" />
-                        <div className="text-6xl font-black text-red-500 tabular-nums" style={{ fontFamily: "var(--font-montserrat)" }}>
-                            {fsCountdown}
-                        </div>
-                        <p className="text-base font-bold text-foreground">
-                            {language === "uz"
-                                ? "To‘liq ekranga qayting, aks holda test avtomatik yakunlanadi"
-                                : "Вернитесь в полноэкранный режим, иначе тест завершится автоматически"}
-                        </p>
-                        <button
-                            onClick={() => { document.documentElement.requestFullscreen?.().catch(() => {}); }}
-                            className="mt-2 px-6 py-3 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
-                        >
-                            {language === "uz" ? "To‘liq ekranga qaytish" : "Вернуться в полноэкранный режим"}
-                        </button>
-                    </div>
-                </div>
-            )}
             <div className="fixed inset-0 z-50 bg-background flex flex-col">
 
                 {/* Top bar */}
@@ -774,19 +520,8 @@ export default function MockTestPage() {
                     >
                         {formatTime(timeLeft)}
                     </div>
-                    <div className="flex items-center gap-3">
-                        {proctored && (
-                            <button
-                                onClick={enterFullscreen}
-                                title={language === "uz" ? "To‘liq ekran" : "Полный экран"}
-                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                            >
-                                <Maximize className="w-4 h-4" />
-                            </button>
-                        )}
-                        <div className="text-sm font-semibold text-muted-foreground">
-                            {idx + 1} / {questions.length}
-                        </div>
+                    <div className="text-sm font-semibold text-muted-foreground">
+                        {idx + 1} / {questions.length}
                     </div>
                 </div>
 

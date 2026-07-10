@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-    collection, getDocs, addDoc, deleteDoc, doc, updateDoc,
+    collection, getDocs, addDoc, deleteDoc, doc,
     query, where, serverTimestamp, writeBatch, setDoc, getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { adminFetchCollection, fetchFilials } from "@/lib/admin-utils";
 import { Subject, Language, MockCode, Filial } from "@/lib/firestore-schema";
-import { Plus, Trash2, ClipboardList, Loader2, Upload, FileSpreadsheet, KeyRound, Copy, Check, CalendarClock, X } from "lucide-react";
+import { Plus, Trash2, ClipboardList, Loader2, Upload, FileSpreadsheet, KeyRound, Copy, Check } from "lucide-react";
 import AdminLanguageToggle from "@/components/admin-language-toggle";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -22,22 +22,7 @@ interface Mock {
     questionCount?: number;
     language?: string;
     active?: boolean;
-    // Scheduled/proctored window — all optional (absent = unscheduled, as today)
-    availableFrom?: string | null;
-    availableUntil?: string | null;
-    resultsRevealAt?: string | null;
 }
-
-/** ISO ↔ <input type="datetime-local"> value (local time, no seconds). */
-const isoToLocalInput = (iso?: string | null): string => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-const localInputToIso = (v: string): string | null =>
-    v ? new Date(v).toISOString() : null;
 
 const EMPTY_FORM = {
     title: "",
@@ -64,56 +49,6 @@ export default function AdminMocksPage() {
     const [mockFileName, setMockFileName] = useState("");
     const [importing, setImporting] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
-
-    // ── Scheduling modal ──────────────────────────────────────────────────────
-    const [scheduleMock, setScheduleMock] = useState<Mock | null>(null);
-    const [schedForm, setSchedForm] = useState({ availableFrom: "", availableUntil: "", resultsRevealAt: "" });
-    const [schedError, setSchedError] = useState("");
-    const [schedSaving, setSchedSaving] = useState(false);
-
-    const openSchedule = (mock: Mock) => {
-        setScheduleMock(mock);
-        setSchedError("");
-        setSchedForm({
-            availableFrom: isoToLocalInput(mock.availableFrom),
-            availableUntil: isoToLocalInput(mock.availableUntil),
-            resultsRevealAt: isoToLocalInput(mock.resultsRevealAt),
-        });
-    };
-
-    const saveSchedule = async () => {
-        if (!scheduleMock) return;
-        const from = localInputToIso(schedForm.availableFrom);
-        const until = localInputToIso(schedForm.availableUntil);
-        const reveal = localInputToIso(schedForm.resultsRevealAt);
-        // Validate sensible ordering (only for the fields that are set)
-        if (from && until && new Date(until) <= new Date(from)) {
-            setSchedError(t("mockSched.errUntilAfterFrom")); return;
-        }
-        if (until && reveal && new Date(reveal) < new Date(until)) {
-            setSchedError(t("mockSched.errRevealAfterUntil")); return;
-        }
-        if (!until && reveal && from && new Date(reveal) < new Date(from)) {
-            setSchedError(t("mockSched.errRevealAfterUntil")); return;
-        }
-        setSchedSaving(true);
-        setSchedError("");
-        try {
-            await updateDoc(doc(db, "mocks", scheduleMock.id), {
-                availableFrom: from,
-                availableUntil: until,
-                resultsRevealAt: reveal,
-            });
-            setMocks(prev => prev.map(m => m.id === scheduleMock.id
-                ? { ...m, availableFrom: from, availableUntil: until, resultsRevealAt: reveal }
-                : m));
-            setScheduleMock(null);
-        } catch (e) {
-            setSchedError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setSchedSaving(false);
-        }
-    };
 
     // ── Mock codes section ────────────────────────────────────────────────────
     const [codesMockId, setCodesMockId] = useState("");
@@ -659,26 +594,13 @@ export default function AdminMocksPage() {
                                             : <span className="text-xs text-red-500 font-semibold">● Nofaol</span>}
                                     </td>
                                     <td className="px-8 py-5 text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <button
-                                                onClick={() => openSchedule(mock)}
-                                                className={`rounded-lg p-2 transition-colors ${
-                                                    mock.availableFrom || mock.availableUntil || mock.resultsRevealAt
-                                                        ? "text-blue-600 hover:bg-blue-500/10"
-                                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                }`}
-                                                title={t("mockSched.schedule")}
-                                            >
-                                                <CalendarClock size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(mock.id)}
-                                                className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
-                                                title={t("common.delete")}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(mock.id)}
+                                            className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                                            title={t("common.delete")}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -686,60 +608,6 @@ export default function AdminMocksPage() {
                     </tbody>
                 </table>
             </section>
-
-            {/* Schedule editor modal */}
-            {scheduleMock && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-                    <div className="bg-background border border-border rounded-2xl p-6 w-full max-w-lg shadow-xl flex flex-col gap-5">
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                                    <CalendarClock size={18} className="text-blue-600" /> {t("mockSched.schedule")}
-                                </h2>
-                                <p className="mt-1 text-sm text-muted-foreground">{scheduleMock.title}</p>
-                            </div>
-                            <button onClick={() => setScheduleMock(null)} className="p-2 rounded-lg text-muted-foreground hover:bg-muted">
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <p className="text-xs text-muted-foreground -mt-2">{t("mockSched.hint")}</p>
-
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("mockSched.availableFrom")}</label>
-                            <input type="datetime-local" value={schedForm.availableFrom}
-                                onChange={e => setSchedForm(f => ({ ...f, availableFrom: e.target.value }))}
-                                className="w-full bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30" />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("mockSched.availableUntil")}</label>
-                            <input type="datetime-local" value={schedForm.availableUntil}
-                                onChange={e => setSchedForm(f => ({ ...f, availableUntil: e.target.value }))}
-                                className="w-full bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30" />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("mockSched.resultsRevealAt")}</label>
-                            <input type="datetime-local" value={schedForm.resultsRevealAt}
-                                onChange={e => setSchedForm(f => ({ ...f, resultsRevealAt: e.target.value }))}
-                                className="w-full bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30" />
-                        </div>
-
-                        {schedError && <p className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3">{schedError}</p>}
-
-                        <div className="flex gap-3 justify-end">
-                            <button onClick={() => setScheduleMock(null)} disabled={schedSaving}
-                                className="px-5 py-2.5 rounded-lg border border-border font-semibold text-sm hover:bg-muted transition-colors text-foreground">
-                                {t("common.cancel")}
-                            </button>
-                            <button onClick={saveSchedule} disabled={schedSaving}
-                                className="px-5 py-2.5 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-2">
-                                {schedSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {t("common.save")}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
