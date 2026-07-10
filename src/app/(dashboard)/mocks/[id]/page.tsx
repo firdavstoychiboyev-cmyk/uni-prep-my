@@ -8,6 +8,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
 import { isOpenAnswerCorrect } from "@/lib/open-answer";
+import { mockStartGate } from "@/lib/mock-exam";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveMockResult } from "@/lib/homework-utils";
 import { MockResult } from "@/lib/firestore-schema";
@@ -22,6 +23,9 @@ interface MockData {
     language?: string;
     active?: boolean;
     passages?: PassageDoc[];
+    availableFrom?: string | null;
+    availableUntil?: string | null;
+    resultsRevealAt?: string | null;
 }
 
 interface PassageDoc {
@@ -213,6 +217,42 @@ export default function MockTestPage() {
     if (!mock) return (
         <div className="p-8 text-muted-foreground">
             {language === "uz" ? "Yuklanmoqda..." : "Загрузка..."}
+        </div>
+    );
+
+    // ── Scheduled-start gating ──────────────────────────────────────────────
+    // Only blocks the START of the intro screen; unscheduled mocks (no window)
+    // return "open" and behave exactly as before. Review of a saved result is
+    // never gated here.
+    const fmtDateTime = (iso?: string | null) =>
+        iso ? new Date(iso).toLocaleString(language === "uz" ? "uz-UZ" : "ru-RU", {
+            day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+        }) : "";
+    const startGate = mockStartGate(mock);
+    if (!started && !reviewMode && startGate !== "open") return (
+        <div className="max-w-2xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-6">
+            <div className={`p-4 rounded-2xl ${startGate === "not_yet" ? "bg-blue-100 dark:bg-blue-950" : "bg-red-100 dark:bg-red-950"}`}>
+                {startGate === "not_yet"
+                    ? <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                    : <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />}
+            </div>
+            <h1 className="text-3xl font-black text-foreground" style={{ fontFamily: "var(--font-montserrat)" }}>
+                {mock.title}
+            </h1>
+            {startGate === "not_yet" ? (
+                <>
+                    <p className="text-lg font-bold text-foreground">{t("mockGate.notStarted")}</p>
+                    {mock.availableFrom && (
+                        <p className="text-muted-foreground">{t("mockGate.startsAt")}: <span className="font-semibold text-foreground">{fmtDateTime(mock.availableFrom)}</span></p>
+                    )}
+                </>
+            ) : (
+                <p className="text-lg font-bold text-red-600 dark:text-red-400">{t("mockGate.finished")}</p>
+            )}
+            <button onClick={() => router.push("/mocks")}
+                className="mt-2 px-8 py-4 rounded-full border border-border text-foreground font-bold hover:bg-muted transition-colors">
+                {language === "uz" ? "Mocklarga qaytish" : "К списку моков"}
+            </button>
         </div>
     );
 
