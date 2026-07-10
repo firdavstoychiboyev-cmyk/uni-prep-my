@@ -53,6 +53,8 @@ interface QuestionData {
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
 const TOTAL_TIME = 120 * 60;
+// Seconds a student may stay out of fullscreen before the exam auto-submits.
+const FULLSCREEN_GRACE_SECONDS = 10;
 
 // Открытые вопросы теперь автопроверяются: ответ верен, если совпадает с любым
 // из принимаемых вариантов (isOpenAnswerCorrect). Всё считается в общий счёт.
@@ -218,7 +220,7 @@ export default function MockTestPage() {
             logMockViolation(id as string, user.id, "fullscreen_exit", violationsRef.current)
                 .then(() => { violationsRef.current = [...violationsRef.current, { at: new Date().toISOString(), type: "fullscreen_exit" }]; })
                 .catch(() => {});
-            setFsCountdown(5);
+            setFsCountdown(FULLSCREEN_GRACE_SECONDS);
             ticking = setInterval(() => {
                 setFsCountdown(prev => {
                     if (prev == null) return null;
@@ -469,8 +471,8 @@ export default function MockTestPage() {
             {proctored && !alreadySubmitted && (
                 <p className="text-xs text-muted-foreground max-w-sm">
                     {language === "uz"
-                        ? "Diqqat: test to‘liq ekran rejimida o‘tadi. To‘liq ekrandan chiqsangiz va 5 soniyada qaytmasangiz, test avtomatik yakunlanadi."
-                        : "Внимание: тест проходит в полноэкранном режиме. Если выйти из него и не вернуться за 5 секунд, тест завершится автоматически."}
+                        ? `Diqqat: test to‘liq ekran rejimida o‘tadi. To‘liq ekrandan chiqsangiz va ${FULLSCREEN_GRACE_SECONDS} soniyada qaytmasangiz, test avtomatik yakunlanadi.`
+                        : `Внимание: тест проходит в полноэкранном режиме. Если выйти из него и не вернуться за ${FULLSCREEN_GRACE_SECONDS} секунд, тест завершится автоматически.`}
                 </p>
             )}
             {revealed && savedResult?.answers && questions.length > 0 && (

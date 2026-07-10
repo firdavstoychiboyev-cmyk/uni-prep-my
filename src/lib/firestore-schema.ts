@@ -143,6 +143,8 @@ export interface Question {
   correctAnswer: string; // "a"|"b"|"c"|"d" for MC; any string for "text"/"open" (mirrors acceptedAnswers[0] for open)
   /** For "open"/"text": every accepted answer. Falls back to [correctAnswer] on read for legacy questions. */
   acceptedAnswers?: string[];
+  /** Explicit point value for scored mock exams. If unset, scoring falls back to the difficulty weight. */
+  points?: number;
   difficulty: "easy" | "medium" | "hard";
   language?: Language; // язык вопроса ('ru' | 'uz'); отсутствие трактуется как 'ru'
   type?: "mc" | "text" | "open"; // defaults to "mc"; "text" = MathQuill answer; "open" = plain-text answer

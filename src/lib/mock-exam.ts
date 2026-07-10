@@ -23,6 +23,15 @@ export const DIFFICULTY_WEIGHTS: Record<"easy" | "medium" | "hard", number> = {
 export const weightForDifficulty = (d?: string): number =>
     DIFFICULTY_WEIGHTS[(d as "easy" | "medium" | "hard")] ?? DIFFICULTY_WEIGHTS.easy;
 
+/**
+ * Point value of a question when scoring a mock exam.
+ * Admin-entered `points` win; otherwise fall back to the difficulty weight.
+ */
+export const questionValue = (q: ScorableQuestion): number => {
+    if (typeof q.points === "number" && !Number.isNaN(q.points) && q.points > 0) return q.points;
+    return weightForDifficulty(q.difficulty);
+};
+
 // ── Grade bands (TUNABLE / PROVISIONAL) ──────────────────────────────────────
 // Percentage → letter grade. Placeholder scheme — will likely be tuned later.
 // Ordered high → low; first band whose `min` the percentage meets wins.
@@ -45,6 +54,7 @@ export interface ScorableQuestion {
     id: string;
     type?: string; // "mc" (default) | "open" | "text"
     difficulty?: string;
+    points?: number; // explicit admin-entered value; overrides difficulty weight
     correctAnswer?: string;
     acceptedAnswers?: string[];
 }
@@ -78,7 +88,7 @@ export const computeMockScores = (
     let maxWeightedScore = 0;
 
     for (const q of questions) {
-        const weight = weightForDifficulty(q.difficulty);
+        const weight = questionValue(q);
         maxWeightedScore += weight;
         const ans = answers[q.id];
 
@@ -120,7 +130,7 @@ export const computeMockScores = (
  */
 export const suggestedEssayScore = (q: ScorableQuestion, answer: string | null): number => {
     if (answer == null) return 0;
-    return isOpenAnswerCorrect(answer, q) ? weightForDifficulty(q.difficulty) : 0;
+    return isOpenAnswerCorrect(answer, q) ? questionValue(q) : 0;
 };
 
 // ── Scheduling helpers ───────────────────────────────────────────────────────

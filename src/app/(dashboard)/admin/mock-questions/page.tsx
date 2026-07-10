@@ -31,6 +31,7 @@ interface QuestionDoc {
     options?: { a?: string; b?: string; c?: string; d?: string };
     correctAnswer: string;
     acceptedAnswers?: string[];
+    points?: number;
     type?: string; // "mc" (default) | "open"
     explanation?: string;
     imageUrl?: string;
@@ -67,6 +68,8 @@ interface Draft {
     optionImages: { a: string; b: string; c: string; d: string };
     /** Passage ID attached to this question, or "" for none */
     passageId: string;
+    /** Explicit point value for scored exams ("" = use difficulty weight) */
+    points: string;
 }
 
 const emptyDraft = (): Draft => ({
@@ -80,6 +83,7 @@ const emptyDraft = (): Draft => ({
     imageUrl: "",
     optionImages: { a: "", b: "", c: "", d: "" },
     passageId: "",
+    points: "",
 });
 
 const draftFromQuestion = (q: QuestionDoc): Draft => ({
@@ -105,6 +109,7 @@ const draftFromQuestion = (q: QuestionDoc): Draft => ({
         d: q.optionImages?.d ?? "",
     },
     passageId: q.passageId ?? "",
+    points: typeof q.points === "number" ? String(q.points) : "",
 });
 
 const stripHtml = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -346,6 +351,9 @@ export default function AdminMockQuestionsPage() {
             const hasOptionImages = Object.values(finalOptionImages).some(Boolean);
             // Open questions: dedup + drop empty accepted answers; correctAnswer mirrors the first.
             const acceptedAnswers = Array.from(new Set(draft.acceptedAnswers.map(a => a.trim()).filter(Boolean)));
+            // Explicit point value for scored exams (blank/invalid → unset, falls back to difficulty weight).
+            const pointsNum = parseFloat(draft.points);
+            const hasPoints = !Number.isNaN(pointsNum) && pointsNum > 0;
 
             if (draft.id) {
                 // Build payload without spreading deleteField() through intermediate objects —
@@ -361,6 +369,7 @@ export default function AdminMockQuestionsPage() {
                     ? finalOptionImages
                     : deleteField();
                 payload.passageId = draft.passageId || deleteField();
+                payload.points = hasPoints ? pointsNum : deleteField();
                 if (draft.type === "open") {
                     payload.correctAnswer = acceptedAnswers[0] ?? "";
                     payload.acceptedAnswers = acceptedAnswers;
@@ -382,6 +391,7 @@ export default function AdminMockQuestionsPage() {
                     ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
                     ...(draft.type === "mc" && hasOptionImages ? { optionImages: finalOptionImages } : {}),
                     ...(draft.passageId ? { passageId: draft.passageId } : {}),
+                    ...(hasPoints ? { points: pointsNum } : {}),
                     ...(draft.type === "open"
                         ? { correctAnswer: acceptedAnswers[0] ?? "", acceptedAnswers }
                         : { correctAnswer: draft.correctKey, options: {
@@ -746,6 +756,19 @@ export default function AdminMockQuestionsPage() {
                                 </button>
                             </div>
                         )}
+
+                        {/* Point value for scored exams */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.pointValue")}</label>
+                            <input
+                                type="number" min={0} step={0.5}
+                                value={draft.points}
+                                onChange={e => setDraft(d => d && { ...d, points: e.target.value })}
+                                placeholder={t("adminMockQ.pointValuePlaceholder")}
+                                className="w-40 bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                            />
+                            <p className="text-xs text-muted-foreground">{t("adminMockQ.pointValueHint")}</p>
+                        </div>
 
                         {/* Explanation */}
                         <div className="flex flex-col gap-2">

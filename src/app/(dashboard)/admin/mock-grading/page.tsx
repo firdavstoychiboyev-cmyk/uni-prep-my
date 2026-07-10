@@ -8,7 +8,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { ClipboardCheck, Loader2, ChevronLeft, Users2, CheckCircle2, XCircle } from "lucide-react";
 import { MockAttempt, User } from "@/lib/firestore-schema";
 import { fetchAttemptsForMock, saveEssayGrades } from "@/lib/mock-attempts";
-import { computeMockScores, weightForDifficulty, suggestedEssayScore, ScorableQuestion } from "@/lib/mock-exam";
+import { computeMockScores, questionValue, suggestedEssayScore, ScorableQuestion } from "@/lib/mock-exam";
 
 const stripHtml = (s: string) => (s ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
@@ -174,7 +174,7 @@ export default function AdminMockGradingPage() {
                 <div className="flex flex-col gap-3">
                     {questions.map((q, i) => {
                         const ans = openAttempt.answers?.[q.id] ?? null;
-                        const weight = weightForDifficulty(q.difficulty);
+                        const weight = questionValue(q);
                         const essay = isEssay(q);
                         const mcCorrect = !essay && ans != null && ans === q.correctAnswer;
                         return (
