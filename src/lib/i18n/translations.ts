@@ -750,6 +750,13 @@ export const translations: Record<Language, Record<string, string>> = {
         "login.feature3": "Графики прогресса и достижения на главной",
 
         // ── Mock codes (вкладка «По коду») ───────────────────────
+        "mockSched.schedule": "Расписание",
+        "mockSched.hint": "Оставьте поля пустыми — мок доступен всегда, а результаты видны сразу (как сейчас).",
+        "mockSched.availableFrom": "Начало (когда можно приступить)",
+        "mockSched.availableUntil": "Окончание (жёсткий дедлайн)",
+        "mockSched.resultsRevealAt": "Публикация результатов",
+        "mockSched.errUntilAfterFrom": "Окончание должно быть позже начала",
+        "mockSched.errRevealAfterUntil": "Публикация результатов должна быть не раньше окончания",
         "mockCodes.tab": "По коду",
         "mockCodes.placeholder": "Введите код (напр. MOCK-AB3C7D)",
         "mockCodes.submit": "Подтвердить",
@@ -1522,6 +1529,13 @@ export const translations: Record<Language, Record<string, string>> = {
         "login.feature2": "Tezkor izohli testlar",
         "login.feature3": "Asosiy sahifada taraqqiyot grafiklari va yutuqlar",
 
+        "mockSched.schedule": "Jadval",
+        "mockSched.hint": "Maydonlarni bo‘sh qoldiring — mock doim ochiq, natijalar darhol ko‘rinadi (hozirgidek).",
+        "mockSched.availableFrom": "Boshlanish (qachondan boshlash mumkin)",
+        "mockSched.availableUntil": "Tugash (qat’iy muddat)",
+        "mockSched.resultsRevealAt": "Natijalar e’lon qilinishi",
+        "mockSched.errUntilAfterFrom": "Tugash vaqti boshlanishdan keyin bo‘lishi kerak",
+        "mockSched.errRevealAfterUntil": "Natijalar e’loni tugashdan oldin bo‘lmasligi kerak",
         // ── Mock codes (Kod orqali tab) ───────────────────────────
         "mockCodes.tab": "Kod orqali",
         "mockCodes.placeholder": "Kodni kiriting (mas. MOCK-AB3C7D)",
