@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    Clock, ChevronLeft, ChevronRight, Zap, Play, Trophy, AlertTriangle, PenLine,
+    Clock, ChevronLeft, ChevronRight, Zap, Play, Trophy, AlertTriangle, PenLine, Maximize,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -20,6 +20,17 @@ import { RushScore } from "@/lib/scoring/rushScoring";
 import { resultsRevealed } from "@/lib/mock-exam";
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
+// Seconds a student may stay out of fullscreen before the exam auto-submits.
+const FULLSCREEN_GRACE_SECONDS = 10;
+
+const enterFullscreen = () => {
+    try {
+        const el = document.documentElement;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const req = el.requestFullscreen?.() ?? (el as any).webkitRequestFullscreen?.();
+        if (req && typeof (req as Promise<void>).catch === "function") (req as Promise<void>).catch(() => {});
+    } catch { /* ignore — proctoring still works via visibility */ }
+};
 
 const fmtClock = (ms: number) => {
     const s = Math.floor(ms / 1000);
@@ -52,6 +63,10 @@ export default function RushTakePage() {
     const [score, setScore] = useState<RushScore | null>(null);
     const [rank, setRank] = useState<{ rank: number; total: number } | null>(null);
     const [weak, setWeak] = useState<RushWeakTopic[]>([]);
+
+    // Fullscreen proctoring
+    const [fsCountdown, setFsCountdown] = useState<number | null>(null);
+    const [autoRemoved, setAutoRemoved] = useState(false);
 
     const answersRef = useRef(answers);
     answersRef.current = answers;
@@ -179,8 +194,44 @@ export default function RushTakePage() {
         return () => clearTimeout(to);
     }, [answers, phase, attempt]);
 
+    // ── Fullscreen proctoring: leave fullscreen/tab too long → auto-submit ────
+    useEffect(() => {
+        if (phase !== "exam") return;
+        let ticking: ReturnType<typeof setInterval> | null = null;
+        const startCountdown = () => {
+            if (ticking) return;
+            setFsCountdown(FULLSCREEN_GRACE_SECONDS);
+            ticking = setInterval(() => {
+                setFsCountdown(prev => {
+                    if (prev == null) return null;
+                    if (prev <= 1) {
+                        if (ticking) { clearInterval(ticking); ticking = null; }
+                        setAutoRemoved(true);
+                        doSubmit(true);
+                        if (typeof document !== "undefined" && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+                        return null;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        };
+        const cancelCountdown = () => { if (ticking) { clearInterval(ticking); ticking = null; } setFsCountdown(null); };
+        const onFsChange = () => { if (!document.fullscreenElement) startCountdown(); else cancelCountdown(); };
+        const onVisibility = () => { if (document.hidden) startCountdown(); else if (document.fullscreenElement) cancelCountdown(); };
+        document.addEventListener("fullscreenchange", onFsChange);
+        document.addEventListener("visibilitychange", onVisibility);
+        const initial = setTimeout(() => { if (!document.fullscreenElement && !document.hidden) startCountdown(); }, 2000);
+        return () => {
+            clearTimeout(initial);
+            document.removeEventListener("fullscreenchange", onFsChange);
+            document.removeEventListener("visibilitychange", onVisibility);
+            if (ticking) clearInterval(ticking);
+        };
+    }, [phase, doSubmit]);
+
     const begin = async () => {
         if (!session || !user) return;
+        enterFullscreen(); // synchronous first — inside the click gesture
         setPhase("loading");
         const att = await getOrCreateRushAttempt(session, user.id);
         setAttempt(att);
@@ -235,6 +286,11 @@ export default function RushTakePage() {
                 <p className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950/30 dark:text-yellow-300">
                     {t("rush.beginNote")}
                 </p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                    {language === "uz"
+                        ? `Diqqat: imtihon to‘liq ekran rejimida o‘tadi. To‘liq ekrandan chiqsangiz va ${FULLSCREEN_GRACE_SECONDS} soniyada qaytmasangiz, imtihon avtomatik yakunlanadi.`
+                        : `Внимание: экзамен проходит в полноэкранном режиме. Если выйти из него и не вернуться за ${FULLSCREEN_GRACE_SECONDS} секунд, экзамен завершится автоматически.`}
+                </p>
                 <button
                     onClick={begin}
                     className="mt-2 inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-4 text-lg font-bold text-background transition-all hover:opacity-90 active:scale-[0.97]"
@@ -257,10 +313,15 @@ export default function RushTakePage() {
                     <Clock className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h1 className="text-2xl font-black text-foreground">{session?.title || subjectName}</h1>
-                {attempt?.autoSubmitted && (
+                {(attempt?.autoSubmitted || autoRemoved) && (
                     <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">
                         {t("rush.autoSubmitted")}
                     </span>
+                )}
+                {autoRemoved && (
+                    <p className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-400">
+                        {t("rush.removedFullscreen")}
+                    </p>
                 )}
                 <p className="text-lg font-bold text-foreground">{t("rush.answersSaved")}</p>
                 {revealStr && (
@@ -280,10 +341,15 @@ export default function RushTakePage() {
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Trophy className="h-12 w-12 text-amber-500" />
                     <h1 className="text-2xl font-black text-foreground">{t("rush.yourResult")}</h1>
-                    {attempt?.autoSubmitted && (
+                    {(attempt?.autoSubmitted || autoRemoved) && (
                         <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">
                             {t("rush.autoSubmitted")}
                         </span>
+                    )}
+                    {autoRemoved && (
+                        <p className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-400">
+                            {t("rush.removedFullscreen")}
+                        </p>
                     )}
                 </div>
 
@@ -349,6 +415,23 @@ export default function RushTakePage() {
 
     return (
         <>
+            {/* Fullscreen-exit proctoring overlay */}
+            {fsCountdown !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-950/90 p-6">
+                    <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border-2 border-red-500 bg-background p-8 text-center">
+                        <AlertTriangle className="h-12 w-12 text-red-500" />
+                        <div className="text-6xl font-black tabular-nums text-red-500">{fsCountdown}</div>
+                        <p className="text-base font-bold text-foreground">
+                            {language === "uz"
+                                ? "To‘liq ekranga qayting, aks holda imtihon avtomatik yakunlanadi"
+                                : "Вернитесь в полноэкранный режим, иначе экзамен завершится автоматически"}
+                        </p>
+                        <button onClick={enterFullscreen} className="mt-2 rounded-full bg-red-600 px-6 py-3 font-bold text-white hover:bg-red-700">
+                            {language === "uz" ? "To‘liq ekranga qaytish" : "Вернуться в полноэкранный режим"}
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="fixed inset-0 z-50 flex flex-col bg-background">
                 {/* Top bar */}
                 <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
@@ -358,7 +441,13 @@ export default function RushTakePage() {
                     <div className="text-xl font-black tabular-nums" style={{ color: remaining < 600000 ? "#ef4444" : undefined }}>
                         {fmtClock(remaining)}
                     </div>
-                    <div className="text-sm font-semibold text-muted-foreground">{idx + 1} / {questions.length}</div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={enterFullscreen} title={language === "uz" ? "To‘liq ekran" : "Полный экран"}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+                            <Maximize className="h-4 w-4" />
+                        </button>
+                        <div className="text-sm font-semibold text-muted-foreground">{idx + 1} / {questions.length}</div>
+                    </div>
                 </div>
 
                 {/* Question */}
