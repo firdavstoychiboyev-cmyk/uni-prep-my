@@ -102,7 +102,9 @@ function MistakeCard({ entry }: { entry: MistakeEntry }) {
                         {t("mock.review.correctAnswer")}
                     </div>
                     <div className="text-sm text-foreground">
-                        <AnswerText entry={entry} value={entry.correctAnswer} />
+                        {entry.type === "open" && entry.acceptedAnswers && entry.acceptedAnswers.length > 1
+                            ? entry.acceptedAnswers.join(" / ")
+                            : <AnswerText entry={entry} value={entry.correctAnswer} />}
                     </div>
                 </div>
             </div>

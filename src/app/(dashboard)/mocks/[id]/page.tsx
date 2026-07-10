@@ -7,6 +7,7 @@ import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenL
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
+import { isOpenAnswerCorrect } from "@/lib/open-answer";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveMockResult } from "@/lib/homework-utils";
 import { MockResult } from "@/lib/firestore-schema";
@@ -35,6 +36,7 @@ interface QuestionData {
     optionImages?: { a?: string; b?: string; c?: string; d?: string };
     // Для type "open" — намунавий (эталонный) ответ для самопроверки
     correctAnswer: string;
+    acceptedAnswers?: string[];
     type?: string; // "mc" (по умолчанию) | "open"
     explanation?: string;
     imageUrl?: string;
@@ -44,11 +46,17 @@ interface QuestionData {
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
 const TOTAL_TIME = 120 * 60;
 
-// Открытые вопросы не автопроверяются и не входят в счёт правильных/неправильных
+// Открытые вопросы теперь автопроверяются: ответ верен, если совпадает с любым
+// из принимаемых вариантов (isOpenAnswerCorrect). Всё считается в общий счёт.
 const countScore = (qs: QuestionData[], ans: (string | null)[]) => {
-    const gradableTotal = qs.filter(q => q.type !== "open").length;
-    const correct = ans.filter((a, i) => qs[i]?.type !== "open" && a === qs[i]?.correctAnswer).length;
-    return { correct, gradableTotal, openCount: qs.length - gradableTotal };
+    const gradableTotal = qs.length;
+    const correct = ans.filter((a, i) => {
+        const q = qs[i];
+        if (!q) return false;
+        if (q.type === "open") return a != null && isOpenAnswerCorrect(a, q);
+        return a === q.correctAnswer;
+    }).length;
+    return { correct, gradableTotal, openCount: 0 };
 };
 
 export default function MockTestPage() {

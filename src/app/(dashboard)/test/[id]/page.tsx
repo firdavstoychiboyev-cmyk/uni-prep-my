@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Question, Topic, Medal } from "@/lib/firestore-schema";
+import { isOpenAnswerCorrect, getAcceptedAnswers } from "@/lib/open-answer";
 import { fetchTopicById, fetchQuestionsByTopic, fetchTopicsByTextbook, fetchTextbooksBySubject, fetchTopicsBySubject } from "@/lib/data-fetching";
 import { useAuthStore } from "@/store/useAuthStore";
 import { invalidateUserCache } from "@/lib/stats-utils";
@@ -269,12 +270,13 @@ export default function TestPage() {
     const handleCheck = useCallback(() => {
         if (!q || !answer.trim() || solvedCorrect !== null || triedWrong.includes(answer)) return;
         setAttempts((v) => v + 1);
-        if (answer === q.correctAnswer) {
+        const correct = (isText || isOpen) ? isOpenAnswerCorrect(answer, q) : answer === q.correctAnswer;
+        if (correct) {
             setSolvedCorrect(answer);
         } else {
             setTriedWrong((prev) => [...prev, answer]);
         }
-    }, [q, answer, solvedCorrect, triedWrong]);
+    }, [q, answer, solvedCorrect, triedWrong, isText, isOpen]);
 
     /* ─ toggle mark ─ */
     const toggleMark = useCallback(() => {
@@ -568,7 +570,7 @@ export default function TestPage() {
         let merged = qStatesRef.current;
         if (answer.trim() && q) {
             const isCorrect = (isText || isOpen)
-                ? answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
+                ? isOpenAnswerCorrect(answer, q)
                 : answer === q.correctAnswer;
             const status: QStatus = isCorrect
                 ? (attempts <= 1 ? "correct-first" : "correct-retry")
@@ -808,16 +810,16 @@ export default function TestPage() {
                                 rows={4}
                                 className={`w-full resize-none rounded-xl border-2 bg-muted px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
                                     checked
-                                        ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
+                                        ? q && isOpenAnswerCorrect(answer, q)
                                             ? "border-emerald-400"
                                             : "border-red-400"
                                         : "border-border focus:border-[hsl(var(--brand-blue))]"
                                 }`}
                             />
-                            {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
+                            {checked && !(q && isOpenAnswerCorrect(answer, q)) && q && (
                                 <div className="rounded-xl p-4 bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-900">
                                     <div className="text-xs font-bold mb-1 text-green-700 dark:text-green-400">{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-foreground">{q?.correctAnswer}</div>
+                                    <div className="text-base font-medium text-foreground">{getAcceptedAnswers(q).join(" / ")}</div>
                                 </div>
                             )}
                         </div>
@@ -829,16 +831,16 @@ export default function TestPage() {
                                 onChange={(v) => { setAnswer(v); setTriedWrong([]); setSolvedCorrect(null); }}
                                 className={`w-full min-h-[120px] ${
                                     checked
-                                        ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
+                                        ? q && isOpenAnswerCorrect(answer, q)
                                             ? "border-emerald-400"
                                             : "border-red-400"
                                         : ""
                                 }`}
                             />
-                            {checked && answer.trim().toLowerCase() !== q?.correctAnswer?.trim().toLowerCase() && (
+                            {checked && !(q && isOpenAnswerCorrect(answer, q)) && q && (
                                 <div className="rounded-xl p-4 bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-900">
                                     <div className="text-xs font-bold mb-1 text-green-700 dark:text-green-400">{t("test.correctAnswerLabel")}</div>
-                                    <div className="text-base font-medium text-foreground">{q?.correctAnswer}</div>
+                                    <div className="text-base font-medium text-foreground">{getAcceptedAnswers(q).join(" / ")}</div>
                                 </div>
                             )}
                         </div>
@@ -988,7 +990,7 @@ export default function TestPage() {
                     {/* Result feedback pill — shown only when current selection has been checked */}
                     {answer && (solvedCorrect === answer || (isText || isOpen ? triedWrong.some(w => w.trim().toLowerCase() === answer.trim().toLowerCase()) : triedWrong.includes(answer))) && (() => {
                         const isCorrect = solvedCorrect === answer || ((isText || isOpen)
-                            ? answer.trim().toLowerCase() === q?.correctAnswer?.trim().toLowerCase()
+                            ? (!!q && isOpenAnswerCorrect(answer, q))
                             : answer === q?.correctAnswer);
                         return (
                             <div className={`mt-4 flex items-center gap-2 px-4 py-3 rounded-xl ${

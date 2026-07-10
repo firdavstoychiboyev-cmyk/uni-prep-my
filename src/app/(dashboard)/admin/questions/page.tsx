@@ -38,6 +38,8 @@ export default function AdminQuestionsPage() {
     const [optionC, setOptionC] = useState("");
     const [optionD, setOptionD] = useState("");
     const [correctAnswer, setCorrectAnswer] = useState<string>("a");
+    // Open questions: list of accepted answers (matches any, case/space-insensitive)
+    const [acceptedAnswers, setAcceptedAnswers] = useState<string[]>([""]);
     const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState("");
@@ -114,6 +116,9 @@ export default function AdminQuestionsPage() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTopic) return;
+        // Open: require at least one non-empty accepted answer
+        const cleanedAccepted = Array.from(new Set(acceptedAnswers.map(a => a.trim()).filter(Boolean)));
+        if (questionType === "open" && cleanedAccepted.length === 0) return;
         setImageUploading(true);
         try {
             // Upload to Uploadcare only on submit
@@ -125,13 +130,16 @@ export default function AdminQuestionsPage() {
             const newQuestion: Record<string, unknown> = {
                 text,
                 topicId: selectedTopic,
-                correctAnswer,
+                // correctAnswer mirrors the first accepted answer for open questions
+                correctAnswer: questionType === "open" ? cleanedAccepted[0] : correctAnswer,
                 difficulty,
                 language: contentLang,
                 type: questionType,
             };
             if (questionType === "mc") {
                 newQuestion.options = { a: optionA, b: optionB, c: optionC, d: optionD };
+            } else {
+                newQuestion.acceptedAnswers = cleanedAccepted;
             }
             if (uploadedUrl) newQuestion.imageUrl = uploadedUrl;
             const created = await adminAddItem("questions", newQuestion);
@@ -145,6 +153,7 @@ export default function AdminQuestionsPage() {
             setOptionC("");
             setOptionD("");
             setCorrectAnswer(questionType === "mc" ? "a" : "");
+            setAcceptedAnswers([""]);
             clearImage();
             setIsAdding(false);
         } catch {
@@ -379,16 +388,35 @@ export default function AdminQuestionsPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.openCorrectAnswer")}</label>
-                                <textarea
-                                    value={correctAnswer}
-                                    onChange={e => setCorrectAnswer(e.target.value)}
-                                    placeholder={t("admin.openAnswerPlaceholder")}
-                                    rows={4}
-                                    required
-                                    className="w-full resize-none bg-muted border border-border rounded-lg p-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
-                                />
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("admin.acceptedAnswers")}</label>
+                                <p className="text-xs text-muted-foreground -mt-1">{t("adminMockQ.acceptedAnswersHint")}</p>
+                                {acceptedAnswers.map((ans, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <input
+                                            value={ans}
+                                            onChange={e => setAcceptedAnswers(prev => prev.map((a, j) => j === i ? e.target.value : a))}
+                                            placeholder={`${t("admin.acceptedAnswers")} ${i + 1}`}
+                                            className="flex-1 bg-muted border border-border rounded-lg p-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                                        />
+                                        {acceptedAnswers.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAcceptedAnswers(prev => prev.filter((_, j) => j !== i))}
+                                                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setAcceptedAnswers(prev => [...prev, ""])}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all w-fit"
+                                >
+                                    <Plus size={14} /> {t("admin.addAcceptedAnswer")}
+                                </button>
                             </div>
                         )}
 

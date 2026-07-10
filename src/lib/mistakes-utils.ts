@@ -22,6 +22,7 @@ export interface MistakeEntry {
     /** Ответ ученика: ключ варианта для mc, текст для open/text; "" если не записан */
     yourAnswer: string;
     correctAnswer: string;
+    acceptedAnswers?: string[];
     explanation?: string;
     /** Дата последней попытки (ISO) — completedAt темы; "" если неизвестна */
     lastAttemptAt: string;
@@ -112,6 +113,7 @@ export const fetchStudentMistakes = async (userId: string): Promise<MistakeEntry
             type: q.type,
             yourAnswer: w.answer,
             correctAnswer: q.correctAnswer,
+            acceptedAnswers: q.acceptedAnswers,
             explanation: q.explanation,
             lastAttemptAt: w.at,
         });

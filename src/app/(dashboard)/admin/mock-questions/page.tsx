@@ -30,6 +30,7 @@ interface QuestionDoc {
     text: string;
     options?: { a?: string; b?: string; c?: string; d?: string };
     correctAnswer: string;
+    acceptedAnswers?: string[];
     type?: string; // "mc" (default) | "open"
     explanation?: string;
     imageUrl?: string;
@@ -57,7 +58,8 @@ interface Draft {
     type: "mc" | "open";
     options: { a: string; b: string; c: string; d: string };
     correctKey: "a" | "b" | "c" | "d";
-    referenceAnswer: string;
+    /** For open questions: list of accepted answers (at least one non-empty to save) */
+    acceptedAnswers: string[];
     explanation: string;
     /** Existing URL from Firestore (empty string = none) */
     imageUrl: string;
@@ -73,7 +75,7 @@ const emptyDraft = (): Draft => ({
     type: "mc",
     options: { a: "", b: "", c: "", d: "" },
     correctKey: "a",
-    referenceAnswer: "",
+    acceptedAnswers: [""],
     explanation: "",
     imageUrl: "",
     optionImages: { a: "", b: "", c: "", d: "" },
@@ -91,7 +93,9 @@ const draftFromQuestion = (q: QuestionDoc): Draft => ({
         d: q.options?.d ?? "",
     },
     correctKey: (OPTION_KEYS as readonly string[]).includes(q.correctAnswer) ? (q.correctAnswer as Draft["correctKey"]) : "a",
-    referenceAnswer: q.type === "open" ? (q.correctAnswer ?? "") : "",
+    acceptedAnswers: q.type === "open"
+        ? (q.acceptedAnswers?.length ? q.acceptedAnswers : q.correctAnswer ? [q.correctAnswer] : [""])
+        : [""],
     explanation: q.explanation ?? "",
     imageUrl: q.imageUrl ?? "",
     optionImages: {
@@ -308,7 +312,7 @@ export default function AdminMockQuestionsPage() {
     const canSave = Boolean(
         draft && draft.text.trim() && (
             draft.type === "open"
-                ? draft.referenceAnswer.trim()
+                ? draft.acceptedAnswers.some(a => a.trim())
                 : OPTION_KEYS.filter(k => draft.options[k].trim()).length >= 2
                   && draft.options[draft.correctKey].trim()
         )
@@ -340,6 +344,8 @@ export default function AdminMockQuestionsPage() {
                 }
             }
             const hasOptionImages = Object.values(finalOptionImages).some(Boolean);
+            // Open questions: dedup + drop empty accepted answers; correctAnswer mirrors the first.
+            const acceptedAnswers = Array.from(new Set(draft.acceptedAnswers.map(a => a.trim()).filter(Boolean)));
 
             if (draft.id) {
                 // Build payload without spreading deleteField() through intermediate objects —
@@ -356,10 +362,12 @@ export default function AdminMockQuestionsPage() {
                     : deleteField();
                 payload.passageId = draft.passageId || deleteField();
                 if (draft.type === "open") {
-                    payload.correctAnswer = draft.referenceAnswer.trim();
+                    payload.correctAnswer = acceptedAnswers[0] ?? "";
+                    payload.acceptedAnswers = acceptedAnswers;
                     payload.options = deleteField();
                 } else {
                     payload.correctAnswer = draft.correctKey;
+                    payload.acceptedAnswers = deleteField();
                     payload.options = {
                         a: draft.options.a.trim(), b: draft.options.b.trim(),
                         c: draft.options.c.trim(), d: draft.options.d.trim(),
@@ -375,7 +383,7 @@ export default function AdminMockQuestionsPage() {
                     ...(draft.type === "mc" && hasOptionImages ? { optionImages: finalOptionImages } : {}),
                     ...(draft.passageId ? { passageId: draft.passageId } : {}),
                     ...(draft.type === "open"
-                        ? { correctAnswer: draft.referenceAnswer.trim() }
+                        ? { correctAnswer: acceptedAnswers[0] ?? "", acceptedAnswers }
                         : { correctAnswer: draft.correctKey, options: {
                             a: draft.options.a.trim(), b: draft.options.b.trim(),
                             c: draft.options.c.trim(), d: draft.options.d.trim(),
@@ -703,13 +711,39 @@ export default function AdminMockQuestionsPage() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.referenceAnswer")}</label>
-                                <textarea
-                                    value={draft.referenceAnswer}
-                                    onChange={e => setDraft(d => d && { ...d, referenceAnswer: e.target.value })}
-                                    rows={2}
-                                    className="w-full bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 resize-y"
-                                />
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("adminMockQ.acceptedAnswers")}</label>
+                                <p className="text-xs text-muted-foreground -mt-1">{t("adminMockQ.acceptedAnswersHint")}</p>
+                                {draft.acceptedAnswers.map((ans, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <input
+                                            value={ans}
+                                            onChange={e => setDraft(d => {
+                                                if (!d) return d;
+                                                const acceptedAnswers = [...d.acceptedAnswers];
+                                                acceptedAnswers[i] = e.target.value;
+                                                return { ...d, acceptedAnswers };
+                                            })}
+                                            placeholder={`${t("adminMockQ.acceptedAnswers")} ${i + 1}`}
+                                            className="flex-1 bg-muted border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/30"
+                                        />
+                                        {draft.acceptedAnswers.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDraft(d => d && { ...d, acceptedAnswers: d.acceptedAnswers.filter((_, j) => j !== i) })}
+                                                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setDraft(d => d && { ...d, acceptedAnswers: [...d.acceptedAnswers, ""] })}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all w-fit"
+                                >
+                                    <Plus size={14} /> {t("adminMockQ.addAcceptedAnswer")}
+                                </button>
                             </div>
                         )}
 

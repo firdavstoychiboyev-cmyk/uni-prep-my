@@ -445,6 +445,9 @@ export const translations: Record<Language, Record<string, string>> = {
         "adminMockQ.options": "Варианты ответа",
         "adminMockQ.correctMark": "Верный",
         "adminMockQ.referenceAnswer": "Образец ответа (для самопроверки ученика)",
+        "adminMockQ.acceptedAnswers": "Принимаемые ответы",
+        "adminMockQ.acceptedAnswersHint": "Ответ засчитывается, если совпадает с любым из вариантов (регистр и пробелы не важны).",
+        "adminMockQ.addAcceptedAnswer": "Добавить ещё ответ",
         "adminMockQ.explanationField": "Объяснение (необязательно)",
         "adminMockQ.statusBroken": "Нет вариантов",
         "adminMockQ.statusNoAnswer": "Нет образца ответа",
@@ -732,6 +735,8 @@ export const translations: Record<Language, Record<string, string>> = {
         "admin.typeMC": "Множественный выбор",
         "admin.typeOpen": "Открытый ответ",
         "admin.openCorrectAnswer": "Правильный ответ (текст)",
+        "admin.acceptedAnswers": "Принимаемые ответы",
+        "admin.addAcceptedAnswer": "Добавить ещё ответ",
         "admin.openAnswerPlaceholder": "Введите правильный ответ…",
 
         // ── Login ────────────────────────────────────────────────
@@ -1213,6 +1218,9 @@ export const translations: Record<Language, Record<string, string>> = {
         "adminMockQ.options": "Javob variantlari",
         "adminMockQ.correctMark": "To‘g‘ri",
         "adminMockQ.referenceAnswer": "Namunaviy javob (o‘quvchi o‘zini tekshirishi uchun)",
+        "adminMockQ.acceptedAnswers": "Qabul qilinadigan javoblar",
+        "adminMockQ.acceptedAnswersHint": "Javob variantlardan biriga mos kelsa, to‘g‘ri hisoblanadi (katta-kichik harf va bo‘shliqlar muhim emas).",
+        "adminMockQ.addAcceptedAnswer": "Yana bir javob qo‘shish",
         "adminMockQ.explanationField": "Tushuntirish (ixtiyoriy)",
         "adminMockQ.statusBroken": "Variantlar yo‘q",
         "adminMockQ.statusNoAnswer": "Namunaviy javob yo‘q",
@@ -1500,6 +1508,8 @@ export const translations: Record<Language, Record<string, string>> = {
         "admin.typeMC": "Ko'p tanlov",
         "admin.typeOpen": "Ochiq javob",
         "admin.openCorrectAnswer": "To'g'ri javob (matn)",
+        "admin.acceptedAnswers": "Qabul qilinadigan javoblar",
+        "admin.addAcceptedAnswer": "Yana bir javob qo‘shish",
         "admin.openAnswerPlaceholder": "To'g'ri javobni kiriting…",
 
         // ── Login ────────────────────────────────────────────────
