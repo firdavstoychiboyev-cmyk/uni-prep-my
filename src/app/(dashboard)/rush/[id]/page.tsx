@@ -17,6 +17,7 @@ import {
 } from "@/lib/rush-utils";
 import { RushSession, RushAttempt, Subject } from "@/lib/firestore-schema";
 import { RushScore } from "@/lib/scoring/rushScoring";
+import { resultsRevealed } from "@/lib/mock-exam";
 
 const OPTION_KEYS = ["a", "b", "c", "d"] as const;
 
@@ -28,7 +29,7 @@ const fmtClock = (ms: number) => {
     return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 };
 
-type Phase = "loading" | "intro" | "locked" | "exam" | "results";
+type Phase = "loading" | "intro" | "locked" | "exam" | "results" | "held";
 
 export default function RushTakePage() {
     const { id } = useParams();
@@ -78,8 +79,13 @@ export default function RushTakePage() {
             if (att?.submittedAt) {
                 setAttempt(att);
                 setAnswers(att.answers ?? qs.map(() => null));
-                await loadResults(s, qs, att);
-                setPhase("results");
+                // Gate: if a reveal time is set and hasn't passed, hold results.
+                if (!resultsRevealed(s)) {
+                    setPhase("held");
+                } else {
+                    await loadResults(s, qs, att);
+                    setPhase("results");
+                }
             } else if (att) {
                 setAttempt(att);
                 setAnswers(att.answers ?? qs.map(() => null));
@@ -136,9 +142,14 @@ export default function RushTakePage() {
             const result = await submitRushAttempt(attempt, questions, answersRef.current, auto);
             const updated = { ...attempt, ...result, answers: answersRef.current, submittedAt: new Date().toISOString(), autoSubmitted: auto } as RushAttempt;
             setAttempt(updated);
-            await loadResults(session, questions, updated);
-            setScore(result);
-            setPhase("results");
+            // Gate: hold results until the session's reveal time passes.
+            if (!resultsRevealed(session)) {
+                setPhase("held");
+            } else {
+                await loadResults(session, questions, updated);
+                setScore(result);
+                setPhase("results");
+            }
         } catch (e) {
             console.error("Rush submit failed:", e);
             submittedRef.current = false;
@@ -229,6 +240,34 @@ export default function RushTakePage() {
                     className="mt-2 inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-4 text-lg font-bold text-background transition-all hover:opacity-90 active:scale-[0.97]"
                 >
                     <Play className="h-5 w-5" /> {t("rush.begin")}
+                </button>
+            </div>
+        );
+    }
+
+    if (phase === "held") {
+        const revealStr = session?.resultsRevealAt
+            ? new Date(session.resultsRevealAt).toLocaleString(language === "uz" ? "uz-UZ" : "ru-RU", {
+                day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+            })
+            : "";
+        return (
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-6 py-16 text-center">
+                <div className="rounded-2xl bg-blue-100 p-4 dark:bg-blue-950/40">
+                    <Clock className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h1 className="text-2xl font-black text-foreground">{session?.title || subjectName}</h1>
+                {attempt?.autoSubmitted && (
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                        {t("rush.autoSubmitted")}
+                    </span>
+                )}
+                <p className="text-lg font-bold text-foreground">{t("rush.answersSaved")}</p>
+                {revealStr && (
+                    <p className="text-muted-foreground">{t("rush.resultsAt")}: <span className="font-semibold text-foreground">{revealStr}</span></p>
+                )}
+                <button onClick={() => router.push("/rush")} className="mt-2 rounded-full bg-foreground px-8 py-3 font-bold text-background hover:opacity-90">
+                    {t("rush.backToRush")}
                 </button>
             </div>
         );

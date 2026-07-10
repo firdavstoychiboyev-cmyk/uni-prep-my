@@ -22,6 +22,7 @@ export default function RushScheduler({ classId, user }: { classId: string; user
     const [mockId, setMockId] = useState("");
     const [scheduledFor, setScheduledFor] = useState("");
     const [windowEnd, setWindowEnd] = useState("");
+    const [resultsRevealAt, setResultsRevealAt] = useState("");
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState("");
     const [planned, setPlanned] = useState<RushSession[] | null>(null);
@@ -70,13 +71,14 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                 groupId: classId,
                 scheduledFor: new Date(scheduledFor).toISOString(),
                 windowEnd: windowEnd ? new Date(windowEnd).toISOString() : undefined,
+                resultsRevealAt: resultsRevealAt ? new Date(resultsRevealAt).toISOString() : undefined,
                 createdBy: user.id,
                 creatorRole: isAnyAdmin(user) ? "admin" : "teacher",
                 language: (user.language ?? "ru") as Language,
                 title: subjects.find((s) => s.id === subjectId)?.name,
             });
             setMsg(t("rush.scheduledOk"));
-            setSubjectId(""); setMockId(""); setScheduledFor(""); setWindowEnd("");
+            setSubjectId(""); setMockId(""); setScheduledFor(""); setWindowEnd(""); setResultsRevealAt("");
             loadPlanned();
         } catch (e) {
             console.error(e);
@@ -120,6 +122,12 @@ export default function RushScheduler({ classId, user }: { classId: string; user
                         {t("rush.windowEnd")}
                         <input type="datetime-local" value={windowEnd} onChange={(e) => setWindowEnd(e.target.value)}
                             className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm font-normal normal-case text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:col-span-2">
+                        {t("rush.resultsRevealAt")}
+                        <input type="datetime-local" value={resultsRevealAt} onChange={(e) => setResultsRevealAt(e.target.value)}
+                            className="h-12 rounded-xl border border-border bg-background px-3.5 text-sm font-normal normal-case text-foreground focus:outline-none focus:ring-2 focus:ring-ring/25" />
+                        <span className="text-[11px] font-normal normal-case text-muted-foreground">{t("rush.resultsRevealHint")}</span>
                     </label>
                 </div>
                 {mockIsEmpty && <p className="mt-3 text-sm font-medium text-red-500">{t("rush.mockEmpty")}</p>}

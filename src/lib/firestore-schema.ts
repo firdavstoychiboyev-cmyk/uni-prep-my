@@ -343,6 +343,8 @@ export interface RushSession {
   groupId?: string;             // classes/{id}
   scheduledFor?: string;        // ISO — когда сессия открывается
   windowEnd?: string;           // ISO — до когда можно начать
+  /** ISO — когда результаты становятся видны ученику. Пусто/нет — мгновенно (как раньше). */
+  resultsRevealAt?: string | null;
 }
 
 /** Попытка ученика по сессии: rushAttempts/{id}. */

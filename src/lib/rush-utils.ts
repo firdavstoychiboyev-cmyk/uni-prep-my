@@ -144,6 +144,7 @@ export const scheduleGroupRush = async (params: {
     groupId: string;
     scheduledFor: string;    // ISO
     windowEnd?: string;      // ISO
+    resultsRevealAt?: string; // ISO — when results become visible; omit = instant
     createdBy: string;
     creatorRole: "teacher" | "admin";
     language: Language;
@@ -161,6 +162,7 @@ export const scheduleGroupRush = async (params: {
         groupId: params.groupId,
         scheduledFor: params.scheduledFor,
         windowEnd: params.windowEnd ?? null,
+        resultsRevealAt: params.resultsRevealAt ?? null,
         language: params.language,
         title: params.title ?? null,
         createdAt: new Date().toISOString(),
