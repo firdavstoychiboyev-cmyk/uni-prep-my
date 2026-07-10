@@ -104,8 +104,12 @@ export default function MockTestPage() {
     const answersRef = useRef<(string | null)[]>([]);
     const submittedRef = useRef(false);
     const violationsRef = useRef<{ at: string; type: string }[]>([]);
-    // A mock is "proctored" once it has a start/end window.
-    const proctored = Boolean(mock?.availableFrom || mock?.availableUntil);
+    // Fullscreen + 10s auto-submit run on EVERY mock (user preference).
+    const proctored = true;
+    // Attempt tracking, no-retake, and hidden-results only apply to SCHEDULED
+    // exams (those with a start/end window or a results-reveal time). Casual
+    // mocks stay retakeable and don't create mockAttempts docs.
+    const isScheduledExam = Boolean(mock?.availableFrom || mock?.availableUntil || mock?.resultsRevealAt);
 
     useEffect(() => { answersRef.current = answers; }, [answers]);
 
@@ -171,8 +175,9 @@ export default function MockTestPage() {
     }, [user, id]);
 
     // Finalise the attempt on Firestore (normal or auto submit). Idempotent.
+    // Only scheduled exams persist a mockAttempt; casual mocks are not tracked.
     const submitAttempt = useCallback(async (status: "completed" | "auto_submitted") => {
-        if (!user || !mock || submittedRef.current) return;
+        if (!isScheduledExam || !user || !mock || submittedRef.current) return;
         submittedRef.current = true;
         // Embedded mocks may lack question ids → fall back to the index as key.
         const scorable = questions.map((q, i) => ({ ...q, id: q.id ?? String(i) }));
@@ -185,7 +190,7 @@ export default function MockTestPage() {
         } catch (e) {
             console.error("Error submitting mock attempt:", e);
         }
-    }, [user, mock, questions, id]);
+    }, [isScheduledExam, user, mock, questions, id]);
 
     // Request fullscreen from a user gesture (used on start and the manual button).
     const enterFullscreen = useCallback(() => {
@@ -202,13 +207,15 @@ export default function MockTestPage() {
     // requestFullscreen makes the browser silently block it), then fire the
     // attempt write without blocking. Finally flip to the test screen.
     const beginTest = useCallback(() => {
-        if (proctored && user) {
-            submittedRef.current = false;
-            enterFullscreen(); // synchronous, within the click gesture
-            startMockAttempt(id as string, user.id).catch((e) => console.error(e));
+        if (user) {
+            enterFullscreen(); // synchronous, within the click gesture — every mock
+            if (isScheduledExam) {
+                submittedRef.current = false;
+                startMockAttempt(id as string, user.id).catch((e) => console.error(e));
+            }
         }
         setStarted(true);
-    }, [proctored, user, id, enterFullscreen]);
+    }, [isScheduledExam, user, id, enterFullscreen]);
 
     // Auto-submit after leaving fullscreen too long.
     const autoSubmit = useCallback(async () => {
@@ -228,8 +235,8 @@ export default function MockTestPage() {
 
         const startCountdown = () => {
             if (ticking) return; // already counting
-            // Light, non-disqualifying log for admin awareness.
-            logMockViolation(id as string, user.id, "fullscreen_exit", violationsRef.current)
+            // Light, non-disqualifying log for admin awareness (scheduled exams only).
+            if (isScheduledExam) logMockViolation(id as string, user.id, "fullscreen_exit", violationsRef.current)
                 .then(() => { violationsRef.current = [...violationsRef.current, { at: new Date().toISOString(), type: "fullscreen_exit" }]; })
                 .catch(() => {});
             setFsCountdown(FULLSCREEN_GRACE_SECONDS);
@@ -273,15 +280,16 @@ export default function MockTestPage() {
         };
     }, [started, proctored, finished, user, id, autoSubmit]);
 
-    // Normal finish (timer/finish button) also submits the proctored attempt.
+    // Normal finish (timer/finish button) submits the attempt (scheduled exams
+    // only — submitAttempt no-ops otherwise) and exits fullscreen.
     useEffect(() => {
-        if (finished && proctored && user && !submittedRef.current) {
+        if (finished && user && !submittedRef.current) {
             void submitAttempt("completed");
             if (typeof document !== "undefined" && document.fullscreenElement) {
                 document.exitFullscreen?.().catch(() => {});
             }
         }
-    }, [finished, proctored, user, submitAttempt]);
+    }, [finished, user, submitAttempt]);
 
     const openReview = (saved: MockResult) => {
         if (!saved.answers) return;
@@ -425,7 +433,7 @@ export default function MockTestPage() {
     );
 
     // Revisiting a proctored exam already submitted, results not yet revealed.
-    if (proctored && alreadySubmitted && !revealed && !started && !reviewMode) return resultsHeldScreen;
+    if (isScheduledExam && alreadySubmitted && !revealed && !started && !reviewMode) return resultsHeldScreen;
 
     // ── Intro screen ──────────────────────────────────────────────────────────
 
@@ -470,7 +478,7 @@ export default function MockTestPage() {
                     {language === "uz" ? "Hali savollar qo'shilmagan" : "Вопросы ещё не добавлены"}
                 </p>
             )}
-            {!(proctored && alreadySubmitted) && (
+            {!(isScheduledExam && alreadySubmitted) && (
                 <button
                     onClick={beginTest}
                     disabled={questions.length === 0}
@@ -480,7 +488,7 @@ export default function MockTestPage() {
                     {language === "uz" ? "Boshlash" : "Начать"}
                 </button>
             )}
-            {proctored && !alreadySubmitted && (
+            {!alreadySubmitted && (
                 <p className="text-xs text-muted-foreground max-w-sm">
                     {language === "uz"
                         ? `Diqqat: test to‘liq ekran rejimida o‘tadi. To‘liq ekrandan chiqsangiz va ${FULLSCREEN_GRACE_SECONDS} soniyada qaytmasangiz, test avtomatik yakunlanadi.`
@@ -504,7 +512,7 @@ export default function MockTestPage() {
 
     // Proctored exam just submitted (or auto-removed) but results not revealed:
     // show the neutral held screen, never the score/review.
-    if ((finished || reviewMode) && proctored && !revealed) return resultsHeldScreen;
+    if ((finished || reviewMode) && isScheduledExam && !revealed) return resultsHeldScreen;
 
     if (finished || reviewMode) {
         const { correct, gradableTotal: total, openCount } = countScore(questions, answers);
