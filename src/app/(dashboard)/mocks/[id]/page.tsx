@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle } from "lucide-react";
+import { Clock, Play, ChevronLeft, ChevronRight, ClipboardList, X, History, PenLine, AlertTriangle, Maximize } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MathText from "@/components/MathText";
 import MockReview from "@/components/mock-review";
@@ -187,16 +187,28 @@ export default function MockTestPage() {
         }
     }, [user, mock, questions, id]);
 
-    // Begin the test: for proctored mocks create the attempt + go fullscreen
-    // (must run inside the click gesture). Then flip to the test screen.
-    const beginTest = useCallback(async () => {
+    // Request fullscreen from a user gesture (used on start and the manual button).
+    const enterFullscreen = useCallback(() => {
+        try {
+            const el = document.documentElement;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const req = el.requestFullscreen?.() ?? (el as any).webkitRequestFullscreen?.();
+            if (req && typeof (req as Promise<void>).catch === "function") (req as Promise<void>).catch(() => {});
+        } catch { /* ignore — proctoring still works via visibility */ }
+    }, []);
+
+    // Begin the test: for proctored mocks go fullscreen FIRST (synchronously,
+    // while the click's user-activation is still valid — awaiting anything before
+    // requestFullscreen makes the browser silently block it), then fire the
+    // attempt write without blocking. Finally flip to the test screen.
+    const beginTest = useCallback(() => {
         if (proctored && user) {
             submittedRef.current = false;
-            try { await startMockAttempt(id as string, user.id); } catch (e) { console.error(e); }
-            try { await document.documentElement.requestFullscreen?.(); } catch { /* denied — proctoring still enforces via visibility */ }
+            enterFullscreen(); // synchronous, within the click gesture
+            startMockAttempt(id as string, user.id).catch((e) => console.error(e));
         }
         setStarted(true);
-    }, [proctored, user, id]);
+    }, [proctored, user, id, enterFullscreen]);
 
     // Auto-submit after leaving fullscreen too long.
     const autoSubmit = useCallback(async () => {
@@ -460,7 +472,7 @@ export default function MockTestPage() {
             )}
             {!(proctored && alreadySubmitted) && (
                 <button
-                    onClick={() => void beginTest()}
+                    onClick={beginTest}
                     disabled={questions.length === 0}
                     className="mt-2 px-8 py-4 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-40"
                 >
@@ -754,8 +766,19 @@ export default function MockTestPage() {
                     >
                         {formatTime(timeLeft)}
                     </div>
-                    <div className="text-sm font-semibold text-muted-foreground">
-                        {idx + 1} / {questions.length}
+                    <div className="flex items-center gap-3">
+                        {proctored && (
+                            <button
+                                onClick={enterFullscreen}
+                                title={language === "uz" ? "To‘liq ekran" : "Полный экран"}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                                <Maximize className="w-4 h-4" />
+                            </button>
+                        )}
+                        <div className="text-sm font-semibold text-muted-foreground">
+                            {idx + 1} / {questions.length}
+                        </div>
                     </div>
                 </div>
 
