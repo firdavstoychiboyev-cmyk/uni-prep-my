@@ -10,6 +10,7 @@ import { Play, BarChart2, GraduationCap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import HomeworkSection from "@/components/homework-section";
 import ClassLeaderboardSection from "@/components/class-leaderboard-section";
+import SubjectFailures from "@/components/subject-failures";
 
 // logo → static asset under /public/university-logos/. Filenames are the
 // originals supplied per university (spaces removed to avoid URL encoding).
@@ -214,6 +215,9 @@ export default function HomePage() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Weak topics (mavzular) — same ranked list as /statistics ── */}
+            {user && <SubjectFailures userId={user.id} />}
 
             {/* ── Daily quote ── */}
             <div className="rounded-xl p-6 bg-card border border-border">
