@@ -6,27 +6,30 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { getSubjectTheme } from "@/lib/subject-theme";
 import { ILLUSTRATIONS, BADGE_VIEWBOX, IllustrationKey } from "@/components/subject-illustrations";
 import {
-    SubjectFailure,
-    fetchSubjectFailures,
-    fetchClassSubjectFailures,
+    TopicFailure,
+    fetchTopicFailures,
+    fetchClassTopicFailures,
 } from "@/lib/subject-failures-utils";
 
-interface MergedRow {
+/** Сколько худших тем показывать в списке — иначе он может растянуться на десятки строк. */
+const MAX_ROWS = 8;
+
+interface Row {
     key: string;
     illustration: IllustrationKey;
     gradFrom: string;
     gradTo: string;
-    name: string;
+    topicTitle: string;
+    subjectName: string;
     wrong: number;
     total: number;
     wrongPct: number;
 }
 
 /**
- * Рейтинг предметов по числу ошибок — худший сверху, горизонтальные полосы.
- * Строки схлопываются по ЯЗЫКОНЕЗАВИСИМОМУ ключу предмета (subject-theme.key),
- * поэтому English не двоится на «Английский» + «Ingliz tili» — суммируется в
- * одну строку с именем под текущий UI-язык и своей иллюстрацией.
+ * Рейтинг ТЕМ (mavzu) по числу ошибок — худшая сверху, горизонтальные полосы.
+ * В отличие от предметов, темы уже уникальны по topicId в userProgress,
+ * поэтому строки не нужно схлопывать — только раскрасить иконкой предмета.
  */
 export default function SubjectFailures({
     userId,
@@ -35,8 +38,8 @@ export default function SubjectFailures({
     userId?: string;
     studentIds?: string[];
 }) {
-    const { t, language } = useTranslation();
-    const [rows, setRows] = useState<SubjectFailure[] | null>(null);
+    const { t } = useTranslation();
+    const [rows, setRows] = useState<TopicFailure[] | null>(null);
 
     const idsKey = studentIds ? studentIds.join(",") : "";
 
@@ -44,45 +47,35 @@ export default function SubjectFailures({
         let cancelled = false;
         setRows(null);
         const run = userId
-            ? fetchSubjectFailures(userId)
+            ? fetchTopicFailures(userId)
             : studentIds
-            ? fetchClassSubjectFailures(studentIds)
+            ? fetchClassTopicFailures(studentIds)
             : Promise.resolve([]);
         run
             .then((data) => { if (!cancelled) setRows(data); })
-            .catch((e) => { console.error("Error loading subject failures:", e); if (!cancelled) setRows([]); });
+            .catch((e) => { console.error("Error loading topic failures:", e); if (!cancelled) setRows([]); });
         return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, idsKey]);
 
-    // Слияние дублей одного предмета по разным языковым документам
-    const merged = useMemo<MergedRow[]>(() => {
+    // Уже отсортировано худшими сверху — берём иконку/цвет предмета темы и обрезаем список
+    const merged = useMemo<Row[]>(() => {
         if (!rows) return [];
-        const map = new Map<string, MergedRow & { hasLangName: boolean }>();
-        for (const r of rows) {
+        return rows.slice(0, MAX_ROWS).map((r) => {
             const theme = getSubjectTheme(r.subjectName, r.subjectId);
-            // известный предмет → общий ключ; неизвестный → по id (не сливать чужие)
-            const groupKey = theme.key === "default" ? `id:${r.subjectId}` : theme.key;
-            const cur = map.get(groupKey);
-            const isLangName = (r.subjectLanguage ?? "ru") === language;
-            if (!cur) {
-                map.set(groupKey, {
-                    key: groupKey, illustration: theme.illustration,
-                    gradFrom: theme.gradFrom, gradTo: theme.gradTo,
-                    name: r.subjectName, wrong: r.wrong, total: r.total, wrongPct: 0,
-                    hasLangName: isLangName,
-                });
-            } else {
-                cur.wrong += r.wrong;
-                cur.total += r.total;
-                // предпочитаем имя предмета на текущем языке интерфейса
-                if (!cur.hasLangName && isLangName) { cur.name = r.subjectName; cur.hasLangName = true; }
-            }
-        }
-        return Array.from(map.values())
-            .map((v) => ({ ...v, wrongPct: v.total > 0 ? Math.round((v.wrong / v.total) * 100) : 0 }))
-            .sort((a, b) => b.wrong - a.wrong || b.wrongPct - a.wrongPct || a.name.localeCompare(b.name));
-    }, [rows, language]);
+            return {
+                key: r.topicId,
+                illustration: theme.illustration,
+                gradFrom: theme.gradFrom,
+                gradTo: theme.gradTo,
+                topicTitle: r.topicTitle,
+                subjectName: r.subjectName,
+                wrong: r.wrong,
+                total: r.total,
+                wrongPct: r.wrongPct,
+            };
+        });
+    }, [rows]);
 
     const maxWrong = merged.length > 0 ? merged[0].wrong : 0;
 
@@ -90,9 +83,9 @@ export default function SubjectFailures({
         <section className="rounded-2xl p-5 sm:p-6 bg-card border border-border">
             <div className="mb-1 flex items-center gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500" strokeWidth={2} />
-                <h2 className="text-[15px] font-bold text-foreground">{t("stats.weakSubjects")}</h2>
+                <h2 className="text-[15px] font-bold text-foreground">{t("stats.weakTopics")}</h2>
             </div>
-            <p className="mb-5 text-[12px] text-muted-foreground">{t("stats.weakSubjectsHint")}</p>
+            <p className="mb-5 text-[12px] text-muted-foreground">{t("stats.weakTopicsHint")}</p>
 
             {rows === null ? (
                 <div className="flex flex-col gap-3">
@@ -102,7 +95,7 @@ export default function SubjectFailures({
                 </div>
             ) : merged.length === 0 ? (
                 <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" /> {t("stats.noWrongYet")}
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" /> {t("stats.noWrongTopicsYet")}
                 </p>
             ) : (
                 <ul className="flex flex-col gap-4">
@@ -122,8 +115,11 @@ export default function SubjectFailures({
                                         >
                                             <Illustration viewBox={BADGE_VIEWBOX[row.illustration]} width={22} height={22} preserveAspectRatio="xMidYMid slice" />
                                         </span>
-                                        <span className="truncate text-sm font-semibold text-foreground">
-                                            {row.name}
+                                        <span className="min-w-0 truncate">
+                                            <span className="text-sm font-semibold text-foreground">{row.topicTitle}</span>
+                                            {row.subjectName && (
+                                                <span className="ml-1.5 text-[11px] font-medium text-muted-foreground">· {row.subjectName}</span>
+                                            )}
                                         </span>
                                     </div>
                                     <div className="flex shrink-0 items-baseline gap-2">
