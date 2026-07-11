@@ -3,24 +3,25 @@ import { db } from "./firebase";
 import { fetchTopicById, fetchTextbookById, fetchSubjectById } from "./data-fetching";
 
 /**
- * Ошибки по предмету — сколько вопросов ученик (или весь класс) прошёл неверно
- * в разрезе предмета. Считается из users/{uid}/userProgress: у каждой темы уже
- * есть агрегаты solvedQuestions (верно) и errors (неверно), а предмет темы
- * берётся из topic.subjectId (или через учебник). Отдельная коллекция попыток
- * не нужна.
+ * Ошибки по темам — сколько вопросов ученик (или весь класс) прошёл неверно
+ * в разрезе темы (mavzu). Считается из users/{uid}/userProgress: у каждой темы
+ * уже есть агрегаты solvedQuestions (верно) и errors (неверно), документ уже
+ * лежит по ключу topicId — отдельная коллекция попыток не нужна.
  */
-export interface SubjectFailure {
+export interface TopicFailure {
+    topicId: string;
+    topicTitle: string;
     subjectId: string;
     subjectName: string;
     subjectEmoji?: string;
-    /** Язык документа предмета — чтобы при слиянии дублей выбрать имя под UI-язык */
+    /** Язык документа предмета — для иконки/цвета темы */
     subjectLanguage?: string;
-    wrong: number;       // всего неверных ответов по предмету
+    wrong: number;       // всего неверных ответов по теме
     total: number;       // всего попыток (верно + неверно)
     wrongPct: number;    // процент неверных, целое 0–100
 }
 
-/** Тема → id предмета (через topic.subjectId либо учебник). Хелперы кешируются. */
+/** Тема → id предмета (через topic.subjectId либо учебник). */
 const resolveTopicSubject = async (topicId: string): Promise<string | undefined> => {
     const topic = await fetchTopicById(topicId);
     if (topic?.subjectId) return topic.subjectId;
@@ -31,70 +32,62 @@ const resolveTopicSubject = async (topicId: string): Promise<string | undefined>
     return undefined;
 };
 
-/** Сырые счётчики { subjectId: { wrong, total } } для одного ученика. */
+/** Сырые счётчики { topicId: { wrong, total } } для одного ученика. */
 const rawFailuresByUser = async (userId: string): Promise<Map<string, { wrong: number; total: number }>> => {
     const snap = await getDocs(collection(db, "users", userId, "userProgress"));
 
-    const topics: { topicId: string; wrong: number; total: number }[] = [];
+    const byTopic = new Map<string, { wrong: number; total: number }>();
     snap.forEach((d) => {
         const data = d.data() as { solvedQuestions?: number; errors?: number };
         const wrong = data.errors ?? 0;
         const solved = data.solvedQuestions ?? 0;
         if (wrong + solved === 0) return; // тема без попыток
-        topics.push({ topicId: d.id, wrong, total: wrong + solved });
+        byTopic.set(d.id, { wrong, total: wrong + solved });
     });
-
-    // Резолвим предметы параллельно, затем агрегируем синхронно (без гонок за карту)
-    const subjectIds = await Promise.all(topics.map((t) => resolveTopicSubject(t.topicId)));
-    const bySubject = new Map<string, { wrong: number; total: number }>();
-    topics.forEach((t, i) => {
-        const sid = subjectIds[i];
-        if (!sid) return;
-        const cur = bySubject.get(sid) ?? { wrong: 0, total: 0 };
-        cur.wrong += t.wrong;
-        cur.total += t.total;
-        bySubject.set(sid, cur);
-    });
-    return bySubject;
+    return byTopic;
 };
 
-/** Общий финал: подтягиваем имена предметов, считаем %, оставляем только с ошибками, худшие сверху. */
-const decorate = async (bySubject: Map<string, { wrong: number; total: number }>): Promise<SubjectFailure[]> => {
+/** Общий финал: подтягиваем тему/предмет, считаем %, оставляем только с ошибками, худшие сверху. */
+const decorate = async (byTopic: Map<string, { wrong: number; total: number }>): Promise<TopicFailure[]> => {
     const entries = await Promise.all(
-        Array.from(bySubject.entries()).map(async ([subjectId, { wrong, total }]) => {
-            const subj = await fetchSubjectById(subjectId);
+        Array.from(byTopic.entries()).map(async ([topicId, { wrong, total }]) => {
+            const topic = await fetchTopicById(topicId);
+            const subjectId = await resolveTopicSubject(topicId);
+            const subj = subjectId ? await fetchSubjectById(subjectId) : null;
             return {
-                subjectId,
-                subjectName: subj?.name ?? subjectId,
+                topicId,
+                topicTitle: topic?.title ?? topicId,
+                subjectId: subjectId ?? "",
+                subjectName: subj?.name ?? "",
                 subjectEmoji: subj?.emoji,
                 subjectLanguage: subj?.language,
                 wrong,
                 total,
                 wrongPct: total > 0 ? Math.round((wrong / total) * 100) : 0,
-            } as SubjectFailure;
+            } as TopicFailure;
         })
     );
-    // Худший предмет — с наибольшим числом ошибок; ничьи по проценту, затем по имени
+    // Худшая тема — с наибольшим числом ошибок; ничьи по проценту, затем по названию
     return entries
         .filter((e) => e.wrong > 0)
         .sort(
             (a, b) =>
                 b.wrong - a.wrong ||
                 b.wrongPct - a.wrongPct ||
-                a.subjectName.localeCompare(b.subjectName)
+                a.topicTitle.localeCompare(b.topicTitle)
         );
 };
 
-/** Ошибки по предметам для одного ученика (личная статистика). */
-export const fetchSubjectFailures = async (userId: string): Promise<SubjectFailure[]> =>
+/** Ошибки по темам для одного ученика (личная статистика). */
+export const fetchTopicFailures = async (userId: string): Promise<TopicFailure[]> =>
     decorate(await rawFailuresByUser(userId));
 
 /**
- * Ошибки по предметам для всего класса (учительская аналитика): суммируем
- * сырые счётчики всех учеников, затем считаем проценты. Требует прав учителя на
- * чтение userProgress учеников (по правилам Firestore).
+ * Ошибки по темам для всего класса (учительская аналитика): суммируем
+ * сырые счётчики всех учеников по теме, затем считаем проценты. Требует прав
+ * учителя на чтение userProgress учеников (по правилам Firestore).
  */
-export const fetchClassSubjectFailures = async (studentIds: string[]): Promise<SubjectFailure[]> => {
+export const fetchClassTopicFailures = async (studentIds: string[]): Promise<TopicFailure[]> => {
     if (studentIds.length === 0) return [];
     const perStudent = await Promise.all(studentIds.map((id) => rawFailuresByUser(id)));
     const merged = new Map<string, { wrong: number; total: number }>();
